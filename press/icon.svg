@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a9dcff"/>
+      <stop offset="0.6" stop-color="#d7efff"/>
+      <stop offset="1" stop-color="#eef8ff"/>
+    </linearGradient>
+    <linearGradient id="snow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dbe8f4"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#sky)"/>
+  <circle cx="410" cy="104" r="52" fill="#fff7d6"/>
+
+  <!-- mountains -->
+  <path d="M0 300 L120 210 L210 280 L320 195 L410 275 L512 210 L512 320 L0 320 Z" fill="#c4d8ec"/>
+  <path d="M0 340 L150 250 L280 330 L410 250 L512 300 L512 360 L0 360 Z" fill="#aec7e2"/>
+
+  <!-- snow slope -->
+  <path d="M0 380 L512 320 L512 512 L0 512 Z" fill="url(#snow)"/>
+  <path d="M0 380 L512 320" stroke="#eaf4fd" stroke-width="6" fill="none"/>
+
+  <!-- brick wall -->
+  <g>
+    <rect x="372" y="300" width="34" height="118" fill="#b0573f"/>
+    <g stroke="rgba(255,255,255,.28)" stroke-width="2">
+      <line x1="372" y1="320" x2="406" y2="320"/><line x1="372" y1="340" x2="406" y2="340"/>
+      <line x1="372" y1="360" x2="406" y2="360"/><line x1="372" y1="380" x2="406" y2="380"/>
+      <line x1="389" y1="300" x2="389" y2="320"/>
+    </g>
+    <ellipse cx="389" cy="300" rx="20" ry="6" fill="#fff"/>
+  </g>
+
+  <!-- skier mid-backflip, big and centred -->
+  <g transform="translate(240 232) rotate(150) scale(1.9)" stroke-linecap="round" fill="none">
+    <path d="M-46 34 H50" stroke="#ffcf33" stroke-width="9"/>
+    <path d="M-8 34 L0 8 M10 34 L2 8" stroke="#2b3a67" stroke-width="9"/>
+    <path d="M0 8 L4 -20" stroke="#e8442c" stroke-width="12"/>
+    <path d="M2 -6 L24 2" stroke="#e8442c" stroke-width="7"/>
+    <circle cx="6" cy="-28" r="9" fill="#ffd9b0" stroke="none"/>
+    <path d="M-4 -29 a9 9 0 0 1 18 0 Z" fill="#1f2c47" stroke="none"/>
+  </g>
+</svg>

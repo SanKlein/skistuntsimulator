@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 1296" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a9dcff"/><stop offset="0.6" stop-color="#d7efff"/><stop offset="1" stop-color="#eef8ff"/>
+    </linearGradient>
+    <linearGradient id="snow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dbe8f4"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="1296" fill="url(#sky)"/>
+  <circle cx="120" cy="240" r="60" fill="#fff7d6"/>
+  <path d="M0 700 L160 560 L300 680 L460 540 L600 680 L600 780 L0 780 Z" fill="#c4d8ec"/>
+  <path d="M0 780 L220 660 L420 790 L600 660 L600 820 L0 820 Z" fill="#aec7e2"/>
+  <!-- ramp up into a gap, brick wall, landing -->
+  <path d="M0 1000 L230 820 L250 900 L360 900 L600 980 L600 1296 L0 1296 Z" fill="url(#snow)"/>
+  <path d="M0 1000 L230 820" stroke="#eaf4fd" stroke-width="7" fill="none"/>
+  <path d="M360 900 L600 980" stroke="#eaf4fd" stroke-width="7" fill="none"/>
+
+  <!-- brick wall in the gap -->
+  <g>
+    <rect x="288" y="828" width="42" height="120" fill="#b0573f"/>
+    <g stroke="rgba(255,255,255,.28)" stroke-width="2">
+      <line x1="288" y1="850" x2="330" y2="850"/><line x1="288" y1="874" x2="330" y2="874"/>
+      <line x1="288" y1="898" x2="330" y2="898"/><line x1="288" y1="922" x2="330" y2="922"/>
+    </g>
+    <ellipse cx="309" cy="828" rx="25" ry="7" fill="#fff"/>
+  </g>
+
+  <!-- big skier mid front-flip, tucked -->
+  <g transform="translate(320 700) rotate(300) scale(2.6)" stroke-linecap="round" fill="none">
+    <path d="M-44 30 H48" stroke="#3ca0ff" stroke-width="8"/>
+    <path d="M-6 30 L2 8 M12 30 L4 8" stroke="#1c1f24" stroke-width="8"/>
+    <path d="M2 8 L6 -16" stroke="#1c1f24" stroke-width="11"/>
+    <path d="M4 -4 L22 4" stroke="#1c1f24" stroke-width="6"/>
+    <circle cx="8" cy="-24" r="8" fill="#e8b58c" stroke="none"/>
+    <path d="M-1 -25 a8 8 0 0 1 16 0 Z" fill="#8a4b2a" stroke="none"/>
+  </g>
+
+  <!-- snow spray -->
+  <g fill="#ffffff" opacity="0.9">
+    <circle cx="250" cy="838" r="6"/><circle cx="238" cy="826" r="5"/><circle cx="262" cy="828" r="4"/><circle cx="228" cy="840" r="4"/>
+  </g>
+
+  <text x="300" y="150" text-anchor="middle" font-size="60" font-weight="900" fill="#0e2f4d" letter-spacing="-1">FLIP THE WALL</text>
+  <text x="300" y="205" text-anchor="middle" font-size="28" font-weight="700" fill="#2b4a66">Backflips &amp; front flips with real physics</text>
+</svg>
