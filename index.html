@@ -301,6 +301,7 @@
   // back = backflip.
   const LAUNCH_SEED = 4.5;   // spin impulse from your lean at the lip
   const LEAN_TORQUE = 24;    // how strongly leaning builds spin in the air
+  const FWD_SPIN = 1.4;      // front flips need ~40% more rotation (back-tilted launch), so boost them
   const L_CAP = 15;          // max |angular momentum|
   const LEAN_TILT = 0.55;    // radians the upper body visibly leans at full lean
   // Ground jump: crouch then extend upward fast to hop off the snow anywhere.
@@ -577,7 +578,7 @@
     s.launched = true;
     s.charge = 0;
     s.bounces = 0;
-    s.L = LAUNCH_SEED * s.lean;   // seed spin from your lean at takeoff
+    s.L = LAUNCH_SEED * s.lean * (s.lean > 0 ? FWD_SPIN : 1);   // seed spin from your lean (front flips boosted)
     s.spun = 0;
     showLive(true);
   }
@@ -654,7 +655,7 @@
     s.tuck += (tuckTarget() - s.tuck) * Math.min(1, dt * 32);
     // lean control (cursor left/right) applies torque → builds/reverses spin
     s.lean += (leanTarget() - s.lean) * Math.min(1, dt * 12);
-    s.L += s.lean * LEAN_TORQUE * dt;
+    s.L += s.lean * LEAN_TORQUE * (s.lean > 0 ? FWD_SPIN : 1) * dt;
     s.L = Math.max(-L_CAP, Math.min(L_CAP, s.L));
     // figure-skater spin: w = L / I(tuck)
     const I = I_OPEN + (I_TUCK - I_OPEN) * s.tuck;
