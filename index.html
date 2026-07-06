@@ -257,7 +257,7 @@
   const RUN_GRAV = 0.45;     // how much gravity accelerates you along the slope
   const FRICTION = 6;        // gentle ground friction px/s^2
   const MIN_SPEED = 180, MAX_SPEED = 760;   // top speed capped so the run-up stays controllable
-  const POP = 560;           // launch spring off the ramp lip
+  const POP = 600;           // launch spring off the ramp lip
   const LAND_TOL = 0.72;     // radians of upright tolerance on landing (~41 deg)
   const AIR_DRAG_W = 0.35;   // slow angular decay in air (very light)
 
@@ -309,11 +309,11 @@
     pts.push({ x: 0, y: startY - 40 });
     pts.push({ x: startX, y: startY });
     pts.push({ x: 560, y: 278 });
-    pts.push({ x: 940, y: 452 });
-    const baseX = 1140, baseY = 545;
+    pts.push({ x: 940, y: 458 });
+    const baseX = 1140, baseY = 555;
     pts.push({ x: baseX, y: baseY });
-    const lipX = 1360, lipY = 478;
-    hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.48, -0.5, 16);
+    const lipX = 1400, lipY = 455;                 // taller, steeper kicker → more air to flip
+    hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.5, -0.6, 18);
     const gap = 300, pitY = lipY + 620;
     pts.push({ x: lipX + 12, y: pitY });
     const landX = lipX + gap;
@@ -721,13 +721,13 @@
   }
 
   function startGame() {
-    run.score = 0;
-    run.flips = 0;
-    document.getElementById("score").textContent = 0;
     dropInAgain();
   }
   function dropInAgain() {
     run.drops++;
+    run.score = 0;          // each drop-in is a fresh run — reset score & flips
+    run.flips = 0;
+    document.getElementById("score").textContent = 0;
     resetSkier();
     anchorHere();          // re-centre control on the cursor's current spot
     state = "play";
