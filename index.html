@@ -258,7 +258,8 @@
   const FRICTION = 6;        // gentle ground friction px/s^2
   const MIN_SPEED = 180, MAX_SPEED = 760;   // top speed capped so the run-up stays controllable
   const POP = 600;           // launch spring off the ramp lip
-  const LAND_TOL = 0.72;     // radians of upright tolerance on landing (~41 deg)
+  const LAND_TOL = 0.82;     // radians of upright tolerance for a clean landing (~47 deg)
+  const BOUNCE_TOL = 1.5;    // land within this (~86 deg) and you bounce off the skis instead of wiping out
   const AIR_DRAG_W = 0.35;   // slow angular decay in air (very light)
 
   // Skier "figure skater" spin: L = I * w. Tucking shrinks I -> faster spin.
@@ -517,6 +518,7 @@
       slowTime: 0,            // how long we've been nearly stopped (for settling)
       comingBack: false,      // has turned around on the finishing hill
       endTimer: 0,            // time spent sliding back before the round ends
+      bounces: 0,             // consecutive off-angle bounces in the current flight
       dead: false,
     };
     cam = { x: 0, y: 0 };
@@ -536,6 +538,7 @@
     s.onGround = false;
     s.launched = true;
     s.charge = 0;
+    s.bounces = 0;
     s.L = LAUNCH_SEED * s.lean;   // seed spin from your lean at takeoff
     s.spun = 0;
     showLive(true);
@@ -649,30 +652,52 @@
     if (s.x > course.endX) return finishRun();
   }
 
+  // Settle cleanly onto the slope and tally any flips.
+  function landClean(s, sa) {
+    s.angle = sa;
+    s.onGround = true;
+    s.bounces = 0;
+    showLive(false);
+    const flips = Math.round(Math.abs(s.spun) / (Math.PI * 2));
+    if (flips >= 1) {                            // reward + tally every landed flip
+      const gained = 100 + flips * 200 + (s.tuck < 0.2 ? 40 : 0);
+      run.score += gained;
+      run.flips += flips;                        // accumulate across the whole run
+      s.pendingLandMsg = { flips, gained };
+      document.getElementById("score").textContent = run.score;
+      for (let i = 0; i < 18; i++) spawnSpray(s, sa, 700);
+    }
+  }
+
   function evalLanding() {
     const s = skier;
     const sa = slopeAt(s.x);
     // error from nearest upright, measured relative to the slope
     let err = s.angle - sa;
     err = err - Math.round(err / (Math.PI * 2)) * (Math.PI * 2); // -> [-pi,pi]
-    const flips = Math.round(Math.abs(s.spun) / (Math.PI * 2));
-    if (Math.abs(err) <= LAND_TOL) {
-      // clean landing! settle onto the slope and keep skiing to the runout
-      s.angle = sa;
-      s.onGround = true;
-      showLive(false);
-      if (flips >= 1) {                          // reward + tally every landed flip
-        const gained = 100 + flips * 200 + (s.tuck < 0.2 ? 40 : 0);
-        run.score += gained;
-        run.flips += flips;                      // accumulate across the whole run
-        s.pendingLandMsg = { flips, gained };
-        document.getElementById("score").textContent = run.score;
-        for (let i = 0; i < 18; i++) spawnSpray(s, sa, 700);
-      }
-    } else {
-      // landed at a bad angle relative to the slope — wipe out
-      return crash("WIPEOUT!", flips ? (flips + (flips === 1 ? " flip" : " flips") + " but landed sideways") : "landed sideways");
+    const ae = Math.abs(err);
+
+    if (ae <= LAND_TOL) return landClean(s, sa);          // stuck it
+
+    if (ae <= BOUNCE_TOL) {
+      // Landed on the nose or tail of the skis — bounce instead of wiping out.
+      // Keep going with a little less speed and reduced spin, so you can
+      // straighten up and land it on the next touch. Out of bounce energy = you
+      // just settle (survived, sketchy).
+      s.bounces = (s.bounces || 0) + 1;
+      const speed = Math.hypot(s.vx, s.vy) * 0.66;
+      if (s.bounces > 3 || speed < 150) return landClean(s, sa);
+      s.vx = Math.cos(sa) * speed;
+      s.vy = Math.sin(sa) * speed - 210;                  // pop back up off the skis
+      s.L *= 0.55;                                         // impact bleeds spin (easier to correct)
+      s.onGround = false;
+      for (let i = 0; i < 8; i++) spawnSpray(s, sa, 360);
+      showHint("Bounce! Straighten out and land it");
+      return;
     }
+
+    const flips = Math.round(Math.abs(s.spun) / (Math.PI * 2));
+    return crash("WIPEOUT!", flips ? (flips + (flips === 1 ? " flip" : " flips") + " but landed sideways") : "landed sideways");
   }
 
   // ------------------------------------------------------------------ particles
