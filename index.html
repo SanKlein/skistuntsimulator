@@ -233,8 +233,8 @@
       </div>
       <button class="btn" id="againBtn">Drop In Again ▸</button>
       <button class="linkbtn" id="replayBtn">▶ Watch replay</button>
-      <button class="linkbtn" id="saveVidBtn">🎥 Save / Share replay (video)</button>
-      <button class="linkbtn" id="saveGifBtn">🎞 Save / Share replay (GIF)</button>
+      <button class="linkbtn" id="saveVidBtn">🎥 Share video</button>
+      <button class="linkbtn" id="saveGifBtn">🎞 Share GIF</button>
       <button class="linkbtn" id="changeBtn">← Change course &amp; rider</button>
     </div>
   </div>
@@ -792,7 +792,7 @@
     if ((state !== "result" && state !== "replay") || !trail.length || mediaRec) return;
     if (!window.MediaRecorder || !canvas.captureStream) {
       const b = document.getElementById("saveVidBtn");
-      if (b) { b.textContent = "⚠ Video not supported in this browser"; setTimeout(() => (b.textContent = "🎥 Save / Share replay"), 2500); }
+      if (b) { b.textContent = "⚠ Video not supported here — try GIF"; setTimeout(() => (b.textContent = "🎥 Share video"), 2500); }
       return;
     }
     // one-shot replay (no loop) while we record the canvas
