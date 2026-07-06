@@ -349,12 +349,14 @@
     pts.push({ x: landX - 12, y: pitY });
     const landY = lipY + 96;
     pts.push({ x: landX, y: landY });
-    pts.push({ x: landX + 260, y: landY + 150 });
-    pts.push({ x: landX + 620, y: landY + 205 });
+    // bigger landing hill: a longer, generous slope to catch the higher/further jumps
+    pts.push({ x: landX + 340, y: landY + 200 });
+    pts.push({ x: landX + 740, y: landY + 310 });
+    pts.push({ x: landX + 1200, y: landY + 360 });
     // finishing wall: the terrain just keeps rising, so you can't clear it — you
     // ride up, run out of momentum, stop, and slide back down for a few seconds
     // before the round ends (if you're still on your feet).
-    const A = landX + 620, Ay = landY + 205;
+    const A = landX + 1200, Ay = landY + 360;
     pts.push({ x: A + 180, y: Ay - 60 });
     pts.push({ x: A + 350, y: Ay - 160 });
     pts.push({ x: A + 500, y: Ay - 290 });
