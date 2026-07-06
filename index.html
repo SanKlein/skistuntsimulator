@@ -304,24 +304,26 @@
     pts.push({ x: landX, y: landY });
     pts.push({ x: landX + 260, y: landY + 150 });
     pts.push({ x: landX + 620, y: landY + 205 });
-    // finishing roller: ride up, flip over the crest, come down the far side
+    // finishing hill: ride up, flip, then slide back DOWN it (real momentum).
+    // Too slow to crest → you reverse and the round ends past the finish line.
     const A = landX + 620, Ay = landY + 205;
-    pts.push({ x: A + 180, y: Ay - 22 });
-    pts.push({ x: A + 340, y: Ay - 64 });
-    pts.push({ x: A + 470, y: Ay - 86 });
-    pts.push({ x: A + 560, y: Ay - 90 });     // crest
-    pts.push({ x: A + 660, y: Ay - 80 });
-    pts.push({ x: A + 900, y: Ay - 18 });
-    pts.push({ x: A + 1260, y: Ay + 66 });
-    pts.push({ x: A + 1900, y: Ay + 100 });   // flatten to the finish
-    const endX = A + 1850;
+    pts.push({ x: A + 180, y: Ay - 70 });
+    pts.push({ x: A + 340, y: Ay - 170 });
+    pts.push({ x: A + 470, y: Ay - 260 });
+    pts.push({ x: A + 570, y: Ay - 300 });    // crest (~300 up — usually reverses)
+    pts.push({ x: A + 670, y: Ay - 286 });
+    pts.push({ x: A + 850, y: Ay - 210 });
+    pts.push({ x: A + 1100, y: Ay - 90 });
+    pts.push({ x: A + 1450, y: Ay + 20 });
+    pts.push({ x: A + 2050, y: Ay + 55 });    // far outrun (if you clear the crest)
+    const endX = A + 2000, finishLine = A - 260;
     const wall = { x: lipX + gap * 0.5, halfW: 17, topY: lipY - (26 + wallExtra), baseY: pitY };
     course = {
-      id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY, endX,
+      id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY, endX, finishLine,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
         { x: landX + 8, y: landY, color: "#3ca0ff" },
-        { x: endX, y: Ay + 100, color: "#2ecc71" },
+        { x: A + 570, y: Ay - 300, color: "#2ecc71" },
       ],
     };
   }
@@ -342,21 +344,22 @@
     pts.push({ x: lipX + 70, y: lipY + 30 });         // long descending landing hill
     pts.push({ x: lipX + 520, y: lipY + 320 });
     pts.push({ x: lipX + 1100, y: lipY + 470 });
-    // finishing roller: ride up, flip over the crest, come down the far side
+    // finishing hill: ride up, flip, then slide back down it (real momentum)
     const A = lipX + 1100, Ay = lipY + 470;
-    pts.push({ x: A + 200, y: Ay - 26 });
-    pts.push({ x: A + 380, y: Ay - 74 });
-    pts.push({ x: A + 520, y: Ay - 96 });
-    pts.push({ x: A + 620, y: Ay - 100 });    // crest
-    pts.push({ x: A + 730, y: Ay - 88 });
-    pts.push({ x: A + 1000, y: Ay - 18 });
-    pts.push({ x: A + 1420, y: Ay + 74 });
-    pts.push({ x: A + 2050, y: Ay + 110 });   // flatten to the finish
-    const endX = A + 2000;
+    pts.push({ x: A + 200, y: Ay - 80 });
+    pts.push({ x: A + 380, y: Ay - 190 });
+    pts.push({ x: A + 520, y: Ay - 280 });
+    pts.push({ x: A + 630, y: Ay - 315 });    // crest (~315 up)
+    pts.push({ x: A + 740, y: Ay - 298 });
+    pts.push({ x: A + 950, y: Ay - 210 });
+    pts.push({ x: A + 1250, y: Ay - 80 });
+    pts.push({ x: A + 1650, y: Ay + 30 });
+    pts.push({ x: A + 2250, y: Ay + 65 });    // far outrun (if you clear the crest)
+    const endX = A + 2200, finishLine = A - 280;
     course = {
       id: "jump", pts, wall: null, startX, startY,
-      lipX, lipY, landX: lipX, landY: lipY + 30, pitY: lipY + 2000, endX,
-      markers: [{ x: lipX, y: lipY, color: "#ff5a3c" }, { x: endX, y: Ay + 110, color: "#2ecc71" }],
+      lipX, lipY, landX: lipX, landY: lipY + 30, pitY: lipY + 2000, endX, finishLine,
+      markers: [{ x: lipX, y: lipY, color: "#ff5a3c" }, { x: A + 630, y: Ay - 315, color: "#2ecc71" }],
     };
   }
 
@@ -500,6 +503,7 @@
       onGround: false,
       launched: false,        // has left the lip at least once
       spun: 0,                // radians accumulated in the current flight
+      slowTime: 0,            // how long we've been nearly stopped (for settling)
       dead: false,
     };
     cam = { x: 0, y: 0 };
@@ -527,26 +531,28 @@
   function stepGround(dt) {
     const s = skier;
     const sa = slopeAt(s.x);
-    // accelerate along slope by gravity, minus friction
-    let speed = Math.hypot(s.vx, s.vy);
-    speed += G * RUN_GRAV * Math.sin(sa) * dt;   // sin>0 on downhill (y+ down)
-    speed -= FRICTION * dt;
-    speed = Math.max(MIN_SPEED, Math.min(MAX_SPEED, speed));
-    s.vx = Math.cos(sa) * speed;
-    s.vy = Math.sin(sa) * speed;
+    const cos = Math.cos(sa), sin = Math.sin(sa);
+    // SIGNED speed along the slope (project velocity onto the +x tangent):
+    // + = forward/downhill, - = sliding backward. Gravity always pulls toward
+    // downhill, so on an up-slope the skier slows, stops and slides back down.
+    let v = s.vx * cos + s.vy * sin;
+    v += G * RUN_GRAV * sin * dt;             // gravity along the slope
+    v -= Math.sign(v) * FRICTION * dt;         // friction opposes motion
+    v = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, v));
+    s.vx = cos * v;
+    s.vy = sin * v;
     s.x += s.vx * dt;
+    if (s.x < 0) { s.x = 0; v = 0; }           // don't slide off the top of the hill
     s.y = ground(s.x);
-    s.angle = sa;               // align to slope
+    s.angle = sa;
     const prevTuck = s.tuck;
     s.tuck += (tuckTarget() - s.tuck) * Math.min(1, dt * 32);
     s.lean += (leanTarget() - s.lean) * Math.min(1, dt * 12);
     const detuck = (prevTuck - s.tuck) / dt;   // >0 when standing up fast (extending)
-    // Load the launch spring by crouching. Charges instantly, bleeds slowly.
     if (s.tuck > s.charge) s.charge = s.tuck;
     else s.charge = Math.max(0, s.charge - dt * 0.7);
 
-    // JUMP: crouch, then snap upward fast, to hop off the snow anywhere on the
-    // hill (like the original — you can even flip off a flat pop).
+    // JUMP: crouch, then snap upward fast, to hop off the snow anywhere.
     if (detuck > JUMP_DETUCK && s.charge > 0.25) {
       const power = Math.min(1, detuck / JUMP_FULL);
       s.vy = -JUMP_POP * power * (0.5 + 0.5 * s.charge);
@@ -555,16 +561,23 @@
     }
 
     // snow spray while carving fast
-    if (speed > 500 && Math.random() < 0.6) spawnSpray(s, sa, speed);
+    if (Math.abs(v) > 500 && Math.random() < 0.6) spawnSpray(s, sa, Math.abs(v));
 
-    // Launch detection: the ground ahead falls away faster than we descend.
+    // Launch off a crest — only when moving forward with real speed.
     const lookX = s.x + s.vx * dt;
-    const groundAhead = ground(lookX);
     const ballisticY = s.y + s.vy * dt;
-    if (ballisticY < groundAhead - 1 && s.x >= course.lipX - 40) {
-      // leaving the lip — go airborne, keep velocity, add pop from your charge
+    if (v > 60 && ballisticY < ground(lookX) - 1 && s.x >= course.lipX - 40) {
       s.vy -= POP * (0.3 + 0.7 * s.charge);
       leaveGround();
+      return;
+    }
+
+    // End-of-run: ride the finishing hill, slide back past the finish line, or
+    // simply come to rest — any of these ends the round.
+    if (s.launched) {
+      if (v < -30 && course.finishLine != null && s.x < course.finishLine) return finishRun();
+      if (Math.abs(v) < 45) { s.slowTime += dt; if (s.slowTime > 1.1) return finishRun(); }
+      else s.slowTime = 0;
     }
   }
 
