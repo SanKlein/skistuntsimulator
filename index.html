@@ -113,6 +113,8 @@
     color:#8fd3ff; font-size:13px; font-weight:700; opacity:.85;
   }
   .linkbtn:hover { opacity:1; text-decoration:underline; }
+  .linkrow { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:6px 16px; margin-top:12px; }
+  .linkrow .linkbtn { margin:0; }
   .result-flips { font-size: 46px; font-weight: 900; margin-top: 6px; }
   .result-tag { font-size: 13px; letter-spacing:.18em; text-transform:uppercase; font-weight:800; }
   .good { color:#7dffa8; } .bad { color:#ff8f8f; }
@@ -232,9 +234,11 @@
         <span class="keycap"><b>tap</b> / Space — drop back in</span>
       </div>
       <button class="btn" id="againBtn">Drop In Again ▸</button>
-      <button class="linkbtn" id="replayBtn">▶ Watch replay</button>
-      <button class="linkbtn" id="saveVidBtn">🎥 Share video</button>
-      <button class="linkbtn" id="saveGifBtn">🎞 Share GIF</button>
+      <div class="linkrow">
+        <button class="linkbtn" id="replayBtn">▶ Watch replay</button>
+        <button class="linkbtn" id="saveVidBtn">🎥 Share video</button>
+        <button class="linkbtn" id="saveGifBtn">🎞 Share GIF</button>
+      </div>
       <button class="linkbtn" id="changeBtn">← Change course &amp; rider</button>
     </div>
   </div>
