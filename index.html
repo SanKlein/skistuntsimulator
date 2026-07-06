@@ -156,9 +156,13 @@
   .credit + .credit { margin-top:4px; }
   .credit a { color:#8fd3ff; }
   .credit .heart { color:#ff5a6e; }
-  #mobileGate {
+  #mobileGate, #videoCard {
     position:absolute; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
     background:rgba(9,20,32,.78); backdrop-filter:blur(6px); padding:20px;
+  }
+  #videoCard { z-index:45; }
+  #replayControls {
+    position:absolute; bottom:26px; left:50%; transform:translateX(-50%); z-index:20;
   }
   #replaybadge {
     position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
@@ -185,6 +189,9 @@
   </div>
 
   <div id="replaybadge" class="hidden">▶ REPLAY</div>
+  <div id="replayControls" class="hidden">
+    <button class="btn" id="replaySaveBtn">🎥 Save / Share this run</button>
+  </div>
   <div id="hint" class="hidden"></div>
 
   <div id="overlay">
@@ -219,7 +226,7 @@
       </div>
       <button class="btn" id="againBtn">Drop In Again ▸</button>
       <button class="linkbtn" id="replayBtn">▶ Watch replay</button>
-      <button class="linkbtn" id="saveVidBtn">🎥 Save replay video</button>
+      <button class="linkbtn" id="saveVidBtn">🎥 Save / Share replay</button>
       <button class="linkbtn" id="changeBtn">← Change course &amp; rider</button>
     </div>
   </div>
@@ -232,6 +239,17 @@
       left/right to lean), so it needs a desktop or laptop with a mouse or trackpad. A touch
       version for phones is on the way — check back soon!</p>
       <button class="btn" id="mobileTry">Try anyway ▸</button>
+    </div>
+  </div>
+
+  <!-- Clip ready (share / download) -->
+  <div id="videoCard" class="hidden">
+    <div class="card">
+      <div class="result-tag good">CLIP READY 🎥</div>
+      <p id="videoMsg" style="margin-top:12px">Share it or save it.</p>
+      <button class="btn" id="videoShareBtn">📤 Share</button>
+      <button class="linkbtn" id="videoDownloadBtn">⬇ Download</button>
+      <button class="linkbtn" id="videoDoneBtn">Done</button>
     </div>
   </div>
 </div>
@@ -741,37 +759,39 @@
     const badge = document.getElementById("replaybadge");
     badge.innerHTML = '▶ REPLAY<div style="font-size:14px;font-weight:700;opacity:.85;margin-top:8px;">tap or press any key to stop</div>';
     badge.classList.remove("hidden");
+    document.getElementById("replayControls").classList.remove("hidden");   // Save/Share button while watching
     hideHint();
   }
   function endReplay() {
     replay = null;
     document.getElementById("replaybadge").classList.add("hidden");
+    document.getElementById("replayControls").classList.add("hidden");
     dropInAgain();
   }
 
-  // ---- record the replay off the canvas into a downloadable video ----------
-  let mediaRec = null, recChunks = [], recExt = "webm";
+  // ---- record the replay off the canvas, then share or download it ---------
+  let mediaRec = null, recChunks = [], recExt = "webm", lastClip = null;
   function pickMime() {
-    const cands = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm",
-                   "video/mp4;codecs=h264", "video/mp4"];
+    const cands = ["video/mp4;codecs=h264", "video/mp4",       // prefer mp4 (shares best to Messages)
+                   "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
     if (!window.MediaRecorder || !MediaRecorder.isTypeSupported) return "";
     for (const c of cands) if (MediaRecorder.isTypeSupported(c)) return c;
     return "";
   }
   function saveReplayVideo() {
-    if (state !== "result" || !trail.length || mediaRec) return;
+    if ((state !== "result" && state !== "replay") || !trail.length || mediaRec) return;
     if (!window.MediaRecorder || !canvas.captureStream) {
       const b = document.getElementById("saveVidBtn");
-      b.textContent = "⚠ Video not supported in this browser";
-      setTimeout(() => (b.textContent = "🎥 Save replay video"), 2500);
+      if (b) { b.textContent = "⚠ Video not supported in this browser"; setTimeout(() => (b.textContent = "🎥 Save / Share replay"), 2500); }
       return;
     }
     // one-shot replay (no loop) while we record the canvas
     replay = { frames: trail.slice(), i: 0, hold: 0, recording: true, tail: 0 };
     state = "replay";
     document.getElementById("overlay").classList.add("hidden");
+    document.getElementById("replayControls").classList.add("hidden");      // hide button during recording
     const badge = document.getElementById("replaybadge");
-    badge.innerHTML = '● REC<div style="font-size:14px;font-weight:700;opacity:.85;margin-top:8px;">saving your run…</div>';
+    badge.innerHTML = '● REC<div style="font-size:14px;font-weight:700;opacity:.85;margin-top:8px;">capturing your run…</div>';
     badge.classList.remove("hidden");
     hideHint();
 
@@ -785,22 +805,41 @@
     mediaRec.start();
   }
   function finishVideo() {
-    const blob = new Blob(recChunks, { type: recExt === "mp4" ? "video/mp4" : "video/webm" });
+    const type = recExt === "mp4" ? "video/mp4" : "video/webm";
+    const blob = new Blob(recChunks, { type });
     mediaRec = null; recChunks = [];
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "ski-stunt-replay." + recExt;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-    // back to the result card
+    if (lastClip) URL.revokeObjectURL(lastClip.url);
+    const file = new File([blob], "ski-stunt-replay." + recExt, { type });
+    lastClip = { file, url: URL.createObjectURL(blob) };
+    // stop the replay visuals
     replay = null;
     document.getElementById("replaybadge").classList.add("hidden");
     state = "result";
-    document.getElementById("resultCard").classList.remove("hidden");
+    // show the share/save card
+    const canShare = !!(navigator.canShare && navigator.canShare({ files: [file] }));
+    document.getElementById("videoShareBtn").style.display = canShare ? "" : "none";
+    document.getElementById("videoMsg").textContent = canShare
+      ? "Send it straight to Messages, or save it to your device."
+      : "Save the clip, then share it from your files.";
+    document.getElementById("overlay").classList.add("hidden");
+    document.getElementById("videoCard").classList.remove("hidden");
+  }
+  async function shareClip() {
+    if (!lastClip) return;
+    try { await navigator.share({ files: [lastClip.file], title: "Ski Stunt Simulator", text: "My run on skistuntsimulator.com 🎿" }); }
+    catch (e) { /* user cancelled or unsupported — no-op */ }
+  }
+  function downloadClip() {
+    if (!lastClip) return;
+    const a = document.createElement("a");
+    a.href = lastClip.url; a.download = "ski-stunt-replay." + recExt;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function closeVideoCard() {
+    document.getElementById("videoCard").classList.add("hidden");
     document.getElementById("overlay").classList.remove("hidden");
-    const b = document.getElementById("saveVidBtn");
-    b.textContent = "✓ Saved!";
-    setTimeout(() => (b.textContent = "🎥 Save replay video"), 2500);
+    document.getElementById("resultCard").classList.remove("hidden");
+    state = "result";
   }
 
   function startGame() {
@@ -1391,6 +1430,10 @@
   document.getElementById("saveVidBtn").addEventListener("click", () => {
     if (state === "result") saveReplayVideo();
   });
+  document.getElementById("replaySaveBtn").addEventListener("click", saveReplayVideo);  // while watching a replay
+  document.getElementById("videoShareBtn").addEventListener("click", shareClip);
+  document.getElementById("videoDownloadBtn").addEventListener("click", downloadClip);
+  document.getElementById("videoDoneBtn").addEventListener("click", closeVideoCard);
   document.getElementById("changeBtn").addEventListener("click", () => {
     if (state === "result") backToStart();
   });
