@@ -152,8 +152,14 @@
   .howto { margin-top:14px; text-align:left; font-size:13px; opacity:.9; }
   .howto summary { cursor:pointer; font-weight:800; opacity:.8; letter-spacing:.02em; }
   .howto p { margin-top:8px; }
-  .credit { margin-top:14px; font-size:11px; opacity:.6; }
+  .credit { margin-top:10px; font-size:11px; opacity:.6; }
+  .credit + .credit { margin-top:4px; }
   .credit a { color:#8fd3ff; }
+  .credit .heart { color:#ff5a6e; }
+  #mobileGate {
+    position:absolute; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+    background:rgba(9,20,32,.78); backdrop-filter:blur(6px); padding:20px;
+  }
   #replaybadge {
     position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
     font-size: 44px; font-weight:900; letter-spacing:.05em; opacity:.9;
@@ -198,6 +204,7 @@
       </details>
       <button class="btn" id="startBtn">Drop In ▸</button>
       <p class="credit">A tribute to the original <a href="https://www.cs.ubc.ca/~van/sssjava/javademo.html" target="_blank" rel="noopener noreferrer">Ski Stunt Simulator</a> by Michiel van de Panne (UBC).</p>
+      <p class="credit">Made with <span class="heart">♥</span> by <a href="https://www.writethingsdown.com" target="_blank" rel="noopener noreferrer">Twos</a>.</p>
     </div>
 
     <!-- Result card -->
@@ -212,6 +219,17 @@
       </div>
       <button class="btn" id="againBtn">Drop In Again ▸</button>
       <button class="linkbtn" id="changeBtn">← Change course &amp; rider</button>
+    </div>
+  </div>
+
+  <!-- Mobile gate -->
+  <div id="mobileGate" class="hidden">
+    <div class="card">
+      <h1><span class="sub">Heads up</span>Best on a computer 🖥️</h1>
+      <p>Ski Stunt Simulator is controlled with <b>mouse movement</b> (move up/down to crouch,
+      left/right to lean), so it needs a desktop or laptop with a mouse or trackpad. A touch
+      version for phones is on the way — check back soon!</p>
+      <button class="btn" id="mobileTry">Try anyway ▸</button>
     </div>
   </div>
 </div>
@@ -468,7 +486,7 @@
     "TwosJoe":       { name:"TwosJoe",       skin:"#e8b58c", head:{type:"beret", color:"#15171b"}, hairColor:"#4a3527", beard:true,  beardColor:"#5a4030", glasses:false, top:"#f2f2f0", bottomType:"pants",  bottom:"#6d7b8c", boots:"#2a2f38", skis:"#ff5a3c", build:1.08 },
     "TwosBaller":    { name:"TwosBaller",    skin:"#e8b58c", head:{type:"hair",  color:"#8a4b2a"}, hairColor:"#8a4b2a", beard:false, glasses:false, top:"#1c1f24", bottomType:"pants",  bottom:"#1c1f24", boots:"#111318", skis:"#3ca0ff", build:0.94 },
     "Popstar Benny": { name:"Popstar Benny", skin:"#5a3b28", head:{type:"hair",  color:"#141414"}, hairColor:"#141414", beard:false, glasses:true,  top:"#c9ccc9", bottomType:"pants", bottom:"#3c5c94", boots:"#20241f", skis:"#ffcf33", build:1.16, thin:true, fluff:true, fluffColor:"#ece4d2" },
-    "Harlem":        { name:"Harlem",        skin:"#9c6a42", head:{type:"long",  color:"#0f0f10"}, hairColor:"#0f0f10", beard:false, glasses:false, top:"#1a1a1a", bottomType:"pants",  bottom:"#9a8f80", boots:"#c0392b", skis:"#ff5a3c", build:0.92 },
+    "Harlem":        { name:"Harlem",        skin:"#7b5234", head:{type:"long",  color:"#0f0f10"}, hairColor:"#0f0f10", beard:false, glasses:false, top:"#1a1a1a", bottomType:"pants",  bottom:"#9a8f80", boots:"#c0392b", skis:"#ff5a3c", build:0.92 },
   };
   const DEFAULT_CUSTOM = { name:"Custom", skin:"#e8b58c", head:{type:"beanie", color:"#1f2c47"}, hairColor:"#4a3527", beard:false, glasses:false, top:"#e8442c", bottomType:"pants", bottom:"#2b3a67", boots:"#2a2f38", skis:"#ffcf33", build:1.0 };
   const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -1261,6 +1279,15 @@
     resetSkier();
     cam.x = skier.x - W * 0.34; cam.y = skier.y - H * 0.56;
   }
+
+  // Show a "best on desktop" gate on touch devices (controls need a mouse).
+  const isTouchDevice =
+    /Mobi|Android|iPhone|iPad|iPod|Windows Phone|BlackBerry/i.test(navigator.userAgent || "") ||
+    (navigator.maxTouchPoints > 1 && window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+  if (isTouchDevice) document.getElementById("mobileGate").classList.remove("hidden");
+  document.getElementById("mobileTry").addEventListener("click", () => {
+    document.getElementById("mobileGate").classList.add("hidden");
+  });
 
   buildCourseTabs();
   buildCharacterUI();
