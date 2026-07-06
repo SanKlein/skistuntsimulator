@@ -163,7 +163,13 @@
   #videoCard { z-index:45; }
   #replayControls {
     position:absolute; bottom:26px; left:50%; transform:translateX(-50%); z-index:20;
+    display:flex; gap:10px;
   }
+  .minibtn {
+    cursor:pointer; font-size:14px; font-weight:800; padding:11px 20px; border-radius:11px; border:none;
+    color:#062033; background:linear-gradient(180deg,#8fd3ff,#4aa9e8); box-shadow:0 6px 18px rgba(74,169,232,.4);
+  }
+  .minibtn:active { transform:translateY(1px); }
   #replaybadge {
     position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
     font-size: 44px; font-weight:900; letter-spacing:.05em; opacity:.9;
@@ -190,7 +196,8 @@
 
   <div id="replaybadge" class="hidden">▶ REPLAY</div>
   <div id="replayControls" class="hidden">
-    <button class="btn" id="replaySaveBtn">🎥 Save / Share this run</button>
+    <button class="minibtn" id="replaySaveBtn">🎥 Video</button>
+    <button class="minibtn" id="replayGifBtn">🎞 GIF</button>
   </div>
   <div id="hint" class="hidden"></div>
 
@@ -226,7 +233,8 @@
       </div>
       <button class="btn" id="againBtn">Drop In Again ▸</button>
       <button class="linkbtn" id="replayBtn">▶ Watch replay</button>
-      <button class="linkbtn" id="saveVidBtn">🎥 Save / Share replay</button>
+      <button class="linkbtn" id="saveVidBtn">🎥 Save / Share replay (video)</button>
+      <button class="linkbtn" id="saveGifBtn">🎞 Save / Share replay (GIF)</button>
       <button class="linkbtn" id="changeBtn">← Change course &amp; rider</button>
     </div>
   </div>
@@ -458,14 +466,14 @@
 
   canvas.addEventListener("pointerdown", (e) => {
     e.preventDefault();
-    if (state === "replay") { if (!(replay && replay.recording)) endReplay(); return; }  // tap stops replay (not while recording)
+    if (state === "replay") { if (!(replay && (replay.recording || replay.gifCapture))) endReplay(); return; }  // tap stops replay (not while capturing)
     setXY(e); press();
   });
   window.addEventListener("pointermove", setXY, { passive: true });
   window.addEventListener("pointerup", () => release());
   window.addEventListener("pointercancel", () => release());
   window.addEventListener("keydown", (e) => {
-    if (state === "replay") { e.preventDefault(); if (!(replay && replay.recording)) endReplay(); return; }  // any key stops replay (not while recording)
+    if (state === "replay") { e.preventDefault(); if (!(replay && (replay.recording || replay.gifCapture))) endReplay(); return; }  // any key stops replay (not while capturing)
     if (e.code === "Space") { e.preventDefault(); press(); }
     if (e.key === "r" || e.key === "R") startReplay();
   });
@@ -804,25 +812,29 @@
     mediaRec.onstop = finishVideo;
     mediaRec.start();
   }
-  function finishVideo() {
-    const type = recExt === "mp4" ? "video/mp4" : "video/webm";
-    const blob = new Blob(recChunks, { type });
-    mediaRec = null; recChunks = [];
+  function setClip(blob, ext, type) {
     if (lastClip) URL.revokeObjectURL(lastClip.url);
-    const file = new File([blob], "ski-stunt-replay." + recExt, { type });
-    lastClip = { file, url: URL.createObjectURL(blob) };
-    // stop the replay visuals
+    const file = new File([blob], "ski-stunt-replay." + ext, { type });
+    lastClip = { file, url: URL.createObjectURL(blob), ext };
+    return file;
+  }
+  function showClipCard(file, gif) {
     replay = null;
     document.getElementById("replaybadge").classList.add("hidden");
     state = "result";
-    // show the share/save card
     const canShare = !!(navigator.canShare && navigator.canShare({ files: [file] }));
     document.getElementById("videoShareBtn").style.display = canShare ? "" : "none";
     document.getElementById("videoMsg").textContent = canShare
-      ? "Send it straight to Messages, or save it to your device."
+      ? (gif ? "Send the GIF straight to Messages, or save it." : "Send it straight to Messages, or save it.")
       : "Save the clip, then share it from your files.";
     document.getElementById("overlay").classList.add("hidden");
     document.getElementById("videoCard").classList.remove("hidden");
+  }
+  function finishVideo() {
+    const type = recExt === "mp4" ? "video/mp4" : "video/webm";
+    const file = setClip(new Blob(recChunks, { type }), recExt, type);
+    mediaRec = null; recChunks = [];
+    showClipCard(file, false);
   }
   async function shareClip() {
     if (!lastClip) return;
@@ -832,7 +844,7 @@
   function downloadClip() {
     if (!lastClip) return;
     const a = document.createElement("a");
-    a.href = lastClip.url; a.download = "ski-stunt-replay." + recExt;
+    a.href = lastClip.url; a.download = "ski-stunt-replay." + lastClip.ext;
     document.body.appendChild(a); a.click(); a.remove();
   }
   function closeVideoCard() {
@@ -840,6 +852,150 @@
     document.getElementById("overlay").classList.remove("hidden");
     document.getElementById("resultCard").classList.remove("hidden");
     state = "result";
+  }
+
+  // ---- animated-GIF replay: capture frames then encode (shares everywhere) ----
+  let gifCanvas = null, gifCtx = null, capW = 0, capH = 0;
+  function saveReplayGIF() {
+    if ((state !== "result" && state !== "replay") || !trail.length || mediaRec) return;
+    capW = 440; capH = Math.max(1, Math.round(capW * H / W));
+    if (!gifCanvas) { gifCanvas = document.createElement("canvas"); gifCtx = gifCanvas.getContext("2d"); }
+    gifCanvas.width = capW; gifCanvas.height = capH;
+    replay = { frames: trail.slice(), i: 0, hold: 0, gifCapture: true, tail: 0, caps: [], capN: 0 };
+    state = "replay";
+    document.getElementById("overlay").classList.add("hidden");
+    document.getElementById("replayControls").classList.add("hidden");
+    const badge = document.getElementById("replaybadge");
+    badge.innerHTML = '● GIF<div style="font-size:14px;font-weight:700;opacity:.85;margin-top:8px;">capturing your run…</div>';
+    badge.classList.remove("hidden");
+    hideHint();
+  }
+  function captureGifFrame() {
+    const r = replay;
+    if (!r || !r.gifCapture) return;
+    if (r.capN++ % 3 !== 0 || r.caps.length >= 80) return;   // ~20fps, cap length
+    gifCtx.drawImage(canvas, 0, 0, capW, capH);
+    r.caps.push(gifCtx.getImageData(0, 0, capW, capH).data);
+  }
+  function finalizeGIF() {
+    const caps = replay.caps;
+    const badge = document.getElementById("replaybadge");
+    badge.innerHTML = '⏳<div style="font-size:14px;font-weight:700;opacity:.9;margin-top:8px;">rendering GIF…</div>';
+    replay = null; state = "result";
+    setTimeout(() => {                                        // let the message paint before the heavy encode
+      const gif = encodeGIF(caps, capW, capH, 5);
+      const file = setClip(new Blob([gif], { type: "image/gif" }), "gif", "image/gif");
+      showClipCard(file, true);
+    }, 60);
+  }
+
+  // ---- self-contained GIF89a encoder (median-cut palette + classic LZW) ----
+  function LZWEncoder(width, height, pixels, colorDepth) {
+    const EOF = -1, BITS = 12, HSIZE = 5003;
+    const initCodeSize = Math.max(2, colorDepth);
+    const masks = [0x0000,0x0001,0x0003,0x0007,0x000F,0x001F,0x003F,0x007F,0x00FF,0x01FF,0x03FF,0x07FF,0x0FFF,0x1FFF,0x3FFF,0x7FFF,0xFFFF];
+    const htab = new Int32Array(HSIZE), codetab = new Int32Array(HSIZE), accum = new Uint8Array(256), out = [];
+    let n_bits, maxcode, maxbits = BITS, maxmaxcode = 1 << BITS;
+    let free_ent = 0, clear_flg = false, g_init_bits, ClearCode, EOFCode;
+    let cur_accum = 0, cur_bits = 0, a_count = 0, remaining, curPixel;
+    const MAXCODE = (n) => (1 << n) - 1;
+    function flush_char() { if (a_count > 0) { out.push(a_count); for (let i = 0; i < a_count; i++) out.push(accum[i]); a_count = 0; } }
+    function char_out(c) { accum[a_count++] = c; if (a_count >= 254) flush_char(); }
+    function cl_hash(h) { for (let i = 0; i < h; i++) htab[i] = -1; }
+    function output(code) {
+      cur_accum &= masks[cur_bits];
+      cur_accum = cur_bits > 0 ? (cur_accum | (code << cur_bits)) : code;
+      cur_bits += n_bits;
+      while (cur_bits >= 8) { char_out(cur_accum & 0xff); cur_accum >>= 8; cur_bits -= 8; }
+      if (free_ent > maxcode || clear_flg) {
+        if (clear_flg) { maxcode = MAXCODE(n_bits = g_init_bits); clear_flg = false; }
+        else { n_bits++; maxcode = n_bits === maxbits ? maxmaxcode : MAXCODE(n_bits); }
+      }
+      if (code === EOFCode) { while (cur_bits > 0) { char_out(cur_accum & 0xff); cur_accum >>= 8; cur_bits -= 8; } flush_char(); }
+    }
+    function cl_block() { cl_hash(HSIZE); free_ent = ClearCode + 2; clear_flg = true; output(ClearCode); }
+    function nextPixel() { if (remaining === 0) return EOF; remaining--; return pixels[curPixel++] & 0xff; }
+    function compress(init_bits) {
+      let fcode, c, i, disp, ent, hshift, hsize_reg;
+      g_init_bits = init_bits; clear_flg = false; n_bits = g_init_bits; maxcode = MAXCODE(n_bits);
+      ClearCode = 1 << (init_bits - 1); EOFCode = ClearCode + 1; free_ent = ClearCode + 2; a_count = 0;
+      ent = nextPixel();
+      hshift = 0; for (fcode = HSIZE; fcode < 65536; fcode *= 2) hshift++; hshift = 8 - hshift;
+      hsize_reg = HSIZE; cl_hash(hsize_reg); output(ClearCode);
+      outer: while ((c = nextPixel()) !== EOF) {
+        fcode = (c << maxbits) + ent; i = (c << hshift) ^ ent;
+        if (htab[i] === fcode) { ent = codetab[i]; continue; }
+        else if (htab[i] >= 0) {
+          disp = hsize_reg - i; if (i === 0) disp = 1;
+          do { if ((i -= disp) < 0) i += hsize_reg; if (htab[i] === fcode) { ent = codetab[i]; continue outer; } } while (htab[i] >= 0);
+        }
+        output(ent); ent = c;
+        if (free_ent < maxmaxcode) { codetab[i] = free_ent++; htab[i] = fcode; } else cl_block();
+      }
+      output(ent); output(EOFCode);
+    }
+    this.encode = function () { out.push(initCodeSize); remaining = width * height; curPixel = 0; compress(initCodeSize + 1); out.push(0); return out; };
+  }
+  function gifMakeBox(px) {
+    let rmn = 255, rmx = 0, gmn = 255, gmx = 0, bmn = 255, bmx = 0, rs = 0, gs = 0, bs = 0;
+    for (let i = 0; i < px.length; i += 3) {
+      const r = px[i], g = px[i + 1], b = px[i + 2];
+      if (r < rmn) rmn = r; if (r > rmx) rmx = r; if (g < gmn) gmn = g; if (g > gmx) gmx = g; if (b < bmn) bmn = b; if (b > bmx) bmx = b;
+      rs += r; gs += g; bs += b;
+    }
+    const n = px.length / 3, rr = rmx - rmn, gr = gmx - gmn, br = bmx - bmn;
+    const range = Math.max(rr, gr, br), ch = range === rr ? 0 : range === gr ? 1 : 2;
+    return { px, n, range, ch, avg: [Math.round(rs / n), Math.round(gs / n), Math.round(bs / n)] };
+  }
+  function gifMedianCut(flat, maxColors) {
+    let boxes = [gifMakeBox(flat)];
+    while (boxes.length < maxColors) {
+      let bi = -1, best = 0;
+      for (let i = 0; i < boxes.length; i++) if (boxes[i].n > 1 && boxes[i].range > best) { best = boxes[i].range; bi = i; }
+      if (bi < 0) break;
+      const box = boxes[bi], ch = box.ch, arr = [];
+      for (let i = 0; i < box.px.length; i += 3) arr.push([box.px[i], box.px[i + 1], box.px[i + 2]]);
+      arr.sort((a, b) => a[ch] - b[ch]);
+      const mid = arr.length >> 1;
+      const flatten = (a) => { const o = new Uint8Array(a.length * 3); for (let i = 0; i < a.length; i++) { o[i * 3] = a[i][0]; o[i * 3 + 1] = a[i][1]; o[i * 3 + 2] = a[i][2]; } return o; };
+      boxes.splice(bi, 1, gifMakeBox(flatten(arr.slice(0, mid))), gifMakeBox(flatten(arr.slice(mid))));
+    }
+    return boxes.map((b) => b.avg);
+  }
+  function encodeGIF(frames, width, height, delayCs) {
+    const sample = [];
+    const step = Math.max(1, Math.floor((frames.length * width * height) / 14000));
+    let sc = 0;
+    for (const f of frames) for (let p = 0; p < width * height; p++) { if (sc++ % step === 0) { const o = p * 4; sample.push(f[o], f[o + 1], f[o + 2]); } }
+    const palette = gifMedianCut(new Uint8Array(sample), 256);
+    while (palette.length < 256) palette.push([0, 0, 0]);
+    const cache = new Int16Array(32768).fill(-1);
+    const mapColor = (r, g, b) => {
+      const key = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
+      let idx = cache[key];
+      if (idx >= 0) return idx;
+      let bd = 1e9, bi = 0;
+      for (let i = 0; i < 256; i++) { const p = palette[i]; const dr = r - p[0], dg = g - p[1], db = b - p[2]; const d = dr * dr + dg * dg + db * db; if (d < bd) { bd = d; bi = i; } }
+      cache[key] = bi; return bi;
+    };
+    const bytes = [];
+    const b1 = (v) => bytes.push(v & 0xff);
+    const b2 = (v) => { bytes.push(v & 0xff, (v >> 8) & 0xff); };
+    const bstr = (s) => { for (let i = 0; i < s.length; i++) bytes.push(s.charCodeAt(i)); };
+    bstr("GIF89a"); b2(width); b2(height); b1(0xF7); b1(0); b1(0);
+    for (let i = 0; i < 256; i++) { const c = palette[i]; b1(c[0]); b1(c[1]); b1(c[2]); }
+    b1(0x21); b1(0xFF); b1(0x0B); bstr("NETSCAPE2.0"); b1(0x03); b1(0x01); b2(0); b1(0x00);
+    const npix = width * height;
+    for (const f of frames) {
+      const idx = new Uint8Array(npix);
+      for (let p = 0; p < npix; p++) { const o = p * 4; idx[p] = mapColor(f[o], f[o + 1], f[o + 2]); }
+      b1(0x21); b1(0xF9); b1(0x04); b1(0x00); b2(delayCs); b1(0x00); b1(0x00);
+      b1(0x2C); b2(0); b2(0); b2(width); b2(height); b1(0x00);
+      const data = new LZWEncoder(width, height, idx, 8).encode();
+      for (let i = 0; i < data.length; i++) bytes.push(data[i]);
+    }
+    b1(0x3B);
+    return new Uint8Array(bytes);
   }
 
   function startGame() {
@@ -942,6 +1098,9 @@
         if (r.recording) {               // one-shot pass for the video, then stop
           r.tail += dt;
           if (r.tail > 0.5 && mediaRec && mediaRec.state === "recording") mediaRec.stop();
+        } else if (r.gifCapture) {       // one-shot pass for the GIF, then encode
+          r.tail += dt;
+          if (r.tail > 0.25) return finalizeGIF();
         } else {                         // normal replay: hold on the final pose, then loop
           r.hold += dt;
           if (r.hold > 0.6) { r.hold = 0; r.i = 0; }
@@ -1255,6 +1414,7 @@
     dt = Math.min(dt, 1 / 30);   // clamp big pauses
     if (state === "play" || state === "replay") update(dt);
     render();
+    if (state === "replay" && replay && replay.gifCapture) captureGifFrame();
     requestAnimationFrame(frame);
   }
 
@@ -1430,7 +1590,9 @@
   document.getElementById("saveVidBtn").addEventListener("click", () => {
     if (state === "result") saveReplayVideo();
   });
+  document.getElementById("saveGifBtn").addEventListener("click", () => { if (state === "result") saveReplayGIF(); });
   document.getElementById("replaySaveBtn").addEventListener("click", saveReplayVideo);  // while watching a replay
+  document.getElementById("replayGifBtn").addEventListener("click", saveReplayGIF);
   document.getElementById("videoShareBtn").addEventListener("click", shareClip);
   document.getElementById("videoDownloadBtn").addEventListener("click", downloadClip);
   document.getElementById("videoDoneBtn").addEventListener("click", closeVideoCard);
