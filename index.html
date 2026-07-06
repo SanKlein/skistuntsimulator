@@ -300,13 +300,26 @@
     const landY = lipY + 96;
     pts.push({ x: landX, y: landY });
     pts.push({ x: landX + 260, y: landY + 150 });
-    pts.push({ x: landX + 640, y: landY + 205 });
-    pts.push({ x: landX + 1400, y: landY + 240 });
+    pts.push({ x: landX + 620, y: landY + 205 });
+    // finishing roller: ride up, flip over the crest, come down the far side
+    const A = landX + 620, Ay = landY + 205;
+    pts.push({ x: A + 180, y: Ay - 22 });
+    pts.push({ x: A + 340, y: Ay - 64 });
+    pts.push({ x: A + 470, y: Ay - 86 });
+    pts.push({ x: A + 560, y: Ay - 90 });     // crest
+    pts.push({ x: A + 660, y: Ay - 80 });
+    pts.push({ x: A + 900, y: Ay - 18 });
+    pts.push({ x: A + 1260, y: Ay + 66 });
+    pts.push({ x: A + 1900, y: Ay + 100 });   // flatten to the finish
+    const endX = A + 1850;
     const wall = { x: lipX + gap * 0.5, halfW: 17, topY: lipY - (26 + wallExtra), baseY: pitY };
     course = {
-      id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY,
-      endX: landX + 1400,
-      markers: [{ x: lipX, y: lipY, color: "#ff5a3c" }, { x: landX + 8, y: landY, color: "#3ca0ff" }],
+      id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY, endX,
+      markers: [
+        { x: lipX, y: lipY, color: "#ff5a3c" },
+        { x: landX + 8, y: landY, color: "#3ca0ff" },
+        { x: endX, y: Ay + 100, color: "#2ecc71" },
+      ],
     };
   }
 
@@ -325,13 +338,22 @@
     hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.5, -0.62, 18);
     pts.push({ x: lipX + 70, y: lipY + 30 });         // long descending landing hill
     pts.push({ x: lipX + 520, y: lipY + 320 });
-    pts.push({ x: lipX + 1200, y: lipY + 470 });
-    pts.push({ x: lipX + 2200, y: lipY + 520 });
+    pts.push({ x: lipX + 1100, y: lipY + 470 });
+    // finishing roller: ride up, flip over the crest, come down the far side
+    const A = lipX + 1100, Ay = lipY + 470;
+    pts.push({ x: A + 200, y: Ay - 26 });
+    pts.push({ x: A + 380, y: Ay - 74 });
+    pts.push({ x: A + 520, y: Ay - 96 });
+    pts.push({ x: A + 620, y: Ay - 100 });    // crest
+    pts.push({ x: A + 730, y: Ay - 88 });
+    pts.push({ x: A + 1000, y: Ay - 18 });
+    pts.push({ x: A + 1420, y: Ay + 74 });
+    pts.push({ x: A + 2050, y: Ay + 110 });   // flatten to the finish
+    const endX = A + 2000;
     course = {
       id: "jump", pts, wall: null, startX, startY,
-      lipX, lipY, landX: lipX, landY: lipY + 30, pitY: lipY + 2000,
-      endX: lipX + 2100,
-      markers: [{ x: lipX, y: lipY, color: "#ff5a3c" }],
+      lipX, lipY, landX: lipX, landY: lipY + 30, pitY: lipY + 2000, endX,
+      markers: [{ x: lipX, y: lipY, color: "#ff5a3c" }, { x: endX, y: Ay + 110, color: "#2ecc71" }],
     };
   }
 
@@ -343,7 +365,7 @@
     pts.push({ x: 0, y: startY - 40 });
     pts.push({ x: startX, y: startY });
     let x = startX, y = startY;
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 46; i++) {                    // long jagged descent
       const dx = 80 + Math.random() * 80;
       const steep = 0.35 + Math.random() * 1.15;      // jagged downhill pitch
       x += dx; y += dx * steep;
@@ -432,7 +454,7 @@
   // ------------------------------------------------------------------ state
   best = parseInt(localStorage.getItem("skistunt_best") || "0", 10) || 0;
   document.getElementById("best").textContent = best;
-  run = { score: 0, drops: 0 };
+  run = { score: 0, flips: 0, drops: 0 };
 
   // ------------------------------------------------------------------ characters
   let character;
@@ -603,9 +625,10 @@
       s.angle = sa;
       s.onGround = true;
       showLive(false);
-      if (flips >= 1) {                          // only reward actual flips
+      if (flips >= 1) {                          // reward + tally every landed flip
         const gained = 100 + flips * 200 + (s.tuck < 0.2 ? 40 : 0);
         run.score += gained;
+        run.flips += flips;                      // accumulate across the whole run
         s.pendingLandMsg = { flips, gained };
         document.getElementById("score").textContent = run.score;
         for (let i = 0; i < 18; i++) spawnSpray(s, sa, 700);
@@ -636,12 +659,11 @@
   // ------------------------------------------------------------------ flow
   function crash(title, msg) {
     skier.dead = true;
-    showResult(false, title, msg, 0);
+    showResult(false, title, msg);
   }
   function finishRun() { // reached runout upright
-    const lf = skier.pendingLandMsg;
-    const title = course.id === "crash" ? "YOU SURVIVED!" : (lf && lf.flips ? "STOMPED IT!" : "NICE RUN");
-    showResult(true, title, null, lf ? lf.flips : 0, lf ? lf.gained : 0);
+    const title = course.id === "crash" ? "YOU SURVIVED!" : (run.flips ? "STOMPED IT!" : "NICE RUN");
+    showResult(true, title, null);
   }
 
   // ------------------------------------------------------------------ replay
@@ -664,6 +686,7 @@
 
   function startGame() {
     run.score = 0;
+    run.flips = 0;
     document.getElementById("score").textContent = 0;
     dropInAgain();
   }
@@ -687,7 +710,7 @@
   function showHint(t) { hintEl.textContent = t; hintEl.classList.remove("hidden"); hintTimer = 2.6; }
   function hideHint() { hintEl.classList.add("hidden"); }
 
-  function showResult(good, title, msg, flips, gained) {
+  function showResult(good, title, msg) {
     state = "result";
     // record best
     if (run.score > best) { best = run.score; localStorage.setItem("skistunt_best", String(best)); }
@@ -697,10 +720,11 @@
     const tag = document.getElementById("resultTag");
     tag.textContent = title;
     tag.className = "result-tag " + (good ? "good" : "bad");
+    // total flips landed across the whole run
     document.getElementById("resultFlips").textContent =
-      flips > 0 ? (flips + (flips === 1 ? " FLIP" : " FLIPS")) : (good ? "CLEAN" : "✕");
+      run.flips > 0 ? (run.flips + (run.flips === 1 ? " FLIP" : " FLIPS")) : (good ? "CLEAN" : "✕");
     document.getElementById("resultMsg").textContent =
-      good ? ("+" + (gained || 0) + " points") : (msg || "");
+      (good ? "" : (msg ? msg + " · " : "")) + run.score + " pts this run";
     document.getElementById("startCard").classList.add("hidden");
     document.getElementById("resultCard").classList.remove("hidden");
     document.getElementById("overlay").classList.remove("hidden");
