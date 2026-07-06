@@ -257,7 +257,7 @@
   const RUN_GRAV = 0.45;     // how much gravity accelerates you along the slope
   const FRICTION = 6;        // gentle ground friction px/s^2
   const MIN_SPEED = 180, MAX_SPEED = 760;   // top speed capped so the run-up stays controllable
-  const POP = 440;           // launch spring from crouching on the run-up
+  const POP = 560;           // launch spring off the ramp lip
   const LAND_TOL = 0.72;     // radians of upright tolerance on landing (~41 deg)
   const AIR_DRAG_W = 0.35;   // slow angular decay in air (very light)
 
@@ -272,8 +272,8 @@
   const LEAN_TILT = 0.55;    // radians the upper body visibly leans at full lean
   // Ground jump: crouch then extend upward fast to hop off the snow anywhere.
   const JUMP_DETUCK = 4;     // min extension rate (per sec) to trigger a hop (lower = easier)
-  const JUMP_FULL = 12;      // extension rate for a full-power hop
-  const JUMP_POP = 680;      // max ground-jump launch speed (px/s up)
+  const JUMP_FULL = 10;      // extension rate for a full-power hop
+  const JUMP_POP = 720;      // max ground-jump launch speed (px/s up)
 
   // ------------------------------------------------------------------ terrain
   // The course is one fixed, repeating design described by control points.
@@ -322,26 +322,23 @@
     pts.push({ x: landX, y: landY });
     pts.push({ x: landX + 260, y: landY + 150 });
     pts.push({ x: landX + 620, y: landY + 205 });
-    // finishing hill: ride up, flip, then slide back DOWN it (real momentum).
-    // Too slow to crest → you reverse and the round ends past the finish line.
+    // finishing wall: the terrain just keeps rising, so you can't clear it — you
+    // ride up, run out of momentum, stop, and slide back down for a few seconds
+    // before the round ends (if you're still on your feet).
     const A = landX + 620, Ay = landY + 205;
-    pts.push({ x: A + 180, y: Ay - 70 });
-    pts.push({ x: A + 340, y: Ay - 170 });
-    pts.push({ x: A + 470, y: Ay - 260 });
-    pts.push({ x: A + 570, y: Ay - 300 });    // crest (~300 up — usually reverses)
-    pts.push({ x: A + 670, y: Ay - 286 });
-    pts.push({ x: A + 850, y: Ay - 210 });
-    pts.push({ x: A + 1100, y: Ay - 90 });
-    pts.push({ x: A + 1450, y: Ay + 20 });
-    pts.push({ x: A + 2050, y: Ay + 55 });    // far outrun (if you clear the crest)
-    const endX = A + 2000, finishLine = A - 260;
+    pts.push({ x: A + 180, y: Ay - 60 });
+    pts.push({ x: A + 350, y: Ay - 160 });
+    pts.push({ x: A + 500, y: Ay - 290 });
+    pts.push({ x: A + 630, y: Ay - 450 });
+    pts.push({ x: A + 740, y: Ay - 640 });    // keeps climbing (unreachable top)
+    const endX = A + 740, windStart = A + 60, finishLine = landX + 90;
     const wall = { x: lipX + gap * 0.5, halfW: 17, topY: lipY - (26 + wallExtra), baseY: pitY };
     course = {
-      id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY, endX, finishLine,
+      id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
         { x: landX + 8, y: landY, color: "#3ca0ff" },
-        { x: A + 570, y: Ay - 300, color: "#2ecc71" },
+        { x: A + 740, y: Ay - 640, color: "#2ecc71" },
       ],
     };
   }
@@ -362,22 +359,18 @@
     pts.push({ x: lipX + 70, y: lipY + 30 });         // long descending landing hill
     pts.push({ x: lipX + 520, y: lipY + 320 });
     pts.push({ x: lipX + 1100, y: lipY + 470 });
-    // finishing hill: ride up, flip, then slide back down it (real momentum)
+    // finishing wall: keeps rising, so you stop and slide back down it
     const A = lipX + 1100, Ay = lipY + 470;
     pts.push({ x: A + 200, y: Ay - 80 });
-    pts.push({ x: A + 380, y: Ay - 190 });
-    pts.push({ x: A + 520, y: Ay - 280 });
-    pts.push({ x: A + 630, y: Ay - 315 });    // crest (~315 up)
-    pts.push({ x: A + 740, y: Ay - 298 });
-    pts.push({ x: A + 950, y: Ay - 210 });
-    pts.push({ x: A + 1250, y: Ay - 80 });
-    pts.push({ x: A + 1650, y: Ay + 30 });
-    pts.push({ x: A + 2250, y: Ay + 65 });    // far outrun (if you clear the crest)
-    const endX = A + 2200, finishLine = A - 280;
+    pts.push({ x: A + 380, y: Ay - 210 });
+    pts.push({ x: A + 540, y: Ay - 360 });
+    pts.push({ x: A + 680, y: Ay - 540 });
+    pts.push({ x: A + 800, y: Ay - 740 });    // keeps climbing (unreachable top)
+    const endX = A + 800, windStart = A + 80, finishLine = lipX + 300;
     course = {
       id: "jump", pts, wall: null, startX, startY,
-      lipX, lipY, landX: lipX, landY: lipY + 30, pitY: lipY + 2000, endX, finishLine,
-      markers: [{ x: lipX, y: lipY, color: "#ff5a3c" }, { x: A + 630, y: Ay - 315, color: "#2ecc71" }],
+      lipX, lipY, landX: lipX, landY: lipY + 30, pitY: lipY + 2000, endX, windStart, finishLine,
+      markers: [{ x: lipX, y: lipY, color: "#ff5a3c" }, { x: A + 800, y: Ay - 740, color: "#2ecc71" }],
     };
   }
 
@@ -522,6 +515,8 @@
       launched: false,        // has left the lip at least once
       spun: 0,                // radians accumulated in the current flight
       slowTime: 0,            // how long we've been nearly stopped (for settling)
+      comingBack: false,      // has turned around on the finishing hill
+      endTimer: 0,            // time spent sliding back before the round ends
       dead: false,
     };
     cam = { x: 0, y: 0 };
@@ -571,9 +566,9 @@
     else s.charge = Math.max(0, s.charge - dt * 0.7);
 
     // JUMP: crouch, then snap upward fast, to hop off the snow anywhere.
-    if (detuck > JUMP_DETUCK && s.charge > 0.25) {
+    if (detuck > JUMP_DETUCK && s.charge > 0.15) {
       const power = Math.min(1, detuck / JUMP_FULL);
-      s.vy = -JUMP_POP * power * (0.5 + 0.5 * s.charge);
+      s.vy = -JUMP_POP * power * (0.62 + 0.38 * s.charge);
       leaveGround();
       return;
     }
@@ -581,20 +576,27 @@
     // snow spray while carving fast
     if (Math.abs(v) > 500 && Math.random() < 0.6) spawnSpray(s, sa, Math.abs(v));
 
-    // Launch off a crest — only when moving forward with real speed.
+    // Launch off a crest — only when moving forward with real speed. Pop scales
+    // with your crouch charge PLUS an extra kick for extending (snapping up) at
+    // the lip, so a well-timed pop launches you high.
     const lookX = s.x + s.vx * dt;
     const ballisticY = s.y + s.vy * dt;
     if (v > 60 && ballisticY < ground(lookX) - 1 && s.x >= course.lipX - 40) {
-      s.vy -= POP * (0.3 + 0.7 * s.charge);
+      const snap = Math.min(360, Math.max(0, detuck) * 26);
+      s.vy -= POP * (0.45 + 0.55 * s.charge) + snap;
       leaveGround();
       return;
     }
 
-    // End-of-run: ride the finishing hill, slide back past the finish line, or
-    // simply come to rest — any of these ends the round.
+    // End-of-run: on the finishing courses the terrain just keeps rising, so the
+    // skier climbs it, stops, and slides back down. Once they've turned around,
+    // give them a few seconds of the slide-back and then end the round (if still
+    // on their feet). A finish-line + settle net cover the edge cases.
     if (s.launched) {
-      if (v < -30 && course.finishLine != null && s.x < course.finishLine) return finishRun();
-      if (Math.abs(v) < 45) { s.slowTime += dt; if (s.slowTime > 1.1) return finishRun(); }
+      if (course.windStart != null && s.x > course.windStart && v <= 0) s.comingBack = true;
+      if (s.comingBack) { s.endTimer += dt; if (s.endTimer > 2.6) return finishRun(); }
+      if (v < -20 && course.finishLine != null && s.x < course.finishLine) return finishRun();
+      if (Math.abs(v) < 40) { s.slowTime += dt; if (s.slowTime > 1.6) return finishRun(); }
       else s.slowTime = 0;
     }
   }
