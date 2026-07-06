@@ -497,10 +497,14 @@
   }
 
   // How much the skier leans, -1 (back / backflip) .. +1 (forward / front flip),
-  // from how far the cursor has moved left/right of the anchor.
+  // from how far the cursor has moved left/right of the anchor. A dead-zone
+  // around the anchor keeps you neutral (no flip) unless you deliberately lean.
   function leanTarget() {
-    let l = (input.x - input.ax) / (W * 0.15);
-    return Math.max(-1, Math.min(1, l));
+    const dz = W * 0.05;                      // neutral dead-zone
+    let d = input.x - input.ax;
+    if (Math.abs(d) < dz) return 0;
+    d = d > 0 ? d - dz : d + dz;
+    return Math.max(-1, Math.min(1, d / (W * 0.15)));
   }
 
   // ------------------------------------------------------------------ state
