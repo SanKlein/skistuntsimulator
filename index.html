@@ -258,8 +258,8 @@
   const G = 1650;            // gravity px/s^2
   const RUN_GRAV = 0.45;     // how much gravity accelerates you along the slope
   const FRICTION = 6;        // gentle ground friction px/s^2
-  const MIN_SPEED = 180, MAX_SPEED = 760;   // top speed capped so the run-up stays controllable
-  const POP = 600;           // launch spring off the ramp lip
+  const MIN_SPEED = 180, MAX_SPEED = 820;   // top speed capped so the run-up stays controllable
+  const POP = 660;           // launch spring off the ramp lip
   const LAND_TOL = 0.82;     // radians of upright tolerance for a clean landing (~47 deg)
   const BOUNCE_TOL = 1.5;    // land within this (~86 deg) and you bounce off the skis instead of wiping out
   const AIR_DRAG_W = 0.35;   // slow angular decay in air (very light)
@@ -573,7 +573,9 @@
     // JUMP: crouch, then snap upward fast, to hop off the snow anywhere.
     if (detuck > JUMP_DETUCK && s.charge > 0.15) {
       const power = Math.min(1, detuck / JUMP_FULL);
-      s.vy = -JUMP_POP * power * (0.62 + 0.38 * s.charge);
+      // ADD to any existing upward velocity (so snapping up off a ramp stacks on
+      // the ramp's launch); ignore downward momentum so flat/downhill pops work.
+      s.vy = Math.min(s.vy, 0) - JUMP_POP * power * (0.62 + 0.38 * s.charge);
       leaveGround();
       return;
     }
@@ -587,8 +589,8 @@
     const lookX = s.x + s.vx * dt;
     const ballisticY = s.y + s.vy * dt;
     if (v > 60 && ballisticY < ground(lookX) - 1 && s.x >= course.lipX - 40) {
-      const snap = Math.min(360, Math.max(0, detuck) * 26);
-      s.vy -= POP * (0.45 + 0.55 * s.charge) + snap;
+      const snap = Math.min(380, Math.max(0, detuck) * 26);
+      s.vy -= POP * (0.55 + 0.45 * s.charge) + snap;
       leaveGround();
       return;
     }
