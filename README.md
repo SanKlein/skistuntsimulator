@@ -50,6 +50,37 @@ under `// tuning`:
 The course itself (run-up, ramp lip, gap width, wall height, landing slope) is defined in
 `buildCourse()`. Wall height nudges slightly each drop for variety.
 
+## Deploying to GitHub Pages (skistuntsimulator.com)
+
+The repo already contains everything Pages needs: `index.html` at the root, a `CNAME` file
+(`skistuntsimulator.com`), and `.nojekyll`. It's committed locally on the `main` branch.
+
+**1. Create the repo** (web UI): https://github.com/new → owner **SanKlein**, name **skistuntsimulator**,
+visibility **Public**, do NOT add a README/.gitignore/license (we already have them) → Create.
+
+**2. Push it:**
+```bash
+cd ~/Documents/ski-sim
+git remote add origin https://github.com/SanKlein/skistuntsimulator.git
+git push -u origin main
+```
+
+**3. Enable Pages:** repo → **Settings → Pages** → Source: *Deploy from a branch* → Branch: **main** / **/(root)** → Save.
+The custom domain should auto-fill from the `CNAME` file; if not, set **skistuntsimulator.com** under *Custom domain*.
+
+**4. Point the domain in Squarespace** (Settings → Domains → skistuntsimulator.com → DNS Settings):
+- Add four **A** records, Host `@`, pointing to GitHub's Pages IPs:
+  `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`
+- (Optional IPv6) four **AAAA** records, Host `@`:
+  `2606:50c0:8000::153`, `2606:50c0:8001::153`, `2606:50c0:8002::153`, `2606:50c0:8003::153`
+- One **CNAME** record, Host `www` → `sanklein.github.io`
+- Remove any default parking A records Squarespace added for `@` so they don't conflict.
+
+**5. Enforce HTTPS:** back in Settings → Pages, once DNS propagates (10 min–24 h) tick **Enforce HTTPS**.
+
+After that, `https://skistuntsimulator.com` serves the game. Any future change is just
+`git commit` + `git push` — Pages redeploys automatically.
+
 ## Roadmap
 
 - **Mobile/touch build** — the controls are deliberately one-button (hold = tuck), so a finger
