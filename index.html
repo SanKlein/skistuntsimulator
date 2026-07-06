@@ -439,7 +439,7 @@
   const PRESETS = {
     "TwosJoe":       { name:"TwosJoe",       skin:"#e8b58c", head:{type:"beret", color:"#15171b"}, hairColor:"#4a3527", beard:true,  beardColor:"#5a4030", glasses:false, top:"#f2f2f0", bottomType:"pants",  bottom:"#6d7b8c", boots:"#2a2f38", skis:"#ff5a3c", build:1.08 },
     "TwosBaller":    { name:"TwosBaller",    skin:"#e8b58c", head:{type:"hair",  color:"#8a4b2a"}, hairColor:"#8a4b2a", beard:false, glasses:false, top:"#1c1f24", bottomType:"pants",  bottom:"#1c1f24", boots:"#111318", skis:"#3ca0ff", build:0.94 },
-    "Popstar Benny": { name:"Popstar Benny", skin:"#5a3b28", head:{type:"hair",  color:"#141414"}, hairColor:"#141414", beard:false, glasses:true,  top:"#c9ccc9", bottomType:"shorts", bottom:"#d8d4c8", boots:"#20241f", skis:"#ffcf33", build:1.16, thin:true },
+    "Popstar Benny": { name:"Popstar Benny", skin:"#5a3b28", head:{type:"hair",  color:"#141414"}, hairColor:"#141414", beard:false, glasses:true,  top:"#c9ccc9", bottomType:"pants", bottom:"#3c5c94", boots:"#20241f", skis:"#ffcf33", build:1.16, thin:true, fluff:true, fluffColor:"#ece4d2" },
     "Harlem":        { name:"Harlem",        skin:"#c98a5e", head:{type:"long",  color:"#1a1512"}, hairColor:"#1a1512", beard:false, glasses:false, top:"#1a1a1a", bottomType:"pants",  bottom:"#9a8f80", boots:"#c0392b", skis:"#ff5a3c", build:0.92 },
   };
   const DEFAULT_CUSTOM = { name:"Custom", skin:"#e8b58c", head:{type:"beanie", color:"#1f2c47"}, hairColor:"#4a3527", beard:false, glasses:false, top:"#e8442c", bottomType:"pants", bottom:"#2b3a67", boots:"#2a2f38", skis:"#ffcf33", build:1.0 };
@@ -938,6 +938,14 @@
     // boots
     pctx.fillStyle = C.boots;
     pctx.beginPath(); pctx.ellipse(1, -2, 5, 4, 0, 0, Math.PI * 2); pctx.fill();
+    // fuzzy fluff poking out of the bottom of the pants (just above the boot)
+    if (C.fluff) {
+      pctx.fillStyle = C.fluffColor || "#ece4d2";
+      for (let fx = -6; fx <= 7; fx += 2.1) {
+        const r = 2 + Math.abs(Math.sin(fx * 1.7)) * 1.3;
+        pctx.beginPath(); pctx.arc(fx, -7, r, 0, Math.PI * 2); pctx.fill();
+      }
+    }
 
     // ---- upper body leans forward/back about the hip (front vs back flip tell)
     pctx.save();
@@ -1166,6 +1174,7 @@
     rows.push(chipRow("Extras", [
       { text: "Beard", active: () => !!customChar.beard, onClick: () => (customChar.beard = !customChar.beard) },
       { text: "Glasses", active: () => !!customChar.glasses, onClick: () => (customChar.glasses = !customChar.glasses) },
+      { text: "Fluff", active: () => !!customChar.fluff, onClick: () => (customChar.fluff = !customChar.fluff) },
     ]));
 
     editEl.innerHTML = "";
