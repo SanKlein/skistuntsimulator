@@ -108,10 +108,50 @@
     box-shadow: 0 8px 22px rgba(74,169,232,.4);
   }
   .btn:active { transform: translateY(1px); }
+  .linkbtn {
+    display:block; margin: 10px auto 0; cursor:pointer; background:none; border:none;
+    color:#8fd3ff; font-size:13px; font-weight:700; opacity:.85;
+  }
+  .linkbtn:hover { opacity:1; text-decoration:underline; }
   .result-flips { font-size: 46px; font-weight: 900; margin-top: 6px; }
   .result-tag { font-size: 13px; letter-spacing:.18em; text-transform:uppercase; font-weight:800; }
   .good { color:#7dffa8; } .bad { color:#ff8f8f; }
   .hidden { display:none !important; }
+
+  /* ---- character select ---- */
+  .card { max-height: 90vh; overflow-y: auto; }
+  .lead { margin-top: 10px; font-weight: 700; opacity: .9; }
+  .courseTabs { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:12px; }
+  .ctab { cursor:pointer; min-width:98px; padding:8px 12px; border-radius:10px; text-align:center;
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); color:#fff; }
+  .ctab b { display:block; font-size:13px; font-weight:800; }
+  .ctab span { display:block; font-size:10px; opacity:.7; margin-top:2px; }
+  .ctab.sel { background:#8fd3ff; color:#062033; border-color:#8fd3ff; }
+  .ctab.sel span { opacity:.85; }
+  .ctiles { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:14px; }
+  .ctile {
+    cursor:pointer; width:88px; padding:6px 4px 5px; border-radius:12px;
+    background:rgba(255,255,255,.05); border:2px solid rgba(255,255,255,.14);
+    transition:border-color .12s, background .12s;
+  }
+  .ctile canvas { display:block; width:76px; height:96px; margin:0 auto; }
+  .ctile span { display:block; font-size:11px; font-weight:800; margin-top:3px; }
+  .ctile.sel { border-color:#8fd3ff; background:rgba(143,211,255,.16); }
+  .ceditor {
+    margin-top:12px; text-align:left; background:rgba(0,0,0,.28);
+    border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 12px;
+  }
+  .crow { display:flex; align-items:center; gap:8px; margin:8px 0; }
+  .crow .lbl { width:58px; flex:none; font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; opacity:.72; }
+  .crow .opts { display:flex; gap:5px; flex-wrap:wrap; align-items:center; }
+  .sw { width:20px; height:20px; border-radius:6px; border:2px solid rgba(255,255,255,.22); cursor:pointer; padding:0; }
+  .sw.sel { border-color:#fff; box-shadow:0 0 0 2px #8fd3ff; }
+  .chip { font-size:11px; font-weight:700; padding:5px 9px; border-radius:8px; cursor:pointer;
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); color:#fff; }
+  .chip.sel { background:#8fd3ff; color:#062033; border-color:#8fd3ff; }
+  .howto { margin-top:14px; text-align:left; font-size:13px; opacity:.9; }
+  .howto summary { cursor:pointer; font-weight:800; opacity:.8; letter-spacing:.02em; }
+  .howto p { margin-top:8px; }
   #replaybadge {
     position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
     font-size: 44px; font-weight:900; letter-spacing:.05em; opacity:.9;
@@ -143,16 +183,17 @@
     <!-- Start card -->
     <div class="card" id="startCard">
       <h1><span class="sub">DDsim tribute</span>Ski Stunt Simulator</h1>
-      <p>Move the mouse to pose the skier — it's <b>relative to where you start</b>, so nudge from
-      there. <b>Down = crouch/tuck</b>, <b>up = stand tall & extend</b> (hands up),
-      <b>right = lean forward</b> (front flip), <b>left = lean back</b> (backflip). Crouch then
-      snap up fast to <b>jump off the snow anywhere</b> — flip off a flat pop or launch huge off
-      the ramp. Tuck to spin faster, extend and center to land upright.</p>
-      <div class="keys">
-        <span class="keycap"><b>Mouse ↕</b> — crouch / stand (tuck / extend)</span>
-        <span class="keycap"><b>Mouse ↔</b> — lean: left back, right forward</span>
-        <span class="keycap"><b>R</b> — replay</span>
-      </div>
+      <p class="lead">Pick your course &amp; rider — then drop in.</p>
+      <div id="courseTabs" class="courseTabs"></div>
+      <div id="charTiles" class="ctiles"></div>
+      <div id="charEditor" class="ceditor hidden"></div>
+      <details class="howto">
+        <summary>How to play</summary>
+        <p>Move the mouse to pose the skier — it's <b>relative to where you start</b>. <b>Down = crouch/tuck</b>,
+        <b>up = stand tall &amp; extend</b>, <b>right = lean forward</b> (front flip), <b>left = lean back</b>
+        (backflip). Crouch then snap up fast to <b>jump off the snow anywhere</b>. Tuck to spin faster, extend
+        and center to land upright. Press <b>R</b> to replay.</p>
+      </details>
       <button class="btn" id="startBtn">Drop In ▸</button>
     </div>
 
@@ -167,6 +208,7 @@
         <span class="keycap"><b>Click / Space</b> — drop back in</span>
       </div>
       <button class="btn" id="againBtn">Drop In Again ▸</button>
+      <button class="linkbtn" id="changeBtn">← Change course &amp; rider</button>
     </div>
   </div>
 </div>
@@ -194,7 +236,7 @@
   const RUN_GRAV = 0.45;     // how much gravity accelerates you along the slope
   const FRICTION = 6;        // gentle ground friction px/s^2
   const MIN_SPEED = 180, MAX_SPEED = 760;   // top speed capped so the run-up stays controllable
-  const POP = 360;           // launch spring from crouching on the run-up
+  const POP = 440;           // launch spring from crouching on the run-up
   const LAND_TOL = 0.72;     // radians of upright tolerance on landing (~41 deg)
   const AIR_DRAG_W = 0.35;   // slow angular decay in air (very light)
 
@@ -208,9 +250,9 @@
   const L_CAP = 15;          // max |angular momentum|
   const LEAN_TILT = 0.55;    // radians the upper body visibly leans at full lean
   // Ground jump: crouch then extend upward fast to hop off the snow anywhere.
-  const JUMP_DETUCK = 5;     // min extension rate (per sec) to trigger a hop
-  const JUMP_FULL = 13;      // extension rate for a full-power hop
-  const JUMP_POP = 560;      // max ground-jump launch speed (px/s up)
+  const JUMP_DETUCK = 4;     // min extension rate (per sec) to trigger a hop (lower = easier)
+  const JUMP_FULL = 12;      // extension rate for a full-power hop
+  const JUMP_POP = 680;      // max ground-jump launch speed (px/s up)
 
   // ------------------------------------------------------------------ terrain
   // The course is one fixed, repeating design described by control points.
@@ -233,46 +275,93 @@
   }
 
   function buildCourse() {
-    // slight per-drop variety in wall height, kept subtle
-    const wallExtra = ((run.drops * 37) % 46); // deterministic-ish 0..45
+    if (courseId === "jump") return buildJumpCourse();
+    if (courseId === "crash") return buildCrashCourse();
+    return buildWallCourse();
+  }
+
+  // THE WALL — ramp, gap, brick wall to clear, landing slope.
+  function buildWallCourse() {
+    const wallExtra = ((run.drops * 37) % 46);        // subtle per-drop wall height
     const startX = 120, startY = 150;
     const pts = [];
-    pts.push({ x: 0,    y: startY - 40 });
+    pts.push({ x: 0, y: startY - 40 });
     pts.push({ x: startX, y: startY });
-    // smooth run-up easing downhill into the kicker
-    pts.push({ x: 560,  y: 278 });
-    pts.push({ x: 940,  y: 452 });
-    // Smooth kicker: a rounded valley curving up to the lip instead of a sharp
-    // up-kick. Hermite blends the downhill slope (+0.48) into the launch angle (-0.5).
+    pts.push({ x: 560, y: 278 });
+    pts.push({ x: 940, y: 452 });
     const baseX = 1140, baseY = 545;
     pts.push({ x: baseX, y: baseY });
     const lipX = 1360, lipY = 478;
     hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.48, -0.5, 16);
-    // the gap (deep pit so you're airborne)
-    const gap = 300;
-    const pitY = lipY + 620;
+    const gap = 300, pitY = lipY + 620;
     pts.push({ x: lipX + 12, y: pitY });
     const landX = lipX + gap;
     pts.push({ x: landX - 12, y: pitY });
-    // landing slope: down then flatten to a runout
     const landY = lipY + 96;
     pts.push({ x: landX, y: landY });
     pts.push({ x: landX + 260, y: landY + 150 });
     pts.push({ x: landX + 640, y: landY + 205 });
     pts.push({ x: landX + 1400, y: landY + 240 });
-
-    const wall = {
-      x: lipX + gap * 0.5,
-      halfW: 17,
-      topY: lipY - (26 + wallExtra),   // must clear this
-      baseY: pitY,
-    };
+    const wall = { x: lipX + gap * 0.5, halfW: 17, topY: lipY - (26 + wallExtra), baseY: pitY };
     course = {
-      pts, wall,
-      startX, startY,
-      lipX, lipY, landX, landY, pitY,
+      id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY,
       endX: landX + 1400,
-      groundIndexHint: 0,
+      markers: [{ x: lipX, y: lipY, color: "#ff5a3c" }, { x: landX + 8, y: landY, color: "#3ca0ff" }],
+    };
+  }
+
+  // THE JUMP — one big kicker, no wall, no pit: launch huge and land on a long
+  // descending outrun. Pure air time.
+  function buildJumpCourse() {
+    const startX = 120, startY = 140;
+    const pts = [];
+    pts.push({ x: 0, y: startY - 40 });
+    pts.push({ x: startX, y: startY });
+    pts.push({ x: 560, y: 285 });
+    pts.push({ x: 980, y: 480 });
+    const baseX = 1180, baseY = 560;
+    pts.push({ x: baseX, y: baseY });
+    const lipX = 1440, lipY = 452;                    // taller, steeper kicker → big air
+    hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.5, -0.62, 18);
+    pts.push({ x: lipX + 70, y: lipY + 30 });         // long descending landing hill
+    pts.push({ x: lipX + 520, y: lipY + 320 });
+    pts.push({ x: lipX + 1200, y: lipY + 470 });
+    pts.push({ x: lipX + 2200, y: lipY + 520 });
+    course = {
+      id: "jump", pts, wall: null, startX, startY,
+      lipX, lipY, landX: lipX, landY: lipY + 30, pitY: lipY + 2000,
+      endX: lipX + 2100,
+      markers: [{ x: lipX, y: lipY, color: "#ff5a3c" }],
+    };
+  }
+
+  // THE CRASH — a jagged, randomised plunge you're likely to eat it on. Survive
+  // the chaos and it flattens out into a runout at the bottom.
+  function buildCrashCourse() {
+    const startX = 120, startY = 130;
+    const pts = [];
+    pts.push({ x: 0, y: startY - 40 });
+    pts.push({ x: startX, y: startY });
+    let x = startX, y = startY;
+    for (let i = 0; i < 15; i++) {
+      const dx = 80 + Math.random() * 80;
+      const steep = 0.35 + Math.random() * 1.15;      // jagged downhill pitch
+      x += dx; y += dx * steep;
+      pts.push({ x, y });
+      if (Math.random() < 0.55) {                     // sudden up-kicker (mogul)
+        x += 22 + Math.random() * 34;
+        y -= 14 + Math.random() * 34;
+        pts.push({ x, y });
+      }
+    }
+    x += 240; y += 40; pts.push({ x, y });            // flatten into a runout
+    x += 520; y += 8;  pts.push({ x, y });
+    x += 1000; y += 0; pts.push({ x, y });
+    course = {
+      id: "crash", pts, wall: null, startX, startY,
+      lipX: -1e9, lipY: startY, landX: -1e9, landY: y, pitY: y + 2000,
+      endX: x - 200,
+      markers: [{ x: x - 200, y, color: "#3ca0ff" }],
     };
   }
 
@@ -345,6 +434,33 @@
   document.getElementById("best").textContent = best;
   run = { score: 0, drops: 0 };
 
+  // ------------------------------------------------------------------ characters
+  let character;
+  const PRESETS = {
+    "TwosJoe":       { name:"TwosJoe",       skin:"#e8b58c", head:{type:"beret", color:"#15171b"}, hairColor:"#4a3527", beard:true,  beardColor:"#5a4030", glasses:false, top:"#f2f2f0", bottomType:"pants",  bottom:"#6d7b8c", boots:"#2a2f38", skis:"#ff5a3c", build:1.08 },
+    "TwosBaller":    { name:"TwosBaller",    skin:"#e8b58c", head:{type:"hair",  color:"#8a4b2a"}, hairColor:"#8a4b2a", beard:false, glasses:false, top:"#1c1f24", bottomType:"pants",  bottom:"#1c1f24", boots:"#111318", skis:"#3ca0ff", build:0.94 },
+    "Popstar Benny": { name:"Popstar Benny", skin:"#5a3b28", head:{type:"hair",  color:"#141414"}, hairColor:"#141414", beard:false, glasses:true,  top:"#c9ccc9", bottomType:"shorts", bottom:"#d8d4c8", boots:"#20241f", skis:"#ffcf33", build:1.16, thin:true },
+    "Harlem":        { name:"Harlem",        skin:"#c98a5e", head:{type:"long",  color:"#1a1512"}, hairColor:"#1a1512", beard:false, glasses:false, top:"#1a1a1a", bottomType:"pants",  bottom:"#9a8f80", boots:"#c0392b", skis:"#ff5a3c", build:0.92 },
+  };
+  const DEFAULT_CUSTOM = { name:"Custom", skin:"#e8b58c", head:{type:"beanie", color:"#1f2c47"}, hairColor:"#4a3527", beard:false, glasses:false, top:"#e8442c", bottomType:"pants", bottom:"#2b3a67", boots:"#2a2f38", skis:"#ffcf33", build:1.0 };
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+
+  let customChar;
+  try { customChar = Object.assign(clone(DEFAULT_CUSTOM), JSON.parse(localStorage.getItem("skistunt_custom") || "{}")); }
+  catch (e) { customChar = clone(DEFAULT_CUSTOM); }
+  function saveCustom() { localStorage.setItem("skistunt_custom", JSON.stringify(customChar)); }
+
+  function selectCharacter(cfg) { character = clone(cfg); localStorage.setItem("skistunt_char", cfg.name); }
+  // restore last pick
+  (function () {
+    const last = localStorage.getItem("skistunt_char") || "TwosBaller";
+    selectCharacter(last === "Custom" ? customChar : (PRESETS[last] || PRESETS.TwosBaller));
+  })();
+
+  // ------------------------------------------------------------------ course
+  let courseId = localStorage.getItem("skistunt_course") || "wall";
+  function selectCourse(id) { courseId = id; localStorage.setItem("skistunt_course", id); }
+
   function resetSkier() {
     buildCourse();
     const x = course.startX + 10;
@@ -406,9 +522,9 @@
 
     // JUMP: crouch, then snap upward fast, to hop off the snow anywhere on the
     // hill (like the original — you can even flip off a flat pop).
-    if (detuck > JUMP_DETUCK && s.charge > 0.3) {
+    if (detuck > JUMP_DETUCK && s.charge > 0.25) {
       const power = Math.min(1, detuck / JUMP_FULL);
-      s.vy = -JUMP_POP * power * (0.4 + 0.6 * s.charge);
+      s.vy = -JUMP_POP * power * (0.5 + 0.5 * s.charge);
       leaveGround();
       return;
     }
@@ -422,7 +538,7 @@
     const ballisticY = s.y + s.vy * dt;
     if (ballisticY < groundAhead - 1 && s.x >= course.lipX - 40) {
       // leaving the lip — go airborne, keep velocity, add pop from your charge
-      s.vy -= POP * (0.2 + 0.8 * s.charge);
+      s.vy -= POP * (0.3 + 0.7 * s.charge);
       leaveGround();
     }
   }
@@ -448,9 +564,9 @@
     s.spun += dAng;
     liveFlips(Math.abs(s.spun) / (Math.PI * 2));
 
-    // wall collision (feet approx at s.y)
+    // wall collision (feet approx at s.y) — only on courses that have a wall
     const wl = course.wall;
-    if (s.x > wl.x - wl.halfW - 8 && s.x < wl.x + wl.halfW + 8 && s.y > wl.topY - 6) {
+    if (wl && s.x > wl.x - wl.halfW - 8 && s.x < wl.x + wl.halfW + 8 && s.y > wl.topY - 6) {
       return crash("SPLAT!", "You clipped the wall");
     }
 
@@ -494,13 +610,9 @@
         document.getElementById("score").textContent = run.score;
         for (let i = 0; i < 18; i++) spawnSpray(s, sa, 700);
       }
-    } else if (Math.abs(s.spun) > 1.2) {
-      // only wipe out if you were genuinely rotating — small sloppy hops recover
-      return crash("WIPEOUT!", flips + (flips === 1 ? " flip" : " flips") + " but landed sideways");
     } else {
-      s.angle = sa;
-      s.onGround = true;
-      showLive(false);
+      // landed at a bad angle relative to the slope — wipe out
+      return crash("WIPEOUT!", flips ? (flips + (flips === 1 ? " flip" : " flips") + " but landed sideways") : "landed sideways");
     }
   }
 
@@ -528,7 +640,8 @@
   }
   function finishRun() { // reached runout upright
     const lf = skier.pendingLandMsg;
-    showResult(true, lf && lf.flips ? "STOMPED IT!" : "NICE RUN", null, lf ? lf.flips : 0, lf ? lf.gained : 0);
+    const title = course.id === "crash" ? "YOU SURVIVED!" : (lf && lf.flips ? "STOMPED IT!" : "NICE RUN");
+    showResult(true, title, null, lf ? lf.flips : 0, lf ? lf.gained : 0);
   }
 
   // ------------------------------------------------------------------ replay
@@ -727,10 +840,8 @@
     ctx.lineWidth = 4; ctx.strokeStyle = "#eaf4fd"; ctx.stroke();
     ctx.lineWidth = 2; ctx.strokeStyle = "rgba(120,160,195,.5)"; ctx.stroke();
 
-    // little takeoff flag at the lip
-    drawFlag(course.lipX, course.lipY, "#ff5a3c");
-    // landing marker flag
-    drawFlag(course.landX + 8, course.landY, "#3ca0ff");
+    // course markers (takeoff / landing / finish flags)
+    for (const m of course.markers) drawFlag(m.x, m.y, m.color);
   }
 
   function drawFlag(x, y, color) {
@@ -746,6 +857,7 @@
 
   function drawWall() {
     const wl = course.wall;
+    if (!wl) return;                        // jump / crash courses have no wall
     const x = wl.x - wl.halfW, w = wl.halfW * 2;
     const top = wl.topY, h = wl.baseY - wl.topY;
     ctx.save();
@@ -779,83 +891,148 @@
     ctx.restore();
   }
 
-  // Articulated skier. Joints (feet, knee, hip, shoulder, head, hand) are
-  // interpolated between an EXTENDED pose and a deep TUCK pose by s.tuck, so the
-  // cursor visibly bends the knees, drops the hips and rounds the shoulders.
-  // The whole figure rotates about the hip so flips pivot around the body centre.
+  // ---- character-aware skier renderer -------------------------------------
   const jl = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+  function shade(hex, f) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = Math.min(255, Math.round(((n >> 16) & 255) * f));
+    const g = Math.min(255, Math.round(((n >> 8) & 255) * f));
+    const b = Math.min(255, Math.round((n & 255) * f));
+    return "#" + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
+  }
+
+  // Paint the skier in the current canvas transform, feet at the origin.
+  // Joints interpolate between an EXTENDED and a deep TUCK pose by `tuck`; the
+  // upper body leans by `lean`; the whole body rotates by `angle` about the hip.
+  // Colours/build/features come from the character config `C`.
+  function paintSkierBody(pctx, C, tuck, lean, angle) {
+    const t = Math.max(0, Math.min(1, tuck));
+    const B = C.build || 1, thin = C.thin ? 0.84 : 1;
+
+    const foot = { x: 0, y: 0 };
+    const knee = jl({ x: 2, y: -17 }, { x: 15, y: -12 }, t);
+    const hip  = jl({ x: 0, y: -34 }, { x: -6, y: -18 }, t);
+    const sho  = jl({ x: 0, y: -55 }, { x: 8,  y: -25 }, t);
+    const head = jl({ x: 0, y: -68 }, { x: 15, y: -30 }, t);
+    for (const j of [knee, hip, sho, head]) j.y *= B;   // taller / shorter build
+
+    pctx.save();
+    pctx.lineCap = "round"; pctx.lineJoin = "round";
+    pctx.translate(hip.x, hip.y); pctx.rotate(angle); pctx.translate(-hip.x, -hip.y);
+
+    // skis + upturned tips
+    pctx.strokeStyle = C.skis; pctx.lineWidth = 4;
+    pctx.beginPath();
+    pctx.moveTo(-22, 3); pctx.lineTo(24, 3);
+    pctx.moveTo(24, 3); pctx.quadraticCurveTo(33, 3, 33, -4);
+    pctx.moveTo(-22, 3); pctx.quadraticCurveTo(-29, 3, -29, -3);
+    pctx.stroke();
+
+    // legs: thigh (hip->knee) is the bottom colour; shin (knee->foot) is skin
+    // for shorts, bottom colour for pants
+    pctx.lineWidth = 7 * thin;
+    pctx.strokeStyle = C.bottom;
+    pctx.beginPath(); pctx.moveTo(hip.x, hip.y); pctx.lineTo(knee.x, knee.y); pctx.stroke();
+    pctx.strokeStyle = C.bottomType === "shorts" ? C.skin : C.bottom;
+    pctx.beginPath(); pctx.moveTo(knee.x, knee.y); pctx.lineTo(foot.x, foot.y); pctx.stroke();
+    // boots
+    pctx.fillStyle = C.boots;
+    pctx.beginPath(); pctx.ellipse(1, -2, 5, 4, 0, 0, Math.PI * 2); pctx.fill();
+
+    // ---- upper body leans forward/back about the hip (front vs back flip tell)
+    pctx.save();
+    pctx.translate(hip.x, hip.y); pctx.rotate(lean * LEAN_TILT); pctx.translate(-hip.x, -hip.y);
+
+    const DEG = Math.PI / 180;
+    const raise = 1 - t;
+    const baseA = (160 - 150 * raise) * DEG;         // 160° = arms down by sides, 10° = overhead
+    const nearA = baseA + lean * 22 * DEG;
+    const farA  = nearA - 8 * DEG;
+    const drawArm = (a, col) => {
+      const ex = sho.x + Math.sin(a) * 11 * B, ey = sho.y - Math.cos(a) * 11 * B;   // elbow
+      const a2 = a - 0.4;                                                            // forearm bend
+      const hx = ex + Math.sin(a2) * 10 * B, hy = ey - Math.cos(a2) * 10 * B;        // hand
+      pctx.strokeStyle = col; pctx.lineWidth = 5 * thin;
+      pctx.beginPath(); pctx.moveTo(sho.x, sho.y); pctx.lineTo(ex, ey); pctx.lineTo(hx, hy); pctx.stroke();
+      pctx.fillStyle = C.skin;                                                       // bare hand
+      pctx.beginPath(); pctx.arc(hx, hy, 3, 0, Math.PI * 2); pctx.fill();
+    };
+
+    drawArm(farA, shade(C.top, 0.72));               // far arm behind the torso
+    pctx.strokeStyle = C.top; pctx.lineWidth = 10 * thin;   // torso
+    pctx.beginPath(); pctx.moveTo(hip.x, hip.y); pctx.lineTo(sho.x, sho.y); pctx.stroke();
+    drawArm(nearA, C.top);                            // near arm in front
+
+    // head, aligned to the torso lean
+    const ang = Math.atan2(head.y - sho.y, head.x - sho.x);
+    pctx.save();
+    pctx.translate(head.x, head.y); pctx.rotate(ang + Math.PI / 2);
+    drawHead(pctx, C);
+    pctx.restore();
+
+    pctx.restore();  // end lean
+    pctx.restore();  // end body
+  }
+
+  // Head covering by type: hair / long / beanie / beret / helmet, plus optional
+  // beard and glasses. Drawn centred at the head origin.
+  function drawHead(pctx, C) {
+    const type = (C.head && C.head.type) || "hair";
+    const hc = (C.head && C.head.color) || C.hairColor || "#222";
+    if (type === "hair" || type === "long") {
+      pctx.fillStyle = C.hairColor || hc;
+      pctx.beginPath(); pctx.arc(0, -1.5, 8.4, 0, Math.PI * 2); pctx.fill();
+      if (type === "long") {
+        pctx.beginPath(); pctx.moveTo(-7, -2); pctx.quadraticCurveTo(-11, 9, -6, 17);
+        pctx.lineTo(-2, 16); pctx.quadraticCurveTo(-5, 6, -4, -1); pctx.closePath(); pctx.fill();
+        pctx.beginPath(); pctx.moveTo(7, -2); pctx.quadraticCurveTo(11, 9, 6, 17);
+        pctx.lineTo(2, 16); pctx.quadraticCurveTo(5, 6, 4, -1); pctx.closePath(); pctx.fill();
+      }
+    }
+    pctx.fillStyle = C.skin;                                    // face
+    pctx.beginPath(); pctx.arc(0, 0, 7.5, 0, Math.PI * 2); pctx.fill();
+    if (C.beard) {
+      pctx.fillStyle = C.beardColor || shade(C.hairColor || "#5a4030", 0.9);
+      pctx.beginPath(); pctx.arc(0, 1.6, 7.1, 0.12 * Math.PI, 0.88 * Math.PI); pctx.fill();
+    }
+    if (type === "beanie") {
+      pctx.fillStyle = hc;
+      pctx.beginPath(); pctx.arc(0, -2, 8, Math.PI, 0); pctx.fill();
+      pctx.fillRect(-8, -3, 16, 3);
+    } else if (type === "beret") {
+      pctx.save(); pctx.translate(1.5, -6); pctx.rotate(-0.28);
+      pctx.fillStyle = hc; pctx.beginPath(); pctx.ellipse(0, 0, 8.6, 4.2, 0, 0, Math.PI * 2); pctx.fill();
+      pctx.beginPath(); pctx.arc(3.5, -1, 1.4, 0, Math.PI * 2); pctx.fill(); pctx.restore();
+    } else if (type === "helmet") {
+      pctx.fillStyle = hc;
+      pctx.beginPath(); pctx.arc(0, -0.5, 8.7, Math.PI * 0.98, Math.PI * 0.02); pctx.fill();
+      pctx.fillRect(-8.7, -0.5, 17.4, 3.2);
+      pctx.strokeStyle = shade(hc, 0.68); pctx.lineWidth = 1.6;
+      pctx.beginPath(); pctx.arc(0, -0.5, 8.7, Math.PI * 1.12, Math.PI * 1.5); pctx.stroke();
+    }
+    if (C.glasses) {
+      pctx.fillStyle = "rgba(32,38,46,.82)";
+      pctx.beginPath(); pctx.arc(-3, -0.3, 2.5, 0, Math.PI * 2); pctx.arc(3, -0.3, 2.5, 0, Math.PI * 2); pctx.fill();
+      pctx.strokeStyle = "#20242a"; pctx.lineWidth = 1.2;
+      pctx.beginPath(); pctx.moveTo(-0.6, -0.6); pctx.lineTo(0.6, -0.6); pctx.stroke();
+    }
+  }
 
   function drawSkier() {
     const s = skier;
-    const t = Math.max(0, Math.min(1, s.tuck));
-
-    // local pose in "feet at origin" coords (y up = negative)
-    const foot = { x: 0, y: 0 };
-    const knee = jl({ x: 2,  y: -17 }, { x: 15, y: -12 }, t); // knees drive up & forward
-    const hip  = jl({ x: 0,  y: -34 }, { x: -6, y: -18 }, t); // hips sink & shift back
-    const sho  = jl({ x: 0,  y: -55 }, { x: 8,  y: -25 }, t); // shoulders round forward & down
-    const head = jl({ x: 0,  y: -68 }, { x: 15, y: -30 }, t); // head tucks toward the knees
-    const hand = jl({ x: 15, y: -50 }, { x: 15, y: -16 }, t); // hands pull in to the knees
-
     ctx.save();
     ctx.translate(s.x, s.y);
-    // pivot the whole body about the hip
-    ctx.translate(hip.x, hip.y);
-    ctx.rotate(s.angle);
-    ctx.translate(-hip.x, -hip.y);
-    ctx.lineCap = "round"; ctx.lineJoin = "round";
-
-    // skis (rotate with the body) + upturned tips
-    ctx.strokeStyle = "#ffcf33"; ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(-22, 3); ctx.lineTo(24, 3);
-    ctx.moveTo(24, 3); ctx.quadraticCurveTo(33, 3, 33, -4);
-    ctx.moveTo(-22, 3); ctx.quadraticCurveTo(-29, 3, -29, -3);
-    ctx.stroke();
-
-    // legs: foot -> knee -> hip (pants)
-    ctx.strokeStyle = "#2b3a67"; ctx.lineWidth = 7;
-    ctx.beginPath();
-    ctx.moveTo(foot.x, foot.y); ctx.lineTo(knee.x, knee.y); ctx.lineTo(hip.x, hip.y);
-    ctx.stroke();
-
-    // Upper body leans forward/back with the cursor about the hip — this is the
-    // visible tell for whether you're throwing a FRONT flip or a BACK flip.
-    ctx.save();
-    ctx.translate(hip.x, hip.y); ctx.rotate(s.lean * LEAN_TILT); ctx.translate(-hip.x, -hip.y);
-
-    // torso: hip -> shoulder (jacket)
-    ctx.strokeStyle = "#e8442c"; ctx.lineWidth = 10;
-    ctx.beginPath();
-    ctx.moveTo(hip.x, hip.y); ctx.lineTo(sho.x, sho.y);
-    ctx.stroke();
-
-    // arm: shoulder -> hand (jacket), then a pole from the hand
-    ctx.strokeStyle = "#e8442c"; ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.moveTo(sho.x, sho.y); ctx.lineTo(hand.x, hand.y);
-    ctx.stroke();
-    ctx.strokeStyle = "#3a3a3a"; ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(hand.x, hand.y); ctx.lineTo(hand.x + 5, 5);
-    ctx.stroke();
-
-    // neck -> head, beanie, goggles (aligned to the torso lean)
-    const ang = Math.atan2(head.y - sho.y, head.x - sho.x);
-    ctx.save();
-    ctx.translate(head.x, head.y);
-    ctx.rotate(ang + Math.PI / 2);
-    ctx.fillStyle = "#ffd9b0";                                   // face
-    ctx.beginPath(); ctx.arc(0, 0, 7.5, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "#1f2c47";                                   // beanie
-    ctx.beginPath(); ctx.arc(0, -1.5, 7.5, Math.PI, 0); ctx.fill();
-    ctx.fillStyle = "#7fd0ff";                                   // goggles
-    ctx.fillRect(-1, -1.5, 8, 4);
+    paintSkierBody(ctx, character, s.tuck, s.lean, s.angle);
     ctx.restore();
+  }
 
-    ctx.restore();   // end upper-body lean
-
-    ctx.restore();   // end body
+  // Standing avatar for the character-select previews.
+  function drawAvatar(actx, C, cx, cy, scale) {
+    actx.save();
+    actx.translate(cx, cy);
+    actx.scale(scale, scale);
+    paintSkierBody(actx, C, 0.2, 0, 0);
+    actx.restore();
   }
 
   // ------------------------------------------------------------------ loop
@@ -870,6 +1047,133 @@
     requestAnimationFrame(frame);
   }
 
+  // ------------------------------------------------------------------ course select UI
+  function buildCourseTabs() {
+    const el = document.getElementById("courseTabs");
+    const courses = [
+      { id: "wall",  label: "The Wall",  desc: "Flip the wall" },
+      { id: "jump",  label: "The Jump",  desc: "Big air, no obstacles" },
+      { id: "crash", label: "The Crash", desc: "Survive the jagged hill" },
+    ];
+    el.innerHTML = "";
+    courses.forEach((c) => {
+      const b = document.createElement("button");
+      b.className = "ctab" + (c.id === courseId ? " sel" : "");
+      b.innerHTML = "<b>" + c.label + "</b><span>" + c.desc + "</span>";
+      b.addEventListener("click", () => {
+        selectCourse(c.id);
+        [...el.children].forEach((x) => x.classList.remove("sel"));
+        b.classList.add("sel");
+        resetSkier();                              // rebuild the backdrop course
+        cam.x = skier.x - W * 0.34; cam.y = skier.y - H * 0.56;
+      });
+      el.appendChild(b);
+    });
+  }
+
+  // ------------------------------------------------------------------ character select UI
+  function buildCharacterUI() {
+    const tilesEl = document.getElementById("charTiles");
+    const editEl = document.getElementById("charEditor");
+    const names = Object.keys(PRESETS).concat(["Custom"]);
+    const tileCanvases = {};
+    let selected = localStorage.getItem("skistunt_char") || "TwosBaller";
+    if (!names.includes(selected)) selected = "TwosBaller";
+
+    const cfgFor = (name) => (name === "Custom" ? customChar : PRESETS[name]);
+
+    function renderTile(name) {
+      const cv = tileCanvases[name], w = 76, h = 96;
+      cv.width = w * DPR; cv.height = h * DPR;
+      const c = cv.getContext("2d");
+      c.setTransform(DPR, 0, 0, DPR, 0, 0); c.clearRect(0, 0, w, h);
+      drawAvatar(c, cfgFor(name), w / 2, h - 10, 0.82);
+    }
+
+    tilesEl.innerHTML = "";
+    names.forEach((name) => {
+      const tile = document.createElement("div");
+      tile.className = "ctile" + (name === selected ? " sel" : "");
+      tile.dataset.name = name;
+      const cv = document.createElement("canvas");
+      const label = document.createElement("span"); label.textContent = name;
+      tile.appendChild(cv); tile.appendChild(label);
+      tilesEl.appendChild(tile);
+      tileCanvases[name] = cv;
+      renderTile(name);
+      tile.addEventListener("click", () => setSelected(name));
+    });
+
+    function setSelected(name) {
+      selected = name;
+      [...tilesEl.children].forEach((t) => t.classList.toggle("sel", t.dataset.name === name));
+      editEl.classList.toggle("hidden", name !== "Custom");
+      selectCharacter(cfgFor(name));
+    }
+
+    // ---- custom creator ----
+    const PAL = {
+      skin:  ["#f2c9a0","#e8b58c","#d69b6e","#c98a5e","#a06a43","#7a4a2e","#5a3b28","#3e2a1c"],
+      hair:  ["#141414","#3a2a1c","#5a3a26","#8a4b2a","#b0682e","#c9a24a","#e6e6e6","#7a1f1f","#1f3a6b","#15171b"],
+      top:   ["#e8442c","#ffffff","#1c1f24","#2b5fa8","#2e8b57","#f2c033","#8e44ad","#c9ccc9","#1a1a1a","#ff2d78"],
+      bottom:["#2b3a67","#6d7b8c","#1c1f24","#9a8f80","#d8d4c8","#3a4a3a","#5a3a26","#111318","#444a52","#7a1f1f"],
+      boots: ["#2a2f38","#111318","#c0392b","#3a2a1c","#e6e6e6","#1f3a6b","#2e8b57","#f2c033"],
+      skis:  ["#ffcf33","#ff5a3c","#3ca0ff","#2ecc71","#e6e6e6","#8e44ad","#ff2d78","#111318"],
+    };
+    const rows = [];
+
+    function onChange() { saveCustom(); if (selected === "Custom") selectCharacter(customChar); renderTile("Custom"); rows.forEach((r) => r._refresh()); }
+
+    function swatchRow(label, palette, getVal, setVal) {
+      const row = document.createElement("div"); row.className = "crow";
+      const l = document.createElement("div"); l.className = "lbl"; l.textContent = label;
+      const opts = document.createElement("div"); opts.className = "opts";
+      const sws = palette.map((col) => {
+        const b = document.createElement("button"); b.className = "sw"; b.style.background = col;
+        b.addEventListener("click", () => { setVal(col); onChange(); });
+        opts.appendChild(b); return [b, col];
+      });
+      row._refresh = () => { const v = String(getVal()).toLowerCase(); sws.forEach(([b, c]) => b.classList.toggle("sel", c.toLowerCase() === v)); };
+      row.append(l, opts); return row;
+    }
+    function chipRow(label, chips) {
+      const row = document.createElement("div"); row.className = "crow";
+      const l = document.createElement("div"); l.className = "lbl"; l.textContent = label;
+      const opts = document.createElement("div"); opts.className = "opts";
+      const items = chips.map((ch) => {
+        const b = document.createElement("button"); b.className = "chip"; b.textContent = ch.text;
+        b.addEventListener("click", () => { ch.onClick(); onChange(); });
+        opts.appendChild(b); return [b, ch];
+      });
+      row._refresh = () => items.forEach(([b, ch]) => b.classList.toggle("sel", ch.active()));
+      row.append(l, opts); return row;
+    }
+
+    const headLabels = { hair: "Hair", long: "Long", beanie: "Beanie", beret: "Beret", helmet: "Helmet" };
+    rows.push(chipRow("Head", Object.keys(headLabels).map((tp) => ({
+      text: headLabels[tp], active: () => customChar.head.type === tp, onClick: () => { customChar.head.type = tp; },
+    }))));
+    rows.push(swatchRow("Hair/Hat", PAL.hair, () => customChar.head.color, (v) => { customChar.head.color = v; customChar.hairColor = v; }));
+    rows.push(swatchRow("Skin", PAL.skin, () => customChar.skin, (v) => (customChar.skin = v)));
+    rows.push(swatchRow("Top", PAL.top, () => customChar.top, (v) => (customChar.top = v)));
+    rows.push(chipRow("Bottom", [
+      { text: "Pants", active: () => customChar.bottomType === "pants", onClick: () => (customChar.bottomType = "pants") },
+      { text: "Shorts", active: () => customChar.bottomType === "shorts", onClick: () => (customChar.bottomType = "shorts") },
+    ]));
+    rows.push(swatchRow("Btm color", PAL.bottom, () => customChar.bottom, (v) => (customChar.bottom = v)));
+    rows.push(swatchRow("Boots", PAL.boots, () => customChar.boots, (v) => (customChar.boots = v)));
+    rows.push(swatchRow("Skis", PAL.skis, () => customChar.skis, (v) => (customChar.skis = v)));
+    rows.push(chipRow("Extras", [
+      { text: "Beard", active: () => !!customChar.beard, onClick: () => (customChar.beard = !customChar.beard) },
+      { text: "Glasses", active: () => !!customChar.glasses, onClick: () => (customChar.glasses = !customChar.glasses) },
+    ]));
+
+    editEl.innerHTML = "";
+    rows.forEach((r) => editEl.appendChild(r));
+    rows.forEach((r) => r._refresh());
+    setSelected(selected);
+  }
+
   // ------------------------------------------------------------------ boot
   state = "start";
   input.y = H * 0.5;    // neutral cursor position
@@ -879,9 +1183,28 @@
   cam.x = skier.x - W * 0.34;
   cam.y = skier.y - H * 0.56;
 
+  // return from a run to the course/rider select screen
+  function backToStart() {
+    state = "start";
+    document.getElementById("resultCard").classList.add("hidden");
+    document.getElementById("startCard").classList.remove("hidden");
+    document.getElementById("overlay").classList.remove("hidden");
+    document.getElementById("replaybadge").classList.add("hidden");
+    showLive(false);
+    buildCourseTabs();
+    buildCharacterUI();
+    resetSkier();
+    cam.x = skier.x - W * 0.34; cam.y = skier.y - H * 0.56;
+  }
+
+  buildCourseTabs();
+  buildCharacterUI();
   document.getElementById("startBtn").addEventListener("click", startGame);
   document.getElementById("againBtn").addEventListener("click", () => {
     if (state === "result") dropInAgain();
+  });
+  document.getElementById("changeBtn").addEventListener("click", () => {
+    if (state === "result") backToStart();
   });
   // click anywhere on the result card background to drop in
   window.addEventListener("keydown", (e) => {
