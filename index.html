@@ -213,11 +213,12 @@
       <div class="result-flips" id="resultFlips">0</div>
       <p id="resultMsg">+0 points</p>
       <div class="keys">
-        <span class="keycap"><b>R</b> — replay (loops)</span>
-        <span class="keycap"><b>any key</b> — stop replay</span>
-        <span class="keycap"><b>Click / Space</b> — drop back in</span>
+        <span class="keycap"><b>R</b> or ▶ button — replay (loops)</span>
+        <span class="keycap"><b>tap</b> / any key — stop replay</span>
+        <span class="keycap"><b>tap</b> / Space — drop back in</span>
       </div>
       <button class="btn" id="againBtn">Drop In Again ▸</button>
+      <button class="linkbtn" id="replayBtn">▶ Watch replay</button>
       <button class="linkbtn" id="changeBtn">← Change course &amp; rider</button>
     </div>
   </div>
@@ -735,7 +736,7 @@
     state = "replay";
     document.getElementById("overlay").classList.add("hidden");
     const badge = document.getElementById("replaybadge");
-    badge.innerHTML = '▶ REPLAY<div style="font-size:14px;font-weight:700;opacity:.85;margin-top:8px;">press any key to stop</div>';
+    badge.innerHTML = '▶ REPLAY<div style="font-size:14px;font-weight:700;opacity:.85;margin-top:8px;">tap or press any key to stop</div>';
     badge.classList.remove("hidden");
     hideHint();
   }
@@ -1321,6 +1322,9 @@
   document.getElementById("startBtn").addEventListener("click", startGame);
   document.getElementById("againBtn").addEventListener("click", () => {
     if (state === "result") dropInAgain();
+  });
+  document.getElementById("replayBtn").addEventListener("click", () => {
+    if (state === "result") startReplay();
   });
   document.getElementById("changeBtn").addEventListener("click", () => {
     if (state === "result") backToStart();
