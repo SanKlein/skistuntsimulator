@@ -152,6 +152,8 @@
   .howto { margin-top:14px; text-align:left; font-size:13px; opacity:.9; }
   .howto summary { cursor:pointer; font-weight:800; opacity:.8; letter-spacing:.02em; }
   .howto p { margin-top:8px; }
+  .credit { margin-top:14px; font-size:11px; opacity:.6; }
+  .credit a { color:#8fd3ff; }
   #replaybadge {
     position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
     font-size: 44px; font-weight:900; letter-spacing:.05em; opacity:.9;
@@ -195,6 +197,7 @@
         and center to land upright. Press <b>R</b> to replay.</p>
       </details>
       <button class="btn" id="startBtn">Drop In ▸</button>
+      <p class="credit">A tribute to the original <a href="https://www.cs.ubc.ca/~van/sssjava/javademo.html" target="_blank" rel="noopener noreferrer">Ski Stunt Simulator</a> by Michiel van de Panne (UBC).</p>
     </div>
 
     <!-- Result card -->
@@ -462,7 +465,7 @@
     "TwosJoe":       { name:"TwosJoe",       skin:"#e8b58c", head:{type:"beret", color:"#15171b"}, hairColor:"#4a3527", beard:true,  beardColor:"#5a4030", glasses:false, top:"#f2f2f0", bottomType:"pants",  bottom:"#6d7b8c", boots:"#2a2f38", skis:"#ff5a3c", build:1.08 },
     "TwosBaller":    { name:"TwosBaller",    skin:"#e8b58c", head:{type:"hair",  color:"#8a4b2a"}, hairColor:"#8a4b2a", beard:false, glasses:false, top:"#1c1f24", bottomType:"pants",  bottom:"#1c1f24", boots:"#111318", skis:"#3ca0ff", build:0.94 },
     "Popstar Benny": { name:"Popstar Benny", skin:"#5a3b28", head:{type:"hair",  color:"#141414"}, hairColor:"#141414", beard:false, glasses:true,  top:"#c9ccc9", bottomType:"pants", bottom:"#3c5c94", boots:"#20241f", skis:"#ffcf33", build:1.16, thin:true, fluff:true, fluffColor:"#ece4d2" },
-    "Harlem":        { name:"Harlem",        skin:"#c98a5e", head:{type:"long",  color:"#0f0f10"}, hairColor:"#0f0f10", beard:false, glasses:false, top:"#1a1a1a", bottomType:"pants",  bottom:"#9a8f80", boots:"#c0392b", skis:"#ff5a3c", build:0.92 },
+    "Harlem":        { name:"Harlem",        skin:"#9c6a42", head:{type:"long",  color:"#0f0f10"}, hairColor:"#0f0f10", beard:false, glasses:false, top:"#1a1a1a", bottomType:"pants",  bottom:"#9a8f80", boots:"#c0392b", skis:"#ff5a3c", build:0.92 },
   };
   const DEFAULT_CUSTOM = { name:"Custom", skin:"#e8b58c", head:{type:"beanie", color:"#1f2c47"}, hairColor:"#4a3527", beard:false, glasses:false, top:"#e8442c", bottomType:"pants", bottom:"#2b3a67", boots:"#2a2f38", skis:"#ffcf33", build:1.0 };
   const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -1046,6 +1049,17 @@
       pctx.fillRect(-8.7, -0.5, 17.4, 3.2);
       pctx.strokeStyle = shade(hc, 0.68); pctx.lineWidth = 1.6;
       pctx.beginPath(); pctx.arc(0, -0.5, 8.7, Math.PI * 1.12, Math.PI * 1.5); pctx.stroke();
+    } else if (type === "cap") {
+      // baseball cap: rounded crown + forward brim (+x is the face front)
+      pctx.fillStyle = hc;
+      pctx.beginPath(); pctx.arc(0, -1.5, 8, Math.PI, 0); pctx.fill();   // crown
+      pctx.beginPath(); pctx.arc(0, -9.3, 1.1, 0, Math.PI * 2); pctx.fill(); // button
+      pctx.fillStyle = shade(hc, 0.88);                                  // brim
+      pctx.beginPath();
+      pctx.moveTo(3, -2.2);
+      pctx.quadraticCurveTo(14, -3.2, 16.5, -0.2);
+      pctx.quadraticCurveTo(12, -0.8, 3, 0.6);
+      pctx.closePath(); pctx.fill();
     }
     if (C.glasses) {
       pctx.fillStyle = "rgba(32,38,46,.82)";
@@ -1186,7 +1200,7 @@
       row.append(l, opts); return row;
     }
 
-    const headLabels = { hair: "Hair", long: "Long", beanie: "Beanie", beret: "Beret", helmet: "Helmet" };
+    const headLabels = { hair: "Hair", long: "Long", cap: "Cap", beanie: "Beanie", beret: "Beret", helmet: "Helmet" };
     rows.push(chipRow("Head", Object.keys(headLabels).map((tp) => ({
       text: headLabels[tp], active: () => customChar.head.type === tp, onClick: () => { customChar.head.type = tp; },
     }))));
