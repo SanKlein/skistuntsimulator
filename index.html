@@ -1,0 +1,893 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+
+<!-- Primary SEO -->
+<title>Ski Stunt Simulator — Free Online Ski Jump &amp; Flip Game</title>
+<meta name="description" content="Ski Stunt Simulator is a free online ski game. Bomb down the hill, hit the ramp, and flip over the wall — time your crouch, tuck, and lean to land backflips and front flips. No download, play in your browser." />
+<meta name="keywords" content="ski stunt simulator, ski game, online ski game, ski jump game, backflip, front flip, physics game, free browser game, skiing" />
+<meta name="author" content="Ski Stunt Simulator" />
+<meta name="robots" content="index, follow" />
+<meta name="theme-color" content="#a9dcff" />
+<link rel="canonical" href="https://skistuntsimulator.com/" />
+
+<!-- Icons -->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+<!-- Open Graph (Facebook, iMessage, Slack, LinkedIn) -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Ski Stunt Simulator" />
+<meta property="og:title" content="Ski Stunt Simulator — Free Online Ski Jump &amp; Flip Game" />
+<meta property="og:description" content="Bomb down the hill, hit the ramp, and flip over the wall. Time your crouch, tuck, and lean to land backflips and front flips. Play free in your browser." />
+<meta property="og:url" content="https://skistuntsimulator.com/" />
+<meta property="og:image" content="https://skistuntsimulator.com/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+
+<!-- Twitter / X -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Ski Stunt Simulator — Free Online Ski Jump &amp; Flip Game" />
+<meta name="twitter:description" content="Bomb down the hill, hit the ramp, and flip over the wall. Play free in your browser." />
+<meta name="twitter:image" content="https://skistuntsimulator.com/og-image.png" />
+
+<!-- Structured data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "VideoGame",
+  "name": "Ski Stunt Simulator",
+  "url": "https://skistuntsimulator.com/",
+  "image": "https://skistuntsimulator.com/og-image.png",
+  "description": "A free online ski stunt game — ski down the hill, launch off the ramp, and flip over the wall. Time your crouch, tuck and lean to land backflips and front flips.",
+  "genre": ["Sports", "Arcade", "Physics"],
+  "gamePlatform": "Web browser",
+  "applicationCategory": "Game",
+  "operatingSystem": "Any",
+  "playMode": "SinglePlayer",
+  "inLanguage": "en",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
+
+<style>
+  :root { --ink:#0e2233; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; background: #0b1622; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    color: #fff; -webkit-user-select: none; user-select: none; touch-action: none;
+  }
+  #wrap { position: fixed; inset: 0; }
+  canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
+
+  /* ---- HUD ---- */
+  #hud {
+    position: absolute; top: 14px; left: 14px; right: 14px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    pointer-events: none; font-variant-numeric: tabular-nums;
+    text-shadow: 0 1px 3px rgba(0,0,0,.45);
+  }
+  .stat { line-height: 1.05; }
+  .stat .k { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; opacity: .7; }
+  .stat .v { font-size: 26px; font-weight: 800; }
+  #right { text-align: right; }
+  #liveflip { font-size: 15px; font-weight: 700; opacity: 0; transition: opacity .12s; }
+
+  /* ---- Center overlays (start / result) ---- */
+  #overlay {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  .card {
+    pointer-events: auto; text-align: center; max-width: 460px; width: min(90vw, 460px);
+    background: rgba(9,20,32,.82); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,.14); border-radius: 18px;
+    padding: 26px 26px 22px; box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  }
+  .card h1 { font-size: 30px; font-weight: 900; letter-spacing: -.01em; }
+  .card h1 .sub { display:block; font-size: 12px; font-weight: 700; letter-spacing:.22em; text-transform:uppercase; opacity:.6; margin-bottom:6px; }
+  .card p { margin-top: 12px; font-size: 14px; line-height: 1.55; opacity: .88; }
+  .keys { margin-top: 16px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+  .keycap {
+    font-size: 12px; font-weight:700; padding:7px 11px; border-radius:9px;
+    background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16);
+  }
+  .keycap b { color:#8fd3ff; }
+  .btn {
+    margin-top: 20px; display:inline-block; pointer-events:auto; cursor:pointer;
+    font-size: 16px; font-weight: 800; letter-spacing:.02em;
+    padding: 13px 26px; border-radius: 12px; border: none; color:#062033;
+    background: linear-gradient(180deg,#8fd3ff,#4aa9e8);
+    box-shadow: 0 8px 22px rgba(74,169,232,.4);
+  }
+  .btn:active { transform: translateY(1px); }
+  .result-flips { font-size: 46px; font-weight: 900; margin-top: 6px; }
+  .result-tag { font-size: 13px; letter-spacing:.18em; text-transform:uppercase; font-weight:800; }
+  .good { color:#7dffa8; } .bad { color:#ff8f8f; }
+  .hidden { display:none !important; }
+  #replaybadge {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    font-size: 44px; font-weight:900; letter-spacing:.05em; opacity:.9;
+    color:#ffd24a; text-shadow:0 2px 14px rgba(0,0,0,.6); pointer-events:none;
+  }
+  #hint {
+    position:absolute; bottom:16px; left:50%; transform:translateX(-50%);
+    font-size:13px; font-weight:700; opacity:.75; pointer-events:none;
+    text-shadow:0 1px 3px rgba(0,0,0,.5); text-align:center; white-space:nowrap;
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c"></canvas>
+
+  <div id="hud">
+    <div class="stat"><div class="k">Score</div><div class="v" id="score">0</div></div>
+    <div id="right">
+      <div class="stat"><div class="k">Best</div><div class="v" id="best">0</div></div>
+      <div id="liveflip">0.0 flips</div>
+    </div>
+  </div>
+
+  <div id="replaybadge" class="hidden">▶ REPLAY</div>
+  <div id="hint" class="hidden"></div>
+
+  <div id="overlay">
+    <!-- Start card -->
+    <div class="card" id="startCard">
+      <h1><span class="sub">DDsim tribute</span>Ski Stunt Simulator</h1>
+      <p>Move the mouse to pose the skier — it's <b>relative to where you start</b>, so nudge from
+      there. <b>Down = crouch/tuck</b>, <b>up = stand tall & extend</b> (hands up),
+      <b>right = lean forward</b> (front flip), <b>left = lean back</b> (backflip). Crouch then
+      snap up fast to <b>jump off the snow anywhere</b> — flip off a flat pop or launch huge off
+      the ramp. Tuck to spin faster, extend and center to land upright.</p>
+      <div class="keys">
+        <span class="keycap"><b>Mouse ↕</b> — crouch / stand (tuck / extend)</span>
+        <span class="keycap"><b>Mouse ↔</b> — lean: left back, right forward</span>
+        <span class="keycap"><b>R</b> — replay</span>
+      </div>
+      <button class="btn" id="startBtn">Drop In ▸</button>
+    </div>
+
+    <!-- Result card -->
+    <div class="card hidden" id="resultCard">
+      <div class="result-tag" id="resultTag">NICE LANDING</div>
+      <div class="result-flips" id="resultFlips">0</div>
+      <p id="resultMsg">+0 points</p>
+      <div class="keys">
+        <span class="keycap"><b>R</b> — replay (loops)</span>
+        <span class="keycap"><b>any key</b> — stop replay</span>
+        <span class="keycap"><b>Click / Space</b> — drop back in</span>
+      </div>
+      <button class="btn" id="againBtn">Drop In Again ▸</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+(function () {
+  // ------------------------------------------------------------------ setup
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+  let W = 0, H = 0, DPR = 1;
+
+  function resize() {
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = Math.floor(W * DPR);
+    canvas.height = Math.floor(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  // ------------------------------------------------------------------ tuning
+  const G = 1650;            // gravity px/s^2
+  const RUN_GRAV = 0.45;     // how much gravity accelerates you along the slope
+  const FRICTION = 6;        // gentle ground friction px/s^2
+  const MIN_SPEED = 180, MAX_SPEED = 760;   // top speed capped so the run-up stays controllable
+  const POP = 360;           // launch spring from crouching on the run-up
+  const LAND_TOL = 0.72;     // radians of upright tolerance on landing (~41 deg)
+  const AIR_DRAG_W = 0.35;   // slow angular decay in air (very light)
+
+  // Skier "figure skater" spin: L = I * w. Tucking shrinks I -> faster spin.
+  const I_OPEN = 2.4;        // moment of inertia extended (slow spin — for landing)
+  const I_TUCK = 0.45;       // moment of inertia fully tucked (fast spin)
+  // Lean (cursor left/right) chooses & drives rotation: forward = front flip,
+  // back = backflip.
+  const LAUNCH_SEED = 4.5;   // spin impulse from your lean at the lip
+  const LEAN_TORQUE = 24;    // how strongly leaning builds spin in the air
+  const L_CAP = 15;          // max |angular momentum|
+  const LEAN_TILT = 0.55;    // radians the upper body visibly leans at full lean
+  // Ground jump: crouch then extend upward fast to hop off the snow anywhere.
+  const JUMP_DETUCK = 5;     // min extension rate (per sec) to trigger a hop
+  const JUMP_FULL = 13;      // extension rate for a full-power hop
+  const JUMP_POP = 560;      // max ground-jump launch speed (px/s up)
+
+  // ------------------------------------------------------------------ terrain
+  // The course is one fixed, repeating design described by control points.
+  // ground(x) linearly interpolates the top surface; a deep "pit" spans the gap
+  // so the skier is airborne between the lip and the landing slope.
+  let course, skier, cam, particles, state, run, best;
+  let hintEl = document.getElementById("hint");
+
+  // Append a smooth curve of points from (x0,y0) to (x1,y1) whose slope eases
+  // from m0 to m1 (a cubic Hermite), so the ramp rises gently instead of kinking.
+  function hermiteRamp(pts, x0, y0, x1, y1, m0, m1, n) {
+    const dx = x1 - x0;
+    for (let i = 1; i <= n; i++) {
+      const t = i / n, t2 = t * t, t3 = t2 * t;
+      const h00 = 2*t3 - 3*t2 + 1, h10 = t3 - 2*t2 + t;
+      const h01 = -2*t3 + 3*t2,   h11 = t3 - t2;
+      const y = h00*y0 + h10*(m0*dx) + h01*y1 + h11*(m1*dx);
+      pts.push({ x: x0 + dx*t, y });
+    }
+  }
+
+  function buildCourse() {
+    // slight per-drop variety in wall height, kept subtle
+    const wallExtra = ((run.drops * 37) % 46); // deterministic-ish 0..45
+    const startX = 120, startY = 150;
+    const pts = [];
+    pts.push({ x: 0,    y: startY - 40 });
+    pts.push({ x: startX, y: startY });
+    // smooth run-up easing downhill into the kicker
+    pts.push({ x: 560,  y: 278 });
+    pts.push({ x: 940,  y: 452 });
+    // Smooth kicker: a rounded valley curving up to the lip instead of a sharp
+    // up-kick. Hermite blends the downhill slope (+0.48) into the launch angle (-0.5).
+    const baseX = 1140, baseY = 545;
+    pts.push({ x: baseX, y: baseY });
+    const lipX = 1360, lipY = 478;
+    hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.48, -0.5, 16);
+    // the gap (deep pit so you're airborne)
+    const gap = 300;
+    const pitY = lipY + 620;
+    pts.push({ x: lipX + 12, y: pitY });
+    const landX = lipX + gap;
+    pts.push({ x: landX - 12, y: pitY });
+    // landing slope: down then flatten to a runout
+    const landY = lipY + 96;
+    pts.push({ x: landX, y: landY });
+    pts.push({ x: landX + 260, y: landY + 150 });
+    pts.push({ x: landX + 640, y: landY + 205 });
+    pts.push({ x: landX + 1400, y: landY + 240 });
+
+    const wall = {
+      x: lipX + gap * 0.5,
+      halfW: 17,
+      topY: lipY - (26 + wallExtra),   // must clear this
+      baseY: pitY,
+    };
+    course = {
+      pts, wall,
+      startX, startY,
+      lipX, lipY, landX, landY, pitY,
+      endX: landX + 1400,
+      groundIndexHint: 0,
+    };
+  }
+
+  function ground(x) {
+    const p = course.pts;
+    if (x <= p[0].x) return p[0].y;
+    if (x >= p[p.length - 1].x) return p[p.length - 1].y;
+    for (let i = 0; i < p.length - 1; i++) {
+      const a = p[i], b = p[i + 1];
+      if (x >= a.x && x <= b.x) {
+        const t = (x - a.x) / (b.x - a.x);
+        return a.y + (b.y - a.y) * t;
+      }
+    }
+    return p[p.length - 1].y;
+  }
+  function slopeAt(x) {
+    const e = 6;
+    return Math.atan2(ground(x + e) - ground(x - e), 2 * e); // radians, +down
+  }
+
+  // ------------------------------------------------------------------ input
+  // Primary control is CURSOR POSITION (like the original): move the pointer
+  // down to tuck/crouch, up to extend. Holding the button / Space forces a
+  // full tuck as a convenience override.
+  // Control is RELATIVE to an anchor captured at the start of each run: the pose
+  // is driven by how far the cursor has moved from there, not its absolute
+  // screen position. anchorHere() re-centres it.
+  const input = { down: false, x: 0, y: 0, ax: 0, ay: 0 };
+  function press() { input.down = true; }
+  function release() { input.down = false; }
+  function setXY(e) { input.x = e.clientX; input.y = e.clientY; }
+  function anchorHere() { input.ax = input.x; input.ay = input.y; }
+
+  canvas.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    if (state === "replay") { endReplay(); return; }   // click also stops replay
+    setXY(e); press();
+  });
+  window.addEventListener("pointermove", setXY, { passive: true });
+  window.addEventListener("pointerup", () => release());
+  window.addEventListener("pointercancel", () => release());
+  window.addEventListener("keydown", (e) => {
+    if (state === "replay") { e.preventDefault(); endReplay(); return; }  // any key stops replay
+    if (e.code === "Space") { e.preventDefault(); press(); }
+    if (e.key === "r" || e.key === "R") startReplay();
+  });
+  window.addEventListener("keyup", (e) => { if (e.code === "Space") release(); });
+
+  // How tucked the skier should be right now, 0 (extended) .. 1 (fully tucked),
+  // driven by where the cursor sits vertically on screen.
+  function tuckTarget() {
+    // relative to the anchor: move up = extend (hands up), down = crouch/tuck.
+    // Neutral (at the anchor) sits mid-crouch so there's room both ways.
+    let t = 0.5 + (input.y - input.ay) / (H * 0.32);
+    t = Math.max(0, Math.min(1, t));
+    if (input.down) t = 1;                // button/Space = full tuck
+    return t;
+  }
+
+  // How much the skier leans, -1 (back / backflip) .. +1 (forward / front flip),
+  // from how far the cursor has moved left/right of the anchor.
+  function leanTarget() {
+    let l = (input.x - input.ax) / (W * 0.15);
+    return Math.max(-1, Math.min(1, l));
+  }
+
+  // ------------------------------------------------------------------ state
+  best = parseInt(localStorage.getItem("skistunt_best") || "0", 10) || 0;
+  document.getElementById("best").textContent = best;
+  run = { score: 0, drops: 0 };
+
+  function resetSkier() {
+    buildCourse();
+    const x = course.startX + 10;
+    skier = {
+      x, y: ground(x) - 120,  // drop in from above the snow
+      vx: 180, vy: 0,
+      angle: 0,               // 0 = upright, radians (canvas rotate)
+      L: 0,                   // angular momentum (only meaningful in air)
+      tuck: 0,                // 0 extended .. 1 tucked
+      lean: 0,                // -1 back .. +1 forward (rotation direction)
+      charge: 0,              // loaded "spring" from crouching on the run-up
+      onGround: false,
+      launched: false,        // has left the lip at least once
+      spun: 0,                // radians accumulated in the current flight
+      dead: false,
+    };
+    cam = { x: 0, y: 0 };
+    particles = [];
+    trail = [];
+    trailT = 0;
+  }
+
+  // replay trail
+  let trail = [], trailT = 0;
+  const TRAIL_DT = 1 / 60;
+
+  // ------------------------------------------------------------------ physics
+  // Common bookkeeping when the skier leaves the snow (ramp launch or ground jump).
+  function leaveGround() {
+    const s = skier;
+    s.onGround = false;
+    s.launched = true;
+    s.charge = 0;
+    s.L = LAUNCH_SEED * s.lean;   // seed spin from your lean at takeoff
+    s.spun = 0;
+    showLive(true);
+  }
+
+  function stepGround(dt) {
+    const s = skier;
+    const sa = slopeAt(s.x);
+    // accelerate along slope by gravity, minus friction
+    let speed = Math.hypot(s.vx, s.vy);
+    speed += G * RUN_GRAV * Math.sin(sa) * dt;   // sin>0 on downhill (y+ down)
+    speed -= FRICTION * dt;
+    speed = Math.max(MIN_SPEED, Math.min(MAX_SPEED, speed));
+    s.vx = Math.cos(sa) * speed;
+    s.vy = Math.sin(sa) * speed;
+    s.x += s.vx * dt;
+    s.y = ground(s.x);
+    s.angle = sa;               // align to slope
+    const prevTuck = s.tuck;
+    s.tuck += (tuckTarget() - s.tuck) * Math.min(1, dt * 32);
+    s.lean += (leanTarget() - s.lean) * Math.min(1, dt * 12);
+    const detuck = (prevTuck - s.tuck) / dt;   // >0 when standing up fast (extending)
+    // Load the launch spring by crouching. Charges instantly, bleeds slowly.
+    if (s.tuck > s.charge) s.charge = s.tuck;
+    else s.charge = Math.max(0, s.charge - dt * 0.7);
+
+    // JUMP: crouch, then snap upward fast, to hop off the snow anywhere on the
+    // hill (like the original — you can even flip off a flat pop).
+    if (detuck > JUMP_DETUCK && s.charge > 0.3) {
+      const power = Math.min(1, detuck / JUMP_FULL);
+      s.vy = -JUMP_POP * power * (0.4 + 0.6 * s.charge);
+      leaveGround();
+      return;
+    }
+
+    // snow spray while carving fast
+    if (speed > 500 && Math.random() < 0.6) spawnSpray(s, sa, speed);
+
+    // Launch detection: the ground ahead falls away faster than we descend.
+    const lookX = s.x + s.vx * dt;
+    const groundAhead = ground(lookX);
+    const ballisticY = s.y + s.vy * dt;
+    if (ballisticY < groundAhead - 1 && s.x >= course.lipX - 40) {
+      // leaving the lip — go airborne, keep velocity, add pop from your charge
+      s.vy -= POP * (0.2 + 0.8 * s.charge);
+      leaveGround();
+    }
+  }
+
+  function stepAir(dt) {
+    const s = skier;
+    s.vy += G * dt;
+    s.x += s.vx * dt;
+    s.y += s.vy * dt;
+
+    // tuck control (cursor position → tuck amount)
+    s.tuck += (tuckTarget() - s.tuck) * Math.min(1, dt * 32);
+    // lean control (cursor left/right) applies torque → builds/reverses spin
+    s.lean += (leanTarget() - s.lean) * Math.min(1, dt * 12);
+    s.L += s.lean * LEAN_TORQUE * dt;
+    s.L = Math.max(-L_CAP, Math.min(L_CAP, s.L));
+    // figure-skater spin: w = L / I(tuck)
+    const I = I_OPEN + (I_TUCK - I_OPEN) * s.tuck;
+    let w = s.L / I;
+    s.L *= (1 - AIR_DRAG_W * dt);   // very light bleed so it can't spin forever
+    const dAng = w * dt;
+    s.angle += dAng;
+    s.spun += dAng;
+    liveFlips(Math.abs(s.spun) / (Math.PI * 2));
+
+    // wall collision (feet approx at s.y)
+    const wl = course.wall;
+    if (s.x > wl.x - wl.halfW - 8 && s.x < wl.x + wl.halfW + 8 && s.y > wl.topY - 6) {
+      return crash("SPLAT!", "You clipped the wall");
+    }
+
+    // landing / pit detection
+    const gy = ground(s.x);
+    if (s.y >= gy) {
+      s.y = gy;
+      if (!s.launched) {
+        // this is just the initial drop-in touching down on the run-up —
+        // settle onto the snow and start skiing, no stunt scoring
+        s.onGround = true;
+        s.angle = slopeAt(s.x);
+        return;
+      }
+      // only the gap over the pit is a plunge; hops on solid snow just land
+      if (s.x >= course.lipX && s.x < course.landX) {
+        return crash("PLUNGE!", "Came up short into the gap");
+      }
+      return evalLanding();
+    }
+    // fell off the end
+    if (s.x > course.endX) return finishRun();
+  }
+
+  function evalLanding() {
+    const s = skier;
+    const sa = slopeAt(s.x);
+    // error from nearest upright, measured relative to the slope
+    let err = s.angle - sa;
+    err = err - Math.round(err / (Math.PI * 2)) * (Math.PI * 2); // -> [-pi,pi]
+    const flips = Math.round(Math.abs(s.spun) / (Math.PI * 2));
+    if (Math.abs(err) <= LAND_TOL) {
+      // clean landing! settle onto the slope and keep skiing to the runout
+      s.angle = sa;
+      s.onGround = true;
+      showLive(false);
+      if (flips >= 1) {                          // only reward actual flips
+        const gained = 100 + flips * 200 + (s.tuck < 0.2 ? 40 : 0);
+        run.score += gained;
+        s.pendingLandMsg = { flips, gained };
+        document.getElementById("score").textContent = run.score;
+        for (let i = 0; i < 18; i++) spawnSpray(s, sa, 700);
+      }
+    } else if (Math.abs(s.spun) > 1.2) {
+      // only wipe out if you were genuinely rotating — small sloppy hops recover
+      return crash("WIPEOUT!", flips + (flips === 1 ? " flip" : " flips") + " but landed sideways");
+    } else {
+      s.angle = sa;
+      s.onGround = true;
+      showLive(false);
+    }
+  }
+
+  // ------------------------------------------------------------------ particles
+  function spawnSpray(s, sa, speed) {
+    particles.push({
+      x: s.x, y: s.y,
+      vx: -Math.cos(sa) * speed * 0.15 + (Math.random() - 0.5) * 120,
+      vy: -Math.abs(Math.sin(sa)) * speed * 0.1 - Math.random() * 220,
+      life: 0.5 + Math.random() * 0.4, r: 1.5 + Math.random() * 2.5,
+    });
+  }
+  function stepParticles(dt) {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  // ------------------------------------------------------------------ flow
+  function crash(title, msg) {
+    skier.dead = true;
+    showResult(false, title, msg, 0);
+  }
+  function finishRun() { // reached runout upright
+    const lf = skier.pendingLandMsg;
+    showResult(true, lf && lf.flips ? "STOMPED IT!" : "NICE RUN", null, lf ? lf.flips : 0, lf ? lf.gained : 0);
+  }
+
+  // ------------------------------------------------------------------ replay
+  let replay = null; // { frames, i }
+  function startReplay() {
+    if (state !== "result" || !trail.length) return;
+    replay = { frames: trail.slice(), i: 0, hold: 0 };
+    state = "replay";
+    document.getElementById("overlay").classList.add("hidden");
+    const badge = document.getElementById("replaybadge");
+    badge.innerHTML = '▶ REPLAY<div style="font-size:14px;font-weight:700;opacity:.85;margin-top:8px;">press any key to stop</div>';
+    badge.classList.remove("hidden");
+    hideHint();
+  }
+  function endReplay() {
+    replay = null;
+    document.getElementById("replaybadge").classList.add("hidden");
+    dropInAgain();
+  }
+
+  function startGame() {
+    run.score = 0;
+    document.getElementById("score").textContent = 0;
+    dropInAgain();
+  }
+  function dropInAgain() {
+    run.drops++;
+    resetSkier();
+    anchorHere();          // re-centre control on the cursor's current spot
+    state = "play";
+    document.getElementById("overlay").classList.add("hidden");
+    document.getElementById("startCard").classList.add("hidden");
+    document.getElementById("resultCard").classList.add("hidden");
+    document.getElementById("replaybadge").classList.add("hidden");
+    showHint("Move from where you start: down=crouch, up=extend, left/right=lean back/forward");
+  }
+
+  // ------------------------------------------------------------------ HUD helpers
+  const liveEl = document.getElementById("liveflip");
+  function showLive(on) { liveEl.style.opacity = on ? "1" : "0"; }
+  function liveFlips(n) { liveEl.textContent = n.toFixed(1) + " flips"; }
+  let hintTimer = 0;
+  function showHint(t) { hintEl.textContent = t; hintEl.classList.remove("hidden"); hintTimer = 2.6; }
+  function hideHint() { hintEl.classList.add("hidden"); }
+
+  function showResult(good, title, msg, flips, gained) {
+    state = "result";
+    // record best
+    if (run.score > best) { best = run.score; localStorage.setItem("skistunt_best", String(best)); }
+    document.getElementById("best").textContent = best;
+    document.getElementById("score").textContent = run.score;
+
+    const tag = document.getElementById("resultTag");
+    tag.textContent = title;
+    tag.className = "result-tag " + (good ? "good" : "bad");
+    document.getElementById("resultFlips").textContent =
+      flips > 0 ? (flips + (flips === 1 ? " FLIP" : " FLIPS")) : (good ? "CLEAN" : "✕");
+    document.getElementById("resultMsg").textContent =
+      good ? ("+" + (gained || 0) + " points") : (msg || "");
+    document.getElementById("startCard").classList.add("hidden");
+    document.getElementById("resultCard").classList.remove("hidden");
+    document.getElementById("overlay").classList.remove("hidden");
+    showLive(false);
+  }
+
+  // ------------------------------------------------------------------ camera
+  function updateCamera(dt) {
+    // Horizontal: tight follow, keeping the skier left-of-centre so you can see
+    // the ramp, wall and landing coming up. Fast rate so it can't be outrun.
+    const targetX = skier.x - W * 0.32;
+    cam.x += (targetX - cam.x) * (1 - Math.exp(-16 * dt));
+
+    // Vertical: a dead-zone band. The camera only moves in Y when the skier
+    // would leave the band — so it eases DOWN while he descends the ramp, then
+    // holds steady and pans SIDEWAYS through the jump instead of diving with him.
+    const sy = skier.y - cam.y;         // skier's on-screen Y
+    const top = H * 0.28, bot = H * 0.62;
+    const ease = 1 - Math.exp(-13 * dt);
+    if (sy < top) cam.y += (sy - top) * ease;
+    else if (sy > bot) cam.y += (sy - bot) * ease;
+
+    // Keep the snow surface on screen while grounded (ignored in the air so we
+    // never reveal the deep pit under the gap).
+    if (skier.onGround && state === "play") {
+      const surfaceScreenY = ground(skier.x) - cam.y;
+      const maxSurf = H * 0.95;
+      if (surfaceScreenY > maxSurf) cam.y += surfaceScreenY - maxSurf;
+    }
+  }
+
+  // ------------------------------------------------------------------ update
+  function update(dt) {
+    if (hintTimer > 0) { hintTimer -= dt; if (hintTimer <= 0) hideHint(); }
+
+    if (state === "play") {
+      // record replay trail
+      trailT += dt;
+      if (trailT >= TRAIL_DT) {
+        trailT = 0;
+        trail.push({ x: skier.x, y: skier.y, angle: skier.angle, tuck: skier.tuck, lean: skier.lean });
+        if (trail.length > 1200) trail.shift();
+      }
+      if (!skier.dead) {
+        if (skier.onGround) stepGround(dt);
+        else stepAir(dt);
+        // reached the flat runout after a clean landing?
+        if (skier.onGround && skier.x > course.endX - 120 && skier.launched) finishRun();
+      }
+      stepParticles(dt);
+      updateCamera(dt);
+    } else if (state === "replay") {
+      const r = replay, last = r.frames.length - 1;
+      r.i += dt / TRAIL_DT;
+      if (r.i >= last) {                 // hold on the final pose, then loop again
+        r.i = last;
+        r.hold += dt;
+        if (r.hold > 0.6) { r.hold = 0; r.i = 0; }
+      }
+      // interpolate between recorded frames so playback is smooth at any fps
+      const idx = Math.floor(r.i), a = r.i - idx;
+      const f0 = r.frames[idx], f1 = r.frames[Math.min(idx + 1, last)];
+      skier.x = f0.x + (f1.x - f0.x) * a;
+      skier.y = f0.y + (f1.y - f0.y) * a;
+      skier.angle = f0.angle + (f1.angle - f0.angle) * a;
+      skier.tuck = f0.tuck + (f1.tuck - f0.tuck) * a;
+      skier.lean = (f0.lean || 0) + ((f1.lean || 0) - (f0.lean || 0)) * a;
+      updateCamera(dt);
+    }
+  }
+
+  // ------------------------------------------------------------------ rendering
+  function render() {
+    // sky
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, "#a9dcff");
+    sky.addColorStop(0.55, "#d7efff");
+    sky.addColorStop(1, "#f3fbff");
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+
+    // sun
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "#fff7d6";
+    ctx.beginPath(); ctx.arc(W * 0.82, H * 0.2, 46, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    // parallax mountains (two ranges)
+    drawMountains(0.18, "#c4d8ec", H * 0.5, 150);
+    drawMountains(0.32, "#aec7e2", H * 0.56, 210);
+
+    // world transform
+    ctx.save();
+    ctx.translate(-cam.x, -cam.y);
+
+    drawTerrain();
+    drawWall();
+    drawParticles();
+    drawSkier();
+
+    ctx.restore();
+  }
+
+  function drawMountains(par, color, baseY, amp) {
+    const off = -cam.x * par;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    const step = 140;
+    for (let x = -step; x <= W + step; x += step) {
+      const wx = x + (off % step);
+      const seed = Math.sin((x + Math.floor(off / step) * step) * 0.013) * 0.5 + 0.5;
+      const seed2 = Math.sin((x + Math.floor(off / step) * step) * 0.041) * 0.5 + 0.5;
+      const peak = baseY - (seed * 0.7 + seed2 * 0.3) * amp;
+      ctx.lineTo(wx, peak);
+    }
+    ctx.lineTo(W + step, H); ctx.closePath(); ctx.fill();
+  }
+
+  function drawTerrain() {
+    const p = course.pts;
+    const bottom = cam.y + H + 400;
+    // snow body
+    ctx.beginPath();
+    ctx.moveTo(p[0].x, bottom);
+    for (let i = 0; i < p.length; i++) ctx.lineTo(p[i].x, p[i].y);
+    ctx.lineTo(p[p.length - 1].x, bottom);
+    ctx.closePath();
+    const g = ctx.createLinearGradient(0, course.startY - 60, 0, course.pitY);
+    g.addColorStop(0, "#ffffff");
+    g.addColorStop(1, "#dbe8f4");
+    ctx.fillStyle = g; ctx.fill();
+    // top edge shading line
+    ctx.beginPath();
+    ctx.moveTo(p[0].x, p[0].y);
+    for (let i = 1; i < p.length; i++) ctx.lineTo(p[i].x, p[i].y);
+    ctx.lineWidth = 4; ctx.strokeStyle = "#eaf4fd"; ctx.stroke();
+    ctx.lineWidth = 2; ctx.strokeStyle = "rgba(120,160,195,.5)"; ctx.stroke();
+
+    // little takeoff flag at the lip
+    drawFlag(course.lipX, course.lipY, "#ff5a3c");
+    // landing marker flag
+    drawFlag(course.landX + 8, course.landY, "#3ca0ff");
+  }
+
+  function drawFlag(x, y, color) {
+    ctx.save();
+    ctx.strokeStyle = "#5b6b7a"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 44); ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x, y - 44); ctx.lineTo(x + 26, y - 37); ctx.lineTo(x, y - 30);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawWall() {
+    const wl = course.wall;
+    const x = wl.x - wl.halfW, w = wl.halfW * 2;
+    const top = wl.topY, h = wl.baseY - wl.topY;
+    ctx.save();
+    // brick body
+    ctx.fillStyle = "#b0573f";
+    ctx.fillRect(x, top, w, h);
+    // mortar rows
+    ctx.strokeStyle = "rgba(255,255,255,.25)"; ctx.lineWidth = 1.5;
+    const rows = 6, rh = 16;
+    for (let i = 0; i < rows; i++) {
+      const ry = top + i * rh;
+      ctx.beginPath(); ctx.moveTo(x, ry); ctx.lineTo(x + w, ry); ctx.stroke();
+      const offset = i % 2 === 0 ? 0 : w / 2;
+      ctx.beginPath(); ctx.moveTo(x + offset, ry); ctx.lineTo(x + offset, ry + rh); ctx.stroke();
+    }
+    // snowy cap
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.ellipse(wl.x, top, wl.halfW + 3, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawParticles() {
+    ctx.save();
+    for (const p of particles) {
+      ctx.globalAlpha = Math.max(0, Math.min(1, p.life * 2));
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // Articulated skier. Joints (feet, knee, hip, shoulder, head, hand) are
+  // interpolated between an EXTENDED pose and a deep TUCK pose by s.tuck, so the
+  // cursor visibly bends the knees, drops the hips and rounds the shoulders.
+  // The whole figure rotates about the hip so flips pivot around the body centre.
+  const jl = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+
+  function drawSkier() {
+    const s = skier;
+    const t = Math.max(0, Math.min(1, s.tuck));
+
+    // local pose in "feet at origin" coords (y up = negative)
+    const foot = { x: 0, y: 0 };
+    const knee = jl({ x: 2,  y: -17 }, { x: 15, y: -12 }, t); // knees drive up & forward
+    const hip  = jl({ x: 0,  y: -34 }, { x: -6, y: -18 }, t); // hips sink & shift back
+    const sho  = jl({ x: 0,  y: -55 }, { x: 8,  y: -25 }, t); // shoulders round forward & down
+    const head = jl({ x: 0,  y: -68 }, { x: 15, y: -30 }, t); // head tucks toward the knees
+    const hand = jl({ x: 15, y: -50 }, { x: 15, y: -16 }, t); // hands pull in to the knees
+
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    // pivot the whole body about the hip
+    ctx.translate(hip.x, hip.y);
+    ctx.rotate(s.angle);
+    ctx.translate(-hip.x, -hip.y);
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+
+    // skis (rotate with the body) + upturned tips
+    ctx.strokeStyle = "#ffcf33"; ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-22, 3); ctx.lineTo(24, 3);
+    ctx.moveTo(24, 3); ctx.quadraticCurveTo(33, 3, 33, -4);
+    ctx.moveTo(-22, 3); ctx.quadraticCurveTo(-29, 3, -29, -3);
+    ctx.stroke();
+
+    // legs: foot -> knee -> hip (pants)
+    ctx.strokeStyle = "#2b3a67"; ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.moveTo(foot.x, foot.y); ctx.lineTo(knee.x, knee.y); ctx.lineTo(hip.x, hip.y);
+    ctx.stroke();
+
+    // Upper body leans forward/back with the cursor about the hip — this is the
+    // visible tell for whether you're throwing a FRONT flip or a BACK flip.
+    ctx.save();
+    ctx.translate(hip.x, hip.y); ctx.rotate(s.lean * LEAN_TILT); ctx.translate(-hip.x, -hip.y);
+
+    // torso: hip -> shoulder (jacket)
+    ctx.strokeStyle = "#e8442c"; ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.moveTo(hip.x, hip.y); ctx.lineTo(sho.x, sho.y);
+    ctx.stroke();
+
+    // arm: shoulder -> hand (jacket), then a pole from the hand
+    ctx.strokeStyle = "#e8442c"; ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(sho.x, sho.y); ctx.lineTo(hand.x, hand.y);
+    ctx.stroke();
+    ctx.strokeStyle = "#3a3a3a"; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(hand.x, hand.y); ctx.lineTo(hand.x + 5, 5);
+    ctx.stroke();
+
+    // neck -> head, beanie, goggles (aligned to the torso lean)
+    const ang = Math.atan2(head.y - sho.y, head.x - sho.x);
+    ctx.save();
+    ctx.translate(head.x, head.y);
+    ctx.rotate(ang + Math.PI / 2);
+    ctx.fillStyle = "#ffd9b0";                                   // face
+    ctx.beginPath(); ctx.arc(0, 0, 7.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#1f2c47";                                   // beanie
+    ctx.beginPath(); ctx.arc(0, -1.5, 7.5, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = "#7fd0ff";                                   // goggles
+    ctx.fillRect(-1, -1.5, 8, 4);
+    ctx.restore();
+
+    ctx.restore();   // end upper-body lean
+
+    ctx.restore();   // end body
+  }
+
+  // ------------------------------------------------------------------ loop
+  let last = 0;
+  function frame(t) {
+    const now = t / 1000;
+    let dt = last ? now - last : 1 / 60;
+    last = now;
+    dt = Math.min(dt, 1 / 30);   // clamp big pauses
+    if (state === "play" || state === "replay") update(dt);
+    render();
+    requestAnimationFrame(frame);
+  }
+
+  // ------------------------------------------------------------------ boot
+  state = "start";
+  input.y = H * 0.5;    // neutral cursor position
+  input.x = W * 0.5;
+  anchorHere();         // initial control anchor
+  resetSkier();       // so there is something behind the start card
+  cam.x = skier.x - W * 0.34;
+  cam.y = skier.y - H * 0.56;
+
+  document.getElementById("startBtn").addEventListener("click", startGame);
+  document.getElementById("againBtn").addEventListener("click", () => {
+    if (state === "result") dropInAgain();
+  });
+  // click anywhere on the result card background to drop in
+  window.addEventListener("keydown", (e) => {
+    if (state === "result" && (e.code === "Space" || e.code === "Enter")) dropInAgain();
+    if (state === "start" && (e.code === "Space" || e.code === "Enter")) startGame();
+  });
+
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
