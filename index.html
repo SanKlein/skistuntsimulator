@@ -1530,10 +1530,15 @@
     pctx.save();
     const { L, tilt } = torsoFrame(pctx, hip, sho);
     const total = rot.bodyRot + tilt;
-    if (a === "backpack") {   // shoulder strap over the front — ends at the pack (upper back), not the waist
-      const packBot = -L + 1 + L * 0.62;
+    if (a === "backpack") {   // shoulder strap: loops from the top of the pack, over the shoulder, down the chest, back to the pack
+      const packTop = -L + 1, packBot = -L + 1 + L * 0.62, packFront = -5;
       pctx.strokeStyle = shade(C.accessoryColor || "#1c1f24", 0.72); pctx.lineWidth = 2.5;
-      pctx.beginPath(); pctx.moveTo(3, -L + 2); pctx.lineTo(0.5, packBot); pctx.stroke();
+      pctx.lineJoin = "round"; pctx.lineCap = "round";
+      pctx.beginPath();
+      pctx.moveTo(packFront, packTop + 2);                         // anchored to the pack, top
+      pctx.quadraticCurveTo(2.5, packTop - 0.5, 2, -L * 0.5);      // up over the shoulder, down the chest front
+      pctx.quadraticCurveTo(-1, packBot + 1, packFront, packBot);  // sweep back to the pack, bottom
+      pctx.stroke();
     } else if (a === "purse") {
       const col = C.accessoryColor || "#6b4a2e", fluff = C.accessoryFluff || "#ece4d2";
       const sw = -total * 0.3 + rot.sway * 0.95;      // wind-dominant so it clearly trails your motion
