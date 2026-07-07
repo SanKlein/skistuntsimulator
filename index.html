@@ -1450,46 +1450,57 @@
     pctx.closePath();
   }
 
+  // Set up a coordinate frame ALIGNED TO THE TORSO: origin at the hip, +Y' points
+  // up along the torso to the shoulder (length L), -X' is the back, +X' the front.
+  // Everything drawn after this stays inline with the torso no matter how the
+  // skier crouches or tilts. Returns { L, tilt } (tilt = torso angle vs upright).
+  function torsoFrame(pctx, hip, sho) {
+    const dx = sho.x - hip.x, dy = sho.y - hip.y;
+    const L = Math.hypot(dx, dy) || 20;
+    const tilt = Math.atan2(dx, -dy);
+    pctx.translate(hip.x, hip.y);
+    pctx.rotate(tilt);
+    return { L, tilt };
+  }
+
   // Accessories that sit BEHIND the torso (drawn before the far arm).
   function drawAccessoryBack(pctx, C, hip, sho, dyn) {
     const a = C.accessory;
     if (!a || a === "none" || a === "purse") return;
     const col = C.accessoryColor || "#1c1f24";
-    const mx = (hip.x + sho.x) / 2, my = (hip.y + sho.y) / 2, hgt = hip.y - sho.y;
     const rot = dyn || { bodyRot: 0, sway: 0 };
+    pctx.save();
+    const { L, tilt } = torsoFrame(pctx, hip, sho);      // now in torso-local coords
+    const total = rot.bodyRot + tilt;                    // total world rotation (for gravity-hang)
     if (a === "backpack") {
-      pctx.fillStyle = col; rrect(pctx, mx - 13, sho.y - 1, 12, hgt + 9, 4); pctx.fill();
-      pctx.fillStyle = shade(col, 0.86); rrect(pctx, mx - 13, sho.y - 1, 12, 6, 3); pctx.fill();  // top flap
-      pctx.strokeStyle = shade(col, 0.6); pctx.lineWidth = 1.3; rrect(pctx, mx - 11, my + 1, 8, 8, 2); pctx.stroke(); // pocket
+      pctx.fillStyle = col; rrect(pctx, -13, -L + 1, 10, L - 3, 4); pctx.fill();
+      pctx.fillStyle = shade(col, 0.86); rrect(pctx, -13, -L + 1, 10, 5, 3); pctx.fill();      // top flap
+      pctx.strokeStyle = shade(col, 0.58); pctx.lineWidth = 1.3; rrect(pctx, -11, -L * 0.6, 6, L * 0.34, 2); pctx.stroke();
     } else if (a === "jetpack") {
       pctx.fillStyle = col;
-      rrect(pctx, mx - 14, sho.y + 1, 5, hgt + 5, 2.5); pctx.fill();
-      rrect(pctx, mx - 8, sho.y + 1, 5, hgt + 5, 2.5); pctx.fill();
+      rrect(pctx, -12.5, -L + 1, 4.5, L, 2.5); pctx.fill();
+      rrect(pctx, -7.5, -L + 1, 4.5, L, 2.5); pctx.fill();
       pctx.fillStyle = shade(col, 0.6);
-      pctx.fillRect(mx - 13.5, hip.y + 4, 4, 3); pctx.fillRect(mx - 7.5, hip.y + 4, 4, 3);       // nozzles
+      pctx.fillRect(-12, 1, 4, 3); pctx.fillRect(-7, 1, 4, 3);                                  // nozzles
       const fl = 6 + Math.random() * 6, tri = (cx, y, w, len, c) => { pctx.fillStyle = c; pctx.beginPath(); pctx.moveTo(cx - w, y); pctx.lineTo(cx + w, y); pctx.lineTo(cx, y + len); pctx.closePath(); pctx.fill(); };
-      tri(mx - 11.5, hip.y + 7, 3.6, fl, "#ffcf33"); tri(mx - 5.5, hip.y + 7, 3.6, fl, "#ffcf33");
-      tri(mx - 11.5, hip.y + 7, 2, fl * 0.66, "#ff6a2c"); tri(mx - 5.5, hip.y + 7, 2, fl * 0.66, "#ff6a2c");
+      tri(-10, 4, 3.4, fl, "#ffcf33"); tri(-5, 4, 3.4, fl, "#ffcf33");
+      tri(-10, 4, 1.9, fl * 0.66, "#ff6a2c"); tri(-5, 4, 1.9, fl * 0.66, "#ff6a2c");
     } else if (a === "cape") {
-      // tied at the neck; swings toward the ground (gravity) + trails with the wind
-      const nx = sho.x, ny = sho.y - 6;
-      const sw = -rot.bodyRot * 0.85 + rot.sway * 1.0;
-      pctx.save(); pctx.translate(nx, ny); pctx.rotate(sw); pctx.translate(-nx, -ny);
+      const ny = -L - 2, sw = -total * 0.85 + rot.sway * 1.0;   // gravity-hang + wind
+      pctx.save(); pctx.translate(0, ny); pctx.rotate(sw); pctx.translate(0, -ny);
       pctx.fillStyle = col;
       pctx.beginPath();
-      pctx.moveTo(nx - 3, ny);
-      pctx.quadraticCurveTo(hip.x - 22, my + 8, hip.x - 15, hip.y + 26);
-      pctx.lineTo(hip.x - 2, hip.y + 20);
-      pctx.quadraticCurveTo(hip.x - 4, my - 4, nx + 3, ny + 1);
+      pctx.moveTo(-3, ny);
+      pctx.quadraticCurveTo(-17, -L * 0.35, -12, 8);
+      pctx.lineTo(-1, 4);
+      pctx.quadraticCurveTo(-4, -L * 0.55, 3, ny + 1);
       pctx.closePath(); pctx.fill();
-      pctx.fillStyle = shade(col, 0.78);                 // collar/clasp at the neck
-      rrect(pctx, nx - 4, ny - 1, 8, 3, 1.5); pctx.fill();
+      pctx.fillStyle = shade(col, 0.78); rrect(pctx, -4, ny - 1, 8, 3, 1.5); pctx.fill();       // collar
       pctx.restore();
     } else if (a === "flag") {
-      const bx = sho.x - 3, by = sho.y + 2;              // pole base = swing pivot
-      const sw = -rot.bodyRot * 0.55 + rot.sway * 1.5;
+      const bx = -3, by = -L + 2, sw = -total * 0.55 + rot.sway * 1.5;
       pctx.save(); pctx.translate(bx, by); pctx.rotate(sw); pctx.translate(-bx, -by);
-      const tx = bx - 8, ty = by - 46;
+      const tx = bx - 8, ty = by - 44;
       pctx.strokeStyle = "#7a5c38"; pctx.lineWidth = 2.5;
       pctx.beginPath(); pctx.moveTo(bx, by); pctx.lineTo(tx, ty); pctx.stroke();
       pctx.fillStyle = "#c9a24a"; pctx.beginPath(); pctx.arc(tx, ty, 1.8, 0, Math.PI * 2); pctx.fill();
@@ -1500,23 +1511,27 @@
       pctx.restore();
       pctx.restore();
     }
+    pctx.restore();
   }
 
   // Accessories that sit IN FRONT (drawn after the near arm).
   function drawAccessoryFront(pctx, C, hip, sho, dyn) {
     const a = C.accessory;
+    if (a !== "backpack" && a !== "purse") return;
     const rot = dyn || { bodyRot: 0, sway: 0 };
-    if (a === "backpack") {   // just the chest strap over the front
+    pctx.save();
+    const { L, tilt } = torsoFrame(pctx, hip, sho);
+    const total = rot.bodyRot + tilt;
+    if (a === "backpack") {   // chest strap across the front of the torso
       pctx.strokeStyle = shade(C.accessoryColor || "#1c1f24", 0.72); pctx.lineWidth = 2.5;
-      pctx.beginPath(); pctx.moveTo(sho.x + 2, sho.y + 2); pctx.lineTo(hip.x - 1, hip.y - 4); pctx.stroke();
+      pctx.beginPath(); pctx.moveTo(2, -L + 2); pctx.lineTo(-2, -2); pctx.stroke();
     } else if (a === "purse") {
       const col = C.accessoryColor || "#6b4a2e", fluff = C.accessoryFluff || "#ece4d2";
-      const bx = hip.x + 2, by = hip.y - 3;
-      const px = sho.x, py = sho.y + 2;                  // swings from the crossbody shoulder point
-      const sw = -rot.bodyRot * 0.6 + rot.sway * 0.55;
-      pctx.save(); pctx.translate(px, py); pctx.rotate(sw); pctx.translate(-px, -py);
+      const sw = -total * 0.6 + rot.sway * 0.55;
+      pctx.save(); pctx.translate(0, -L + 2); pctx.rotate(sw); pctx.translate(0, L - 2);  // swing from the shoulder
+      const bx = 2, by = -3;                                   // at the hip, front
       pctx.strokeStyle = shade(col, 0.85); pctx.lineWidth = 2.5;                 // cross-body strap
-      pctx.beginPath(); pctx.moveTo(sho.x + 1, sho.y + 3); pctx.lineTo(bx + 8, by); pctx.stroke();
+      pctx.beginPath(); pctx.moveTo(1, -L + 3); pctx.lineTo(bx + 8, by); pctx.stroke();
       pctx.fillStyle = col; rrect(pctx, bx, by, 16, 11, 3); pctx.fill();             // leather body
       pctx.fillStyle = fluff; rrect(pctx, bx + 1, by + 4, 14, 6, 2); pctx.fill();     // shearling flap
       pctx.fillStyle = col; rrect(pctx, bx + 2.5, by + 5, 11, 4, 1.5); pctx.fill();
@@ -1525,6 +1540,7 @@
       pctx.beginPath(); pctx.arc(bx + 12.5, by + 7, 0.9, 0, Math.PI * 2); pctx.fill();
       pctx.restore();
     }
+    pctx.restore();
   }
 
   // Country flags via emoji — renders the real flag on macOS/iOS (falls back to
