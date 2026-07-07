@@ -521,7 +521,7 @@
   let character;
   const PRESETS = {
     "TwosJoe":       { name:"TwosJoe",       skin:"#e8b58c", head:{type:"beret", color:"#15171b"}, hairColor:"#4a3527", beard:true,  beardColor:"#5a4030", glasses:false, top:"#f2f2f0", bottomType:"pants",  bottom:"#6d7b8c", boots:"#2a2f38", skis:"#ff5a3c", build:1.08 },
-    "TwosBaller":    { name:"TwosBaller",    skin:"#e8b58c", head:{type:"hair",  color:"#8a4b2a"}, hairColor:"#8a4b2a", beard:false, glasses:false, top:"#1c1f24", bottomType:"pants",  bottom:"#1c1f24", boots:"#111318", skis:"#3ca0ff", build:0.94, accessory:"backpack", accessoryColor:"#151515" },
+    "TwosBaller":    { name:"TwosBaller",    skin:"#e8b58c", head:{type:"hair",  color:"#5c3d22"}, hairColor:"#5c3d22", beard:false, glasses:false, top:"#1c1f24", bottomType:"pants",  bottom:"#1c1f24", boots:"#111318", skis:"#3ca0ff", build:0.94, accessory:"backpack", accessoryColor:"#151515" },
     "Popstar Benny": { name:"Popstar Benny", skin:"#5a3b28", head:{type:"hair",  color:"#141414"}, hairColor:"#141414", beard:false, glasses:true,  top:"#c9ccc9", bottomType:"pants", bottom:"#3c5c94", boots:"#20241f", skis:"#ffcf33", build:1.16, thin:true, fluff:true, fluffColor:"#ece4d2" },
     "Harlem":        { name:"Harlem",        skin:"#7b5234", head:{type:"long",  color:"#0f0f10"}, hairColor:"#0f0f10", beard:false, glasses:false, top:"#1a1a1a", bottomType:"pants",  bottom:"#9a8f80", boots:"#c0392b", skis:"#ff5a3c", build:0.92, accessory:"purse", accessoryColor:"#6b4a2e", accessoryFluff:"#ece4d2" },
   };
@@ -1530,9 +1530,10 @@
     pctx.save();
     const { L, tilt } = torsoFrame(pctx, hip, sho);
     const total = rot.bodyRot + tilt;
-    if (a === "backpack") {   // chest strap across the front of the torso
+    if (a === "backpack") {   // shoulder strap over the front — ends at the pack (upper back), not the waist
+      const packBot = -L + 1 + L * 0.62;
       pctx.strokeStyle = shade(C.accessoryColor || "#1c1f24", 0.72); pctx.lineWidth = 2.5;
-      pctx.beginPath(); pctx.moveTo(2, -L + 2); pctx.lineTo(-2, -2); pctx.stroke();
+      pctx.beginPath(); pctx.moveTo(3, -L + 2); pctx.lineTo(0.5, packBot); pctx.stroke();
     } else if (a === "purse") {
       const col = C.accessoryColor || "#6b4a2e", fluff = C.accessoryFluff || "#ece4d2";
       const sw = -total * 0.3 + rot.sway * 0.95;      // wind-dominant so it clearly trails your motion
