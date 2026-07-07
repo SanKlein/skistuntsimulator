@@ -1534,7 +1534,7 @@
       pctx.beginPath(); pctx.moveTo(2, -L + 2); pctx.lineTo(-2, -2); pctx.stroke();
     } else if (a === "purse") {
       const col = C.accessoryColor || "#6b4a2e", fluff = C.accessoryFluff || "#ece4d2";
-      const sw = -total * 0.6 - rot.sway * 0.55;      // trails opposite your motion (front-hung → sign flips)
+      const sw = -total * 0.3 + rot.sway * 0.95;      // wind-dominant so it clearly trails your motion
       pctx.save(); pctx.translate(0, -L + 2); pctx.rotate(sw); pctx.translate(0, L - 2);  // swing from the shoulder
       const bx = 2, by = -3;                                   // at the hip, front
       pctx.strokeStyle = shade(col, 0.85); pctx.lineWidth = 2.5;                 // cross-body strap
