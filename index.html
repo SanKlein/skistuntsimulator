@@ -1473,9 +1473,8 @@
       const bx = hip.x + 2, by = hip.y - 3;
       pctx.strokeStyle = shade(col, 0.85); pctx.lineWidth = 2.5;                 // cross-body strap
       pctx.beginPath(); pctx.moveTo(sho.x + 1, sho.y + 3); pctx.lineTo(bx + 8, by); pctx.stroke();
-      pctx.fillStyle = fluff; rrect(pctx, bx - 2, by - 2, 20, 15, 5); pctx.fill();   // shearling trim
       pctx.fillStyle = col; rrect(pctx, bx, by, 16, 11, 3); pctx.fill();             // leather body
-      pctx.fillStyle = fluff; rrect(pctx, bx + 1, by + 4, 14, 6, 2); pctx.fill();     // flap trim
+      pctx.fillStyle = fluff; rrect(pctx, bx + 1, by + 4, 14, 6, 2); pctx.fill();     // shearling flap
       pctx.fillStyle = col; rrect(pctx, bx + 2.5, by + 5, 11, 4, 1.5); pctx.fill();
       pctx.fillStyle = "#d8d2c4";                                                    // two snaps
       pctx.beginPath(); pctx.arc(bx + 3.5, by + 7, 0.9, 0, Math.PI * 2); pctx.fill();
