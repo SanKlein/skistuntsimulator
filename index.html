@@ -1691,7 +1691,7 @@
       tile.appendChild(cv); tile.appendChild(label);
       tilesEl.appendChild(tile);
       tileCanvases[name] = cv;
-      renderTile(name);
+      try { renderTile(name); } catch (e) { console.error("avatar render failed for", name, e); }  // never let one rider abort the roster
       tile.addEventListener("click", () => setSelected(name));
     });
 
