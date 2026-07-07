@@ -563,6 +563,7 @@
       endTimer: 0,            // time spent sliding back before the round ends
       bounces: 0,             // consecutive off-angle bounces in the current flight
       swing: 0, swingV: 0,    // springy sway of dangling accessories (cape/flag/purse)
+      flagDir: -1,            // which way the flag flies (downwind): -1 left, +1 right
       dead: false,
     };
     cam = { x: 0, y: 0 };
@@ -1075,6 +1076,9 @@
     s.swingV += (target - s.swing) * 55 * dt;          // spring toward target
     s.swingV *= Math.max(0, 1 - 7 * dt);               // damping
     s.swing += s.swingV * dt;
+    // which side the flag flies (downwind) — hysteresis so gusts don't flip it
+    if (s.vx > 50) s.flagDir = -1;                     // moving right → wind left → flag left
+    else if (s.vx < -50) s.flagDir = 1;
   }
 
   // ------------------------------------------------------------------ camera
@@ -1287,7 +1291,7 @@
   // Joints interpolate between an EXTENDED and a deep TUCK pose by `tuck`; the
   // upper body leans by `lean`; the whole body rotates by `angle` about the hip.
   // Colours/build/features come from the character config `C`.
-  function paintSkierBody(pctx, C, tuck, lean, angle, sway) {
+  function paintSkierBody(pctx, C, tuck, lean, angle, sway, flagDir) {
     const t = Math.max(0, Math.min(1, tuck));
     const B = C.build || 1, thin = C.thin ? 0.84 : 1;
 
@@ -1348,7 +1352,7 @@
       pctx.beginPath(); pctx.arc(hx, hy, 3, 0, Math.PI * 2); pctx.fill();
     };
 
-    const dyn = { bodyRot: angle + lean * LEAN_TILT, sway: sway || 0 };
+    const dyn = { bodyRot: angle + lean * LEAN_TILT, sway: sway || 0, flagDir: flagDir || 1 };
     drawAccessoryBack(pctx, C, hip, sho, dyn);       // backpack / jetpack / cape / flag (behind)
     drawArm(farA, shade(C.top, 0.72));               // far arm behind the torso
     pctx.strokeStyle = C.top; pctx.lineWidth = 10 * thin;   // torso
@@ -1498,16 +1502,19 @@
       pctx.fillStyle = shade(col, 0.78); rrect(pctx, -4, ny - 1, 8, 3, 1.5); pctx.fill();       // collar
       pctx.restore();
     } else if (a === "flag") {
-      const bx = -3, by = -L + 2, sw = -total * 0.55 + rot.sway * 1.5;
+      const bx = -3, by = -L + 2, dir = rot.flagDir || -1;   // -1 fly left, +1 fly right
+      const sw = -total * 0.55 + rot.sway * 0.5;             // gravity-hang + a gentle pole lean
       pctx.save(); pctx.translate(bx, by); pctx.rotate(sw); pctx.translate(-bx, -by);
-      const tx = bx - 8, ty = by - 44;
+      const tx = bx, ty = by - 46;                           // pole straight up
       pctx.strokeStyle = "#7a5c38"; pctx.lineWidth = 2.5;
       pctx.beginPath(); pctx.moveTo(bx, by); pctx.lineTo(tx, ty); pctx.stroke();
       pctx.fillStyle = "#c9a24a"; pctx.beginPath(); pctx.arc(tx, ty, 1.8, 0, Math.PI * 2); pctx.fill();
+      // flag cloth flies downwind from the pole top (mirrored to point that way)
       pctx.save();
+      pctx.translate(tx, ty + 8); pctx.scale(dir, 1);
       pctx.font = "22px 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',system-ui";
       pctx.textAlign = "left"; pctx.textBaseline = "middle";
-      pctx.fillText(flagEmoji(C.flagCountry || "US"), tx + 1, ty + 8);
+      pctx.fillText(flagEmoji(C.flagCountry || "US"), 1, 0);
       pctx.restore();
       pctx.restore();
     }
@@ -1604,7 +1611,7 @@
     const s = skier;
     ctx.save();
     ctx.translate(s.x, s.y);
-    paintSkierBody(ctx, character, s.tuck, s.lean, s.angle, s.swing || 0);
+    paintSkierBody(ctx, character, s.tuck, s.lean, s.angle, s.swing || 0, s.flagDir || -1);
     ctx.restore();
   }
 
@@ -1613,7 +1620,7 @@
     actx.save();
     actx.translate(cx, cy);
     actx.scale(scale, scale);
-    paintSkierBody(actx, C, 0.2, 0, 0, 0.12);
+    paintSkierBody(actx, C, 0.2, 0, 0, 0.12, -1);
     actx.restore();
   }
 
