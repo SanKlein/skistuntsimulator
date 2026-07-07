@@ -148,6 +148,8 @@
   .crow .opts { display:flex; gap:5px; flex-wrap:wrap; align-items:center; }
   .sw { width:20px; height:20px; border-radius:6px; border:2px solid rgba(255,255,255,.22); cursor:pointer; padding:0; }
   .sw.sel { border-color:#fff; box-shadow:0 0 0 2px #8fd3ff; }
+  .flagsw { border:2px solid rgba(255,255,255,.22); border-radius:3px; cursor:pointer; padding:0; display:block; }
+  .flagsw.sel { border-color:#fff; box-shadow:0 0 0 2px #8fd3ff; }
   .chip { font-size:11px; font-weight:700; padding:5px 9px; border-radius:8px; cursor:pointer;
     background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); color:#fff; }
   .chip.sel { background:#8fd3ff; color:#062033; border-color:#8fd3ff; }
@@ -517,11 +519,11 @@
   let character;
   const PRESETS = {
     "TwosJoe":       { name:"TwosJoe",       skin:"#e8b58c", head:{type:"beret", color:"#15171b"}, hairColor:"#4a3527", beard:true,  beardColor:"#5a4030", glasses:false, top:"#f2f2f0", bottomType:"pants",  bottom:"#6d7b8c", boots:"#2a2f38", skis:"#ff5a3c", build:1.08 },
-    "TwosBaller":    { name:"TwosBaller",    skin:"#e8b58c", head:{type:"hair",  color:"#8a4b2a"}, hairColor:"#8a4b2a", beard:false, glasses:false, top:"#1c1f24", bottomType:"pants",  bottom:"#1c1f24", boots:"#111318", skis:"#3ca0ff", build:0.94 },
+    "TwosBaller":    { name:"TwosBaller",    skin:"#e8b58c", head:{type:"hair",  color:"#8a4b2a"}, hairColor:"#8a4b2a", beard:false, glasses:false, top:"#1c1f24", bottomType:"pants",  bottom:"#1c1f24", boots:"#111318", skis:"#3ca0ff", build:0.94, accessory:"backpack", accessoryColor:"#151515" },
     "Popstar Benny": { name:"Popstar Benny", skin:"#5a3b28", head:{type:"hair",  color:"#141414"}, hairColor:"#141414", beard:false, glasses:true,  top:"#c9ccc9", bottomType:"pants", bottom:"#3c5c94", boots:"#20241f", skis:"#ffcf33", build:1.16, thin:true, fluff:true, fluffColor:"#ece4d2" },
-    "Harlem":        { name:"Harlem",        skin:"#7b5234", head:{type:"long",  color:"#0f0f10"}, hairColor:"#0f0f10", beard:false, glasses:false, top:"#1a1a1a", bottomType:"pants",  bottom:"#9a8f80", boots:"#c0392b", skis:"#ff5a3c", build:0.92 },
+    "Harlem":        { name:"Harlem",        skin:"#7b5234", head:{type:"long",  color:"#0f0f10"}, hairColor:"#0f0f10", beard:false, glasses:false, top:"#1a1a1a", bottomType:"pants",  bottom:"#9a8f80", boots:"#c0392b", skis:"#ff5a3c", build:0.92, accessory:"purse", accessoryColor:"#6b4a2e", accessoryFluff:"#ece4d2" },
   };
-  const DEFAULT_CUSTOM = { name:"Custom", skin:"#e8b58c", head:{type:"beanie", color:"#1f2c47"}, hairColor:"#4a3527", beard:false, glasses:false, top:"#e8442c", bottomType:"pants", bottom:"#2b3a67", boots:"#2a2f38", skis:"#ffcf33", build:1.0 };
+  const DEFAULT_CUSTOM = { name:"Custom", skin:"#e8b58c", head:{type:"beanie", color:"#1f2c47"}, hairColor:"#4a3527", beard:false, glasses:false, top:"#e8442c", bottomType:"pants", bottom:"#2b3a67", boots:"#2a2f38", skis:"#ffcf33", build:1.0, accessory:"none", accessoryColor:"#6b4a2e", flagCountry:"US" };
   const clone = (o) => JSON.parse(JSON.stringify(o));
 
   let customChar;
@@ -1323,10 +1325,12 @@
       pctx.beginPath(); pctx.arc(hx, hy, 3, 0, Math.PI * 2); pctx.fill();
     };
 
+    drawAccessoryBack(pctx, C, hip, sho);            // backpack / jetpack / cape / flag (behind)
     drawArm(farA, shade(C.top, 0.72));               // far arm behind the torso
     pctx.strokeStyle = C.top; pctx.lineWidth = 10 * thin;   // torso
     pctx.beginPath(); pctx.moveTo(hip.x, hip.y); pctx.lineTo(sho.x, sho.y); pctx.stroke();
     drawArm(nearA, C.top);                            // near arm in front
+    drawAccessoryFront(pctx, C, hip, sho);           // purse / backpack strap (in front)
 
     // head, aligned to the torso lean
     const ang = Math.atan2(head.y - sho.y, head.x - sho.x);
@@ -1367,8 +1371,19 @@
     }
     if (type === "beanie") {
       pctx.fillStyle = hc;
-      pctx.beginPath(); pctx.arc(0, -2, 8, Math.PI, 0); pctx.fill();
-      pctx.fillRect(-8, -3, 16, 3);
+      pctx.beginPath(); pctx.arc(0, -2, 8, Math.PI, 0); pctx.fill();   // dome
+      pctx.fillRect(-8, -3, 16, 3);                                     // band
+      // ear-flap ties down the sides
+      pctx.strokeStyle = hc; pctx.lineWidth = 2; pctx.lineCap = "round";
+      pctx.beginPath();
+      pctx.moveTo(-7, -0.5); pctx.quadraticCurveTo(-9, 7, -7.5, 14);
+      pctx.moveTo(7, -0.5);  pctx.quadraticCurveTo(9, 7, 7.5, 14);
+      pctx.stroke();
+      // pom-poms: on top + at each tie end
+      pctx.fillStyle = "#f0ece0";
+      pctx.beginPath(); pctx.arc(0, -11.4, 2.7, 0, Math.PI * 2); pctx.fill();
+      pctx.beginPath(); pctx.arc(-7.5, 15.4, 2, 0, Math.PI * 2); pctx.fill();
+      pctx.beginPath(); pctx.arc(7.5, 15.4, 2, 0, Math.PI * 2); pctx.fill();
     } else if (type === "beret") {
       pctx.save(); pctx.translate(1.5, -6); pctx.rotate(-0.28);
       pctx.fillStyle = hc; pctx.beginPath(); pctx.ellipse(0, 0, 8.6, 4.2, 0, 0, Math.PI * 2); pctx.fill();
@@ -1397,6 +1412,132 @@
       pctx.strokeStyle = "#20242a"; pctx.lineWidth = 1.2;
       pctx.beginPath(); pctx.moveTo(-0.6, -0.6); pctx.lineTo(0.6, -0.6); pctx.stroke();
     }
+  }
+
+  // rounded-rect path helper (avoids relying on ctx.roundRect support)
+  function rrect(pctx, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    pctx.beginPath();
+    pctx.moveTo(x + r, y);
+    pctx.arcTo(x + w, y, x + w, y + h, r);
+    pctx.arcTo(x + w, y + h, x, y + h, r);
+    pctx.arcTo(x, y + h, x, y, r);
+    pctx.arcTo(x, y, x + w, y, r);
+    pctx.closePath();
+  }
+
+  // Accessories that sit BEHIND the torso (drawn before the far arm).
+  function drawAccessoryBack(pctx, C, hip, sho) {
+    const a = C.accessory;
+    if (!a || a === "none" || a === "purse") return;
+    const col = C.accessoryColor || "#1c1f24";
+    const mx = (hip.x + sho.x) / 2, my = (hip.y + sho.y) / 2, hgt = hip.y - sho.y;
+    if (a === "backpack") {
+      pctx.fillStyle = col; rrect(pctx, mx - 13, sho.y - 1, 12, hgt + 9, 4); pctx.fill();
+      pctx.fillStyle = shade(col, 0.86); rrect(pctx, mx - 13, sho.y - 1, 12, 6, 3); pctx.fill();  // top flap
+      pctx.strokeStyle = shade(col, 0.6); pctx.lineWidth = 1.3; rrect(pctx, mx - 11, my + 1, 8, 8, 2); pctx.stroke(); // pocket
+    } else if (a === "jetpack") {
+      pctx.fillStyle = col;
+      rrect(pctx, mx - 14, sho.y + 1, 5, hgt + 5, 2.5); pctx.fill();
+      rrect(pctx, mx - 8, sho.y + 1, 5, hgt + 5, 2.5); pctx.fill();
+      pctx.fillStyle = shade(col, 0.6);
+      pctx.fillRect(mx - 13.5, hip.y + 4, 4, 3); pctx.fillRect(mx - 7.5, hip.y + 4, 4, 3);       // nozzles
+      const fl = 6 + Math.random() * 6, tri = (cx, y, w, len, c) => { pctx.fillStyle = c; pctx.beginPath(); pctx.moveTo(cx - w, y); pctx.lineTo(cx + w, y); pctx.lineTo(cx, y + len); pctx.closePath(); pctx.fill(); };
+      tri(mx - 11.5, hip.y + 7, 3.6, fl, "#ffcf33"); tri(mx - 5.5, hip.y + 7, 3.6, fl, "#ffcf33");
+      tri(mx - 11.5, hip.y + 7, 2, fl * 0.66, "#ff6a2c"); tri(mx - 5.5, hip.y + 7, 2, fl * 0.66, "#ff6a2c");
+    } else if (a === "cape") {
+      pctx.fillStyle = col;
+      pctx.beginPath();
+      pctx.moveTo(sho.x - 2, sho.y + 1);
+      pctx.quadraticCurveTo(hip.x - 22, my + 12, hip.x - 15, hip.y + 26);
+      pctx.lineTo(hip.x - 2, hip.y + 20);
+      pctx.quadraticCurveTo(hip.x - 6, my, sho.x + 3, sho.y + 2);
+      pctx.closePath(); pctx.fill();
+    } else if (a === "flag") {
+      const px = sho.x - 3, py = sho.y + 2, tx = px - 8, ty = py - 46;
+      pctx.strokeStyle = "#7a5c38"; pctx.lineWidth = 2.5;
+      pctx.beginPath(); pctx.moveTo(px, py); pctx.lineTo(tx, ty); pctx.stroke();
+      pctx.fillStyle = "#c9a24a"; pctx.beginPath(); pctx.arc(tx, ty, 1.8, 0, Math.PI * 2); pctx.fill(); // finial
+      drawCountryFlag(pctx, tx, ty - 1, 30, 20, C.flagCountry || "US");
+    }
+  }
+
+  // Accessories that sit IN FRONT (drawn after the near arm).
+  function drawAccessoryFront(pctx, C, hip, sho) {
+    const a = C.accessory;
+    if (a === "backpack") {   // just the chest strap over the front
+      pctx.strokeStyle = shade(C.accessoryColor || "#1c1f24", 0.72); pctx.lineWidth = 2.5;
+      pctx.beginPath(); pctx.moveTo(sho.x + 2, sho.y + 2); pctx.lineTo(hip.x - 1, hip.y - 4); pctx.stroke();
+    } else if (a === "purse") {
+      const col = C.accessoryColor || "#6b4a2e", fluff = C.accessoryFluff || "#ece4d2";
+      const bx = hip.x + 2, by = hip.y - 3;
+      pctx.strokeStyle = shade(col, 0.85); pctx.lineWidth = 2.5;                 // cross-body strap
+      pctx.beginPath(); pctx.moveTo(sho.x + 1, sho.y + 3); pctx.lineTo(bx + 8, by); pctx.stroke();
+      pctx.fillStyle = fluff; rrect(pctx, bx - 2, by - 2, 20, 15, 5); pctx.fill();   // shearling trim
+      pctx.fillStyle = col; rrect(pctx, bx, by, 16, 11, 3); pctx.fill();             // leather body
+      pctx.fillStyle = fluff; rrect(pctx, bx + 1, by + 4, 14, 6, 2); pctx.fill();     // flap trim
+      pctx.fillStyle = col; rrect(pctx, bx + 2.5, by + 5, 11, 4, 1.5); pctx.fill();
+      pctx.fillStyle = "#d8d2c4";                                                    // two snaps
+      pctx.beginPath(); pctx.arc(bx + 3.5, by + 7, 0.9, 0, Math.PI * 2); pctx.fill();
+      pctx.beginPath(); pctx.arc(bx + 12.5, by + 7, 0.9, 0, Math.PI * 2); pctx.fill();
+    }
+  }
+
+  // Curated procedural country flags, drawn into the rect (x,y,w,h).
+  const COUNTRIES = [
+    { code: "US", name: "United States" }, { code: "CA", name: "Canada" }, { code: "MX", name: "Mexico" },
+    { code: "GB", name: "United Kingdom" }, { code: "FR", name: "France" }, { code: "DE", name: "Germany" },
+    { code: "IT", name: "Italy" }, { code: "ES", name: "Spain" }, { code: "NL", name: "Netherlands" },
+    { code: "IE", name: "Ireland" }, { code: "SE", name: "Sweden" }, { code: "NO", name: "Norway" },
+    { code: "CH", name: "Switzerland" }, { code: "JP", name: "Japan" }, { code: "KR", name: "South Korea" },
+    { code: "IN", name: "India" }, { code: "BR", name: "Brazil" }, { code: "AU", name: "Australia" },
+    { code: "UA", name: "Ukraine" }, { code: "PL", name: "Poland" },
+  ];
+  function drawCountryFlag(pctx, x, y, w, h, code) {
+    pctx.save();
+    const vbar = (cols) => { const n = cols.length; for (let i = 0; i < n; i++) { pctx.fillStyle = cols[i]; pctx.fillRect(x + w * i / n, y, w / n + 0.6, h); } };
+    const hbar = (cols) => { const n = cols.length; for (let i = 0; i < n; i++) { pctx.fillStyle = cols[i]; pctx.fillRect(x, y + h * i / n, w, h / n + 0.6); } };
+    const fill = (c) => { pctx.fillStyle = c; pctx.fillRect(x, y, w, h); };
+    const circle = (cx, cy, r, c) => { pctx.fillStyle = c; pctx.beginPath(); pctx.arc(cx, cy, r, 0, Math.PI * 2); pctx.fill(); };
+    const nordic = (bg, cr) => { fill(bg); pctx.fillStyle = cr; pctx.fillRect(x + w * 0.30, y, w * 0.14, h); pctx.fillRect(x, y + h * 0.4, w, h * 0.2); };
+    switch (code) {
+      case "FR": vbar(["#0055a4", "#ffffff", "#ef4135"]); break;
+      case "IT": vbar(["#009246", "#ffffff", "#ce2b37"]); break;
+      case "IE": vbar(["#169b62", "#ffffff", "#ff883e"]); break;
+      case "MX": vbar(["#006847", "#ffffff", "#ce1126"]); circle(x + w / 2, y + h / 2, h * 0.13, "#7a5230"); break;
+      case "DE": hbar(["#000000", "#dd0000", "#ffce00"]); break;
+      case "NL": hbar(["#ae1c28", "#ffffff", "#21468b"]); break;
+      case "PL": hbar(["#ffffff", "#dc143c"]); break;
+      case "UA": hbar(["#0057b7", "#ffd700"]); break;
+      case "ES": fill("#aa151b"); pctx.fillStyle = "#f1bf00"; pctx.fillRect(x, y + h * 0.25, w, h * 0.5); break;
+      case "JP": fill("#ffffff"); circle(x + w / 2, y + h / 2, h * 0.3, "#bc002d"); break;
+      case "SE": nordic("#006aa7", "#fecc00"); break;
+      case "NO": fill("#ba0c2f"); pctx.fillStyle = "#fff"; pctx.fillRect(x + w * 0.26, y, w * 0.22, h); pctx.fillRect(x, y + h * 0.34, w, h * 0.32); pctx.fillStyle = "#00205b"; pctx.fillRect(x + w * 0.31, y, w * 0.12, h); pctx.fillRect(x, y + h * 0.4, w, h * 0.2); break;
+      case "CH": fill("#d52b1e"); pctx.fillStyle = "#fff"; pctx.fillRect(x + w * 0.42, y + h * 0.22, w * 0.16, h * 0.56); pctx.fillRect(x + w * 0.27, y + h * 0.37, w * 0.46, h * 0.26); break;
+      case "KR": fill("#fff"); circle(x + w / 2, y + h / 2, h * 0.22, "#cd2e3a"); pctx.fillStyle = "#0047a0"; pctx.beginPath(); pctx.arc(x + w / 2, y + h / 2, h * 0.22, 0.6, 0.6 + Math.PI); pctx.fill(); break;
+      case "IN": hbar(["#ff9933", "#ffffff", "#138808"]); circle(x + w / 2, y + h / 2, h * 0.11, "#000080"); break;
+      case "BR": fill("#009c3b"); pctx.fillStyle = "#ffdf00"; pctx.beginPath(); pctx.moveTo(x + w / 2, y + h * 0.14); pctx.lineTo(x + w * 0.84, y + h / 2); pctx.lineTo(x + w / 2, y + h * 0.86); pctx.lineTo(x + w * 0.16, y + h / 2); pctx.closePath(); pctx.fill(); circle(x + w / 2, y + h / 2, h * 0.19, "#002776"); break;
+      case "CA": vbar(["#ff0000", "#ffffff", "#ff0000"]); circle(x + w / 2, y + h / 2, h * 0.16, "#ff0000"); break;
+      case "US":
+        for (let i = 0; i < 7; i++) { pctx.fillStyle = i % 2 ? "#ffffff" : "#b22234"; pctx.fillRect(x, y + h * i / 7, w, h / 7 + 0.6); }
+        pctx.fillStyle = "#3c3b6e"; pctx.fillRect(x, y, w * 0.42, h * 0.54);
+        pctx.fillStyle = "#fff"; for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) { pctx.beginPath(); pctx.arc(x + w * 0.07 + c * w * 0.1, y + h * 0.12 + r * h * 0.17, 0.8, 0, Math.PI * 2); pctx.fill(); }
+        break;
+      case "AU":
+        fill("#00008b"); pctx.fillStyle = "#012169"; pctx.fillRect(x, y, w * 0.42, h * 0.52);
+        pctx.strokeStyle = "#fff"; pctx.lineWidth = h * 0.1; pctx.beginPath(); pctx.moveTo(x, y); pctx.lineTo(x + w * 0.42, y + h * 0.52); pctx.moveTo(x + w * 0.42, y); pctx.lineTo(x, y + h * 0.52); pctx.stroke();
+        pctx.fillStyle = "#fff"; circle(x + w * 0.72, y + h * 0.7, 1.3, "#fff"); circle(x + w * 0.86, y + h * 0.4, 1, "#fff"); circle(x + w * 0.62, y + h * 0.35, 1, "#fff"); break;
+      case "GB":
+        fill("#012169");
+        pctx.strokeStyle = "#fff"; pctx.lineWidth = h * 0.26; pctx.beginPath(); pctx.moveTo(x, y); pctx.lineTo(x + w, y + h); pctx.moveTo(x + w, y); pctx.lineTo(x, y + h); pctx.stroke();
+        pctx.strokeStyle = "#c8102e"; pctx.lineWidth = h * 0.12; pctx.beginPath(); pctx.moveTo(x, y); pctx.lineTo(x + w, y + h); pctx.moveTo(x + w, y); pctx.lineTo(x, y + h); pctx.stroke();
+        pctx.strokeStyle = "#fff"; pctx.lineWidth = h * 0.34; pctx.beginPath(); pctx.moveTo(x + w / 2, y); pctx.lineTo(x + w / 2, y + h); pctx.moveTo(x, y + h / 2); pctx.lineTo(x + w, y + h / 2); pctx.stroke();
+        pctx.strokeStyle = "#c8102e"; pctx.lineWidth = h * 0.18; pctx.beginPath(); pctx.moveTo(x + w / 2, y); pctx.lineTo(x + w / 2, y + h); pctx.moveTo(x, y + h / 2); pctx.lineTo(x + w, y + h / 2); pctx.stroke();
+        break;
+      default: vbar(["#0055a4", "#ffffff", "#ef4135"]);
+    }
+    pctx.strokeStyle = "rgba(0,0,0,.22)"; pctx.lineWidth = 0.7; pctx.strokeRect(x, y, w, h);
+    pctx.restore();
   }
 
   function drawSkier() {
@@ -1501,6 +1642,7 @@
       bottom:["#2b3a67","#6d7b8c","#1c1f24","#9a8f80","#d8d4c8","#3a4a3a","#5a3a26","#111318","#444a52","#7a1f1f"],
       boots: ["#2a2f38","#111318","#c0392b","#3a2a1c","#e6e6e6","#1f3a6b","#2e8b57","#f2c033"],
       skis:  ["#ffcf33","#ff5a3c","#3ca0ff","#2ecc71","#e6e6e6","#8e44ad","#ff2d78","#111318"],
+      acc:   ["#6b4a2e","#151515","#3a2a1c","#8a5a2b","#c0392b","#2b5fa8","#2e8b57","#f2c033","#e6e6e6","#8e44ad"],
     };
     const rows = [];
 
@@ -1550,6 +1692,33 @@
       { text: "Glasses", active: () => !!customChar.glasses, onClick: () => (customChar.glasses = !customChar.glasses) },
       { text: "Fluff", active: () => !!customChar.fluff, onClick: () => (customChar.fluff = !customChar.fluff) },
     ]));
+    const accLabels = { none: "None", purse: "Purse", backpack: "Backpack", jetpack: "Jetpack", cape: "Cape", flag: "Flag" };
+    rows.push(chipRow("Accessory", Object.keys(accLabels).map((tp) => ({
+      text: accLabels[tp], active: () => (customChar.accessory || "none") === tp, onClick: () => { customChar.accessory = tp; },
+    }))));
+    const accColorRow = swatchRow("Acc. color", PAL.acc, () => customChar.accessoryColor, (v) => (customChar.accessoryColor = v));
+    const accColorBase = accColorRow._refresh;
+    accColorRow._refresh = () => { accColorBase(); const a = customChar.accessory; accColorRow.style.display = (a && a !== "none" && a !== "flag") ? "" : "none"; };
+    rows.push(accColorRow);
+    // country picker (only shown when the accessory is a flag)
+    (function () {
+      const row = document.createElement("div"); row.className = "crow";
+      const l = document.createElement("div"); l.className = "lbl"; l.textContent = "Country";
+      const opts = document.createElement("div"); opts.className = "opts";
+      const items = COUNTRIES.map((c) => {
+        const cv = document.createElement("canvas"); cv.className = "flagsw"; cv.title = c.name;
+        cv.width = 28 * DPR; cv.height = 18 * DPR; cv.style.width = "28px"; cv.style.height = "18px";
+        const fx = cv.getContext("2d"); fx.setTransform(DPR, 0, 0, DPR, 0, 0);
+        drawCountryFlag(fx, 0, 0, 28, 18, c.code);
+        cv.addEventListener("click", () => { customChar.flagCountry = c.code; onChange(); });
+        opts.appendChild(cv); return [cv, c];
+      });
+      row._refresh = () => {
+        row.style.display = customChar.accessory === "flag" ? "" : "none";
+        items.forEach(([cv, c]) => cv.classList.toggle("sel", (customChar.flagCountry || "US") === c.code));
+      };
+      row.append(l, opts); rows.push(row);
+    })();
 
     editEl.innerHTML = "";
     rows.forEach((r) => editEl.appendChild(r));
