@@ -338,7 +338,7 @@
   }
 
   function buildCourse() {
-    if (courseId === "jump") return buildJumpCourse();
+    if (courseId === "jump") return buildMegaJumpCourse();
     if (courseId === "crash") return buildCrashCourse();
     return buildWallCourse();
   }
@@ -387,34 +387,60 @@
     };
   }
 
-  // THE JUMP — one big kicker, no wall, no pit: launch huge and land on a long
-  // descending outrun. Pure air time.
-  function buildJumpCourse() {
-    const startX = 120, startY = 140;
+  // THE MEGA JUMP — a skateboarding mega-ramp. A tall roll-in bleeds into a long,
+  // smooth runway, then a big kicker throws you across a huge gap onto a long
+  // descending landing hill. Mellow out onto the flat, hit a quarter-pipe that
+  // launches you skyward, land, and ride up the final landing to end the run.
+  function buildMegaJumpCourse() {
+    const startX = 120, startY = 120;
     const pts = [];
     pts.push({ x: 0, y: startY - 40 });
     pts.push({ x: startX, y: startY });
-    pts.push({ x: 560, y: 285 });
-    pts.push({ x: 980, y: 480 });
-    const baseX = 1180, baseY = 560;
-    pts.push({ x: baseX, y: baseY });
-    const lipX = 1440, lipY = 452;                    // taller, steeper kicker → big air
-    hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.5, -0.62, 18);
-    pts.push({ x: lipX + 70, y: lipY + 30 });         // long descending landing hill
-    pts.push({ x: lipX + 520, y: lipY + 320 });
-    pts.push({ x: lipX + 1100, y: lipY + 470 });
-    // finishing wall: keeps rising, so you stop and slide back down it
-    const A = lipX + 1100, Ay = lipY + 470;
-    pts.push({ x: A + 200, y: Ay - 80 });
-    pts.push({ x: A + 380, y: Ay - 210 });
-    pts.push({ x: A + 540, y: Ay - 360 });
-    pts.push({ x: A + 680, y: Ay - 540 });
-    pts.push({ x: A + 800, y: Ay - 740 });    // keeps climbing (unreachable top)
-    const endX = A + 800, windStart = A + 80, finishLine = lipX + 300;
+    // tall, steep roll-in tower
+    pts.push({ x: 480, y: 360 });
+    pts.push({ x: 820, y: 610 });
+    // long, smooth runway easing flatter toward the kicker
+    hermiteRamp(pts, 820, 610, 1700, 860, 0.72, 0.16, 20);
+    pts.push({ x: 1900, y: 892 });
+    // the kicker (gap-jump takeoff)
+    const baseX = 1900, baseY = 892;
+    const lipX = 2180, lipY = 742;                    // tall, steep kicker → huge air
+    hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.5, -0.72, 20);
+    // huge, long descending landing hill (you fly the gap and land way down it)
+    const landY = lipY + 150;
+    pts.push({ x: 2320, y: 842 });
+    pts.push({ x: 2760, y: 1092 });
+    pts.push({ x: 3320, y: 1372 });
+    pts.push({ x: 3900, y: 1562 });
+    pts.push({ x: 4500, y: 1652 });
+    // mellow outrun onto the flat
+    hermiteRamp(pts, 4500, 1652, 5150, 1712, 0.15, 0.0, 12);
+    const flatY = 1712;
+    pts.push({ x: 5350, y: flatY });
+    // quarter-pipe: a smooth concave wall that throws you straight up
+    const qpX = 5690, qpY = flatY - 230;
+    hermiteRamp(pts, 5350, flatY, qpX, qpY, 0.0, -1.4, 22);
+    // roll over the lip and land back down to the flat
+    pts.push({ x: 5780, y: qpY + 60 });
+    hermiteRamp(pts, 5780, qpY + 60, 6260, flatY, -0.9, 0.0, 16);
+    const outX = 6260;
+    pts.push({ x: 6480, y: flatY });
+    // final landing: the terrain keeps rising, so you ride up, stop and slide back → end
+    const A = 6480, Ay = flatY;
+    pts.push({ x: A + 200, y: Ay - 90 });
+    pts.push({ x: A + 380, y: Ay - 230 });
+    pts.push({ x: A + 540, y: Ay - 400 });
+    pts.push({ x: A + 680, y: Ay - 600 });
+    pts.push({ x: A + 800, y: Ay - 820 });    // keeps climbing (unreachable top)
+    const endX = A + 800, windStart = A + 40, finishLine = outX - 40;
     course = {
       id: "jump", pts, wall: null, startX, startY,
-      lipX, lipY, landX: lipX, landY: lipY + 30, pitY: lipY + 2000, endX, windStart, finishLine,
-      markers: [{ x: lipX, y: lipY, color: "#ff5a3c" }, { x: A + 800, y: Ay - 740, color: "#2ecc71" }],
+      lipX, lipY, landX: lipX, landY, pitY: lipY + 2000, endX, windStart, finishLine,
+      markers: [
+        { x: lipX, y: lipY, color: "#ff5a3c" },
+        { x: qpX, y: qpY, color: "#3ca0ff" },
+        { x: endX, y: Ay - 820, color: "#2ecc71" },
+      ],
     };
   }
 
@@ -1696,7 +1722,7 @@
     const el = document.getElementById("courseTabs");
     const courses = [
       { id: "wall",  label: "The Wall",  desc: "Flip the wall" },
-      { id: "jump",  label: "The Jump",  desc: "Big air, no obstacles" },
+      { id: "jump",  label: "The Mega Jump",  desc: "Mega-ramp: huge air + quarter-pipe" },
       { id: "crash", label: "The Crash", desc: "Survive the jagged hill" },
     ];
     el.innerHTML = "";
