@@ -404,13 +404,13 @@
     const pts = [];
     pts.push({ x: 0, y: startY - 40 });
     pts.push({ x: startX, y: startY });
-    // STEEP roll-in that curves straight down into the base of the kicker — no flat
-    // runway, no bump: the descent flows right into the takeoff as one smooth valley.
-    pts.push({ x: 500, y: 560 });
-    hermiteRamp(pts, 500, 560, 1150, 900, 1.05, 0.0, 20);
+    // SHORT, steep roll-in that curves straight down into the base of the kicker —
+    // no flat runway, no bump — so you hit the takeoff quickly after dropping in.
+    pts.push({ x: 400, y: 520 });
+    hermiteRamp(pts, 400, 520, 820, 830, 1.35, 0.0, 16);
     // the kicker rises straight out of the valley to the lip
-    const lipX = 1620, lipY = 720;
-    hermiteRamp(pts, 1150, 900, lipX, lipY, 0.0, -0.62, 26);
+    const lipX = 1220, lipY = 650;
+    hermiteRamp(pts, 820, 830, lipX, lipY, 0.0, -0.62, 22);
     // the GAP you clear, with your chosen obstacle sitting in it
     const ob = OBSTACLES[obstacleId] || OBSTACLES.wall;
     const gap = Math.max(380, ob.halfW * 2 + 80), pitY = lipY + 780;
