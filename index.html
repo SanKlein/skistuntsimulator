@@ -545,7 +545,7 @@
   // ------------------------------------------------------------------ state
   best = parseInt(localStorage.getItem("skistunt_best") || "0", 10) || 0;
   document.getElementById("best").textContent = best;
-  run = { score: 0, flips: 0, totalFlips: 0, drops: 0 };
+  run = { score: 0, flips: 0, drops: 0 };
 
   // ------------------------------------------------------------------ characters
   let character;
@@ -739,8 +739,8 @@
     if (flips >= 1) {                            // reward + tally every landed flip
       const gained = 100 + flips * 200 + (s.tuck < 0.2 ? 40 : 0);
       run.score += gained;
-      run.flips += flips;                        // this drop-in's flips (for scoring / result card)
-      run.totalFlips += flips; setFlipTotal();   // running total across the whole session
+      run.flips += flips;                        // flips this run — accumulates across airs (kicker + quarter-pipe)
+      setFlipTotal();
       s.pendingLandMsg = { flips, gained };
       document.getElementById("score").textContent = run.score;
       for (let i = 0; i < 18; i++) spawnSpray(s, sa, 700);
@@ -1047,7 +1047,6 @@
   }
 
   function startGame() {
-    run.totalFlips = 0; setFlipTotal();   // fresh session from the menu — reset the running flip total
     dropInAgain();
   }
   function dropInAgain() {
@@ -1055,6 +1054,7 @@
     run.score = 0;          // each drop-in is a fresh run — reset score & flips
     run.flips = 0;
     document.getElementById("score").textContent = 0;
+    setFlipTotal();         // Flips counter starts each run at 0
     resetSkier();
     anchorHere();          // re-centre control on the cursor's current spot
     state = "play";
@@ -1069,7 +1069,7 @@
   const liveEl = document.getElementById("liveflip");
   function showLive(on) { liveEl.style.opacity = on ? "1" : "0"; }
   function liveFlips(n) { liveEl.textContent = n.toFixed(1) + " flips"; }
-  function setFlipTotal() { document.getElementById("flipTotal").textContent = run.totalFlips; }
+  function setFlipTotal() { document.getElementById("flipTotal").textContent = run.flips; }
   let hintTimer = 0;
   function showHint(t) { hintEl.textContent = t; hintEl.classList.remove("hidden"); hintTimer = 2.6; }
   function hideHint() { hintEl.classList.add("hidden"); }
@@ -1225,40 +1225,38 @@
     if (state === "play") drawControlPad();
   }
 
-  // Little corner gauge showing how far the cursor sits from the control origin.
-  // Center = your anchored origin; the knob tracks the cursor's offset, mapped to
-  // the same ranges that drive tuck (vertical) and lean (horizontal).
+  // Control gauge drawn right at the cursor: a labelled crosshair pinned to your
+  // anchored origin (EXTEND/TUCK/BACK/FWD), with a line running out to the live
+  // cursor so you can see how far — and which way — you've moved from neutral.
   function drawControlPad() {
-    const dx = input.x - input.ax, dy = input.y - input.ay;
-    const pad = 60, m = 18;
-    const cx = m + pad, cy = H - m - pad;
-    const clamp = (v) => Math.max(-1, Math.min(1, v));
-    const kx = clamp(dx / (W * 0.20)) * (pad - 9);
-    const ky = clamp(dy / (H * 0.16)) * (pad - 9);
+    const ax = input.ax, ay = input.ay;      // origin (where you're anchored)
+    const cxp = input.x, cyp = input.y;      // live cursor
+    const R = 50;                            // crosshair / label radius
     ctx.save();
-    ctx.globalAlpha = 0.92;
-    // panel
-    ctx.fillStyle = "rgba(12,18,26,.5)"; rrect(ctx, cx - pad, cy - pad, pad * 2, pad * 2, 12); ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,.14)"; ctx.lineWidth = 1; rrect(ctx, cx - pad, cy - pad, pad * 2, pad * 2, 12); ctx.stroke();
-    // lean dead-zone (neutral) — faint vertical band
-    const dzw = pad * (0.05 / 0.20);
-    ctx.fillStyle = "rgba(255,255,255,.06)"; ctx.fillRect(cx - dzw, cy - pad + 3, dzw * 2, pad * 2 - 6);
-    // crosshair through the origin
-    ctx.strokeStyle = "rgba(255,255,255,.22)"; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(cx - pad + 6, cy); ctx.lineTo(cx + pad - 6, cy);
-    ctx.moveTo(cx, cy - pad + 6); ctx.lineTo(cx, cy + pad - 6); ctx.stroke();
-    // labels
+    ctx.globalAlpha = 0.85;
+    ctx.lineCap = "round";
+    // lean dead-zone (neutral) — faint vertical band around the origin
+    const dzw = Math.min(W * 0.05, R - 6);
+    ctx.fillStyle = "rgba(255,255,255,.05)"; ctx.fillRect(ax - dzw, ay - R, dzw * 2, R * 2);
+    // crosshair axes through the origin
+    ctx.strokeStyle = "rgba(255,255,255,.20)"; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(ax - R, ay); ctx.lineTo(ax + R, ay);
+    ctx.moveTo(ax, ay - R); ctx.lineTo(ax, ay + R); ctx.stroke();
+    // direction labels
     ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.font = "9px system-ui,-apple-system,sans-serif";
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText("EXTEND", cx, cy - pad + 9); ctx.fillText("TUCK", cx, cy + pad - 9);
-    ctx.save(); ctx.translate(cx - pad + 9, cy); ctx.rotate(-Math.PI / 2); ctx.fillText("BACK", 0, 0); ctx.restore();
-    ctx.save(); ctx.translate(cx + pad - 9, cy); ctx.rotate(Math.PI / 2); ctx.fillText("FWD", 0, 0); ctx.restore();
-    // origin dot + line to the current cursor offset + knob
-    ctx.fillStyle = "#8fd3ff"; ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = "rgba(143,211,255,.55)"; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + kx, cy + ky); ctx.stroke();
-    ctx.fillStyle = "#ffcf33"; ctx.beginPath(); ctx.arc(cx + kx, cy + ky, 5, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillText("EXTEND", ax, ay - R - 7);
+    ctx.fillText("TUCK", ax, ay + R + 7);
+    ctx.fillText("BACK", ax - R - 16, ay);
+    ctx.fillText("FWD", ax + R + 14, ay);
+    // origin dot
+    ctx.fillStyle = "#8fd3ff"; ctx.beginPath(); ctx.arc(ax, ay, 3, 0, Math.PI * 2); ctx.fill();
+    // line from origin out to the live cursor + a ring on the cursor
+    ctx.strokeStyle = "rgba(143,211,255,.5)"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(cxp, cyp); ctx.stroke();
+    ctx.strokeStyle = "#ffcf33"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cxp, cyp, 6, 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
   }
 
