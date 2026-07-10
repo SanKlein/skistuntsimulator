@@ -318,7 +318,7 @@
   const LEAN_TORQUE = 24;    // how strongly leaning builds spin in the air
   const FWD_SPIN = 1.4;      // front flips need ~40% more rotation (back-tilted launch), so boost them
   const L_CAP = 15;          // max |angular momentum|
-  const LEAN_TILT = 0.55;    // radians the upper body visibly leans at full lean
+  const LEAN_TILT = 0.82;    // radians the upper body visibly folds at full lean (grab forward / arch back)
   // Ground jump: crouch then extend upward fast to hop off the snow anywhere.
   const JUMP_DETUCK = 4;     // min extension rate (per sec) to trigger a hop (lower = easier)
   const JUMP_FULL = 10;      // extension rate for a full-power hop
@@ -350,34 +350,34 @@
     return buildWallCourse();
   }
 
-  // THE WALL — ramp, gap, brick wall to clear, landing slope.
+  // THE WALL — like the original: a small, rounded takeoff, a wall to flip over,
+  // and a big smooth rounded landing bowl that scoops you down and back up.
   function buildWallCourse() {
     const wallExtra = ((run.drops * 37) % 46);        // subtle per-drop wall height
-    const startX = 120, startY = 150;
+    const startX = 120, startY = 190;
     const pts = [];
     pts.push({ x: 0, y: startY - 40 });
     pts.push({ x: startX, y: startY });
-    pts.push({ x: 560, y: 278 });
-    pts.push({ x: 940, y: 458 });
-    const baseX = 1140, baseY = 555;
+    // compact run-up into a small, rounded takeoff lip
+    pts.push({ x: 520, y: 372 });
+    const baseX = 880, baseY = 512;
     pts.push({ x: baseX, y: baseY });
-    const lipX = 1400, lipY = 455;                 // taller, steeper kicker → more air to flip
-    hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.5, -0.6, 18);
-    const ob = OBSTACLES.wall;                            // The Wall always uses the brick wall
-    const gap = 300, pitY = lipY + 620;
+    const lipX = 1120, lipY = 432;                 // smaller kicker (rounder, less pop)
+    hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.5, -0.5, 18);
+    const ob = OBSTACLES.wall;                     // The Wall always uses the brick wall
+    const gap = 300, pitY = lipY + 660;
     pts.push({ x: lipX + 12, y: pitY });
     const landX = lipX + gap;
     pts.push({ x: landX - 12, y: pitY });
-    const landY = lipY + 96;
+    const landY = lipY + 58;                        // landing hump, just below the lip
     pts.push({ x: landX, y: landY });
-    // bigger landing hill: a longer, generous slope to catch the higher/further jumps
-    pts.push({ x: landX + 340, y: landY + 200 });
-    pts.push({ x: landX + 740, y: landY + 310 });
-    pts.push({ x: landX + 1200, y: landY + 360 });
-    // finishing wall: the terrain just keeps rising, so you can't clear it — you
-    // ride up, run out of momentum, stop, and slide back down for a few seconds
-    // before the round ends (if you're still on your feet).
-    const A = landX + 1200, Ay = landY + 360;
+    // ROUNDED landing bowl: roll over the hump, scoop down the smooth concave face,
+    // bottom out, then curve back up — one continuous rounded valley (like the original)
+    hermiteRamp(pts, landX, landY, landX + 430, landY + 360, 0.0, 1.0, 22);
+    hermiteRamp(pts, landX + 430, landY + 360, landX + 1120, landY + 470, 1.0, -0.4, 26);
+    // finishing wall: the terrain keeps rising, so you ride up, stop, and slide
+    // back down for a few seconds before the round ends (if you're still up).
+    const A = landX + 1120, Ay = landY + 470;
     pts.push({ x: A + 180, y: Ay - 60 });
     pts.push({ x: A + 350, y: Ay - 160 });
     pts.push({ x: A + 500, y: Ay - 290 });
@@ -1510,12 +1510,17 @@
     const DEG = Math.PI / 180;
     const raise = 1 - t;
     const baseA = (160 - 150 * raise) * DEG;         // 160° = arms down by sides, 10° = overhead
-    const nearA = baseA + lean * 22 * DEG;
-    const farA  = nearA - 8 * DEG;
+    // lean throws the arms into a pose: forward → reach down for the ski tips (grab),
+    // back → fling them up & behind (arch). Blend from the neutral base pose.
+    const grab = Math.max(0, lean), back = Math.max(0, -lean);
+    const grabTarget = 118 * DEG, archTarget = -25 * DEG;
+    const nearA = baseA + (grabTarget - baseA) * grab + (archTarget - baseA) * back;
+    const farA  = nearA - (grab > 0 ? 5 : 14) * DEG;
     const drawArm = (a, col) => {
-      const ex = sho.x + Math.sin(a) * 11 * B, ey = sho.y - Math.cos(a) * 11 * B;   // elbow
-      const a2 = a - 0.4;                                                            // forearm bend
-      const hx = ex + Math.sin(a2) * 10 * B, hy = ey - Math.cos(a2) * 10 * B;        // hand
+      const uL = 11 * B, fL = (10 + grab * 9) * B;                                   // forearm reaches out on a grab
+      const ex = sho.x + Math.sin(a) * uL, ey = sho.y - Math.cos(a) * uL;            // elbow
+      const a2 = a - 0.4 + grab * 0.9;                                               // curl the hands toward the tips
+      const hx = ex + Math.sin(a2) * fL, hy = ey - Math.cos(a2) * fL;                // hand
       pctx.strokeStyle = col; pctx.lineWidth = 5 * thin;
       pctx.beginPath(); pctx.moveTo(sho.x, sho.y); pctx.lineTo(ex, ey); pctx.lineTo(hx, hy); pctx.stroke();
       pctx.fillStyle = C.skin;                                                       // bare hand
