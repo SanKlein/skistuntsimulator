@@ -1518,18 +1518,21 @@
     pctx.translate(hip.x, hip.y); pctx.rotate(lean * LEAN_TILT); pctx.translate(-hip.x, -hip.y);
 
     const DEG = Math.PI / 180;
-    const raise = 1 - t;
-    const baseA = (160 - 150 * raise) * DEG;         // 160° = arms down by sides, 10° = overhead
-    // lean throws the arms into a pose: forward → reach down for the ski tips (grab),
-    // back → fling them up & behind (arch). Blend from the neutral base pose.
-    const grab = Math.max(0, lean), back = Math.max(0, -lean);
-    const grabTarget = 118 * DEG, archTarget = -25 * DEG;
-    const nearA = baseA + (grabTarget - baseA) * grab + (archTarget - baseA) * back;
-    const farA  = nearA - (grab > 0 ? 5 : 14) * DEG;
+    // Arms point where the cursor points, relative to centre: up = extended,
+    // down = tucked, forward = lean forward, back = lean back (and blends between).
+    // Near neutral they rest low & a touch forward; they swing out as you push off-centre.
+    const vert = t * 2 - 1;                           // -1 extended (up) .. +1 tucked (down)
+    const mag = Math.min(1, Math.hypot(lean, vert) * 1.3);
+    const restA = 112 * DEG;                          // relaxed neutral: low, slightly forward
+    const dirA = Math.atan2(lean, -vert);             // 0 up · 90 fwd · 180 down · -90 back
+    let d = dirA - restA; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+    const nearA = restA + d * mag;
+    const farA  = nearA - 12 * DEG;
+    const reach = Math.max(0, lean);                  // extend the arms on a forward grab
     const drawArm = (a, col) => {
-      const uL = 11 * B, fL = (10 + grab * 9) * B;                                   // forearm reaches out on a grab
+      const uL = 11 * B, fL = (10 + reach * 8) * B;
       const ex = sho.x + Math.sin(a) * uL, ey = sho.y - Math.cos(a) * uL;            // elbow
-      const a2 = a - 0.4 + grab * 0.9;                                               // curl the hands toward the tips
+      const a2 = a - 0.4 + reach * 0.7;                                              // curl the hands toward the tips
       const hx = ex + Math.sin(a2) * fL, hy = ey - Math.cos(a2) * fL;                // hand
       pctx.strokeStyle = col; pctx.lineWidth = 5 * thin;
       pctx.beginPath(); pctx.moveTo(sho.x, sho.y); pctx.lineTo(ex, ey); pctx.lineTo(hx, hy); pctx.stroke();
