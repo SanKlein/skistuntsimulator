@@ -221,10 +221,10 @@
       <div id="charEditor" class="ceditor hidden"></div>
       <details class="howto">
         <summary>How to play</summary>
-        <p>Move the mouse to pose the skier — it's <b>relative to where you start</b>. <b>Down = crouch/tuck</b>,
+        <p>Move the mouse to pose the skier — it's <b>relative to the centre of the screen</b>. <b>Down = crouch/tuck</b>,
         <b>up = stand tall &amp; extend</b>, <b>right = lean forward</b> (front flip), <b>left = lean back</b>
         (backflip). Crouch then snap up fast to <b>jump off the snow anywhere</b>. Tuck to spin faster, extend
-        and center to land upright. Press <b>C</b> to re-center controls on your cursor, <b>R</b> to replay.</p>
+        and center to land upright. Press <b>R</b> to replay.</p>
       </details>
       <button class="btn" id="startBtn">Drop In ▸</button>
       <p class="credit">A tribute to the original <a href="https://www.cs.ubc.ca/~van/sssjava/javademo.html" target="_blank" rel="noopener noreferrer">Ski Stunt Simulator</a> by Michiel van de Panne (UBC).</p>
@@ -495,14 +495,12 @@
   // Primary control is CURSOR POSITION (like the original): move the pointer
   // down to tuck/crouch, up to extend. Holding the button / Space forces a
   // full tuck as a convenience override.
-  // Control is RELATIVE to an anchor captured at the start of each run: the pose
-  // is driven by how far the cursor has moved from there, not its absolute
-  // screen position. anchorHere() re-centres it.
-  const input = { down: false, x: 0, y: 0, ax: 0, ay: 0 };
+  // Control is RELATIVE to the CENTRE of the window: the pose is driven by how far
+  // the cursor sits from screen-centre (up = extend, down = crouch, left/right = lean).
+  const input = { down: false, x: 0, y: 0 };
   function press() { input.down = true; }
   function release() { input.down = false; }
   function setXY(e) { input.x = e.clientX; input.y = e.clientY; }
-  function anchorHere() { input.ax = input.x; input.ay = input.y; }
 
   canvas.addEventListener("pointerdown", (e) => {
     e.preventDefault();
@@ -516,27 +514,26 @@
     if (state === "replay") { e.preventDefault(); if (!(replay && (replay.recording || replay.gifCapture))) endReplay(); return; }  // any key stops replay (not while capturing)
     if (e.code === "Space") { e.preventDefault(); press(); }
     if (e.key === "r" || e.key === "R") startReplay();
-    if (e.key === "c" || e.key === "C") { anchorHere(); showHint("Controls re-centered on the cursor"); }  // reset the control origin to where the cursor is now
   });
   window.addEventListener("keyup", (e) => { if (e.code === "Space") release(); });
 
   // How tucked the skier should be right now, 0 (extended) .. 1 (fully tucked),
   // driven by where the cursor sits vertically on screen.
   function tuckTarget() {
-    // relative to the anchor: move up = extend (hands up), down = crouch/tuck.
-    // Neutral (at the anchor) sits mid-crouch so there's room both ways.
-    let t = 0.5 + (input.y - input.ay) / (H * 0.32);
+    // relative to screen-centre: move up = extend (hands up), down = crouch/tuck.
+    // Neutral (at centre) sits mid-crouch so there's room both ways.
+    let t = 0.5 + (input.y - H / 2) / (H * 0.32);
     t = Math.max(0, Math.min(1, t));
     if (input.down) t = 1;                // button/Space = full tuck
     return t;
   }
 
   // How much the skier leans, -1 (back / backflip) .. +1 (forward / front flip),
-  // from how far the cursor has moved left/right of the anchor. A dead-zone
-  // around the anchor keeps you neutral (no flip) unless you deliberately lean.
+  // from how far the cursor has moved left/right of screen-centre. A dead-zone
+  // around centre keeps you neutral (no flip) unless you deliberately lean.
   function leanTarget() {
     const dz = W * 0.05;                      // neutral dead-zone
-    let d = input.x - input.ax;
+    let d = input.x - W / 2;
     if (Math.abs(d) < dz) return 0;
     d = d > 0 ? d - dz : d + dz;
     return Math.max(-1, Math.min(1, d / (W * 0.15)));
@@ -1056,13 +1053,12 @@
     document.getElementById("score").textContent = 0;
     setFlipTotal();         // Flips counter starts each run at 0
     resetSkier();
-    anchorHere();          // re-centre control on the cursor's current spot
     state = "play";
     document.getElementById("overlay").classList.add("hidden");
     document.getElementById("startCard").classList.add("hidden");
     document.getElementById("resultCard").classList.add("hidden");
     document.getElementById("replaybadge").classList.add("hidden");
-    showHint("Move from where you start: down=crouch, up=extend, left/right=lean — press C to re-center");
+    showHint("Controls are from screen-centre: down=crouch, up=extend, left/right=lean back/forward");
   }
 
   // ------------------------------------------------------------------ HUD helpers
@@ -1229,7 +1225,7 @@
   // anchored origin (EXTEND/TUCK/BACK/FWD), with a line running out to the live
   // cursor so you can see how far — and which way — you've moved from neutral.
   function drawControlPad() {
-    const ax = input.ax, ay = input.ay;      // origin (where you're anchored)
+    const ax = W / 2, ay = H / 2;            // origin is always screen-centre
     const cxp = input.x, cyp = input.y;      // live cursor
     const R = 50;                            // crosshair / label radius
     ctx.save();
@@ -1871,9 +1867,8 @@
 
   // ------------------------------------------------------------------ boot
   state = "start";
-  input.y = H * 0.5;    // neutral cursor position
+  input.y = H * 0.5;    // start the cursor at neutral (screen-centre)
   input.x = W * 0.5;
-  anchorHere();         // initial control anchor
   resetSkier();       // so there is something behind the start card
   cam.x = skier.x - W * 0.34;
   cam.y = skier.y - H * 0.56;
