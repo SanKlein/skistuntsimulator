@@ -77,6 +77,7 @@
   .stat { line-height: 1.05; }
   .stat .k { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; opacity: .7; }
   .stat .v { font-size: 26px; font-weight: 800; }
+  #left { display: flex; gap: 22px; }
   #right { text-align: right; }
   #liveflip { font-size: 15px; font-weight: 700; opacity: 0; transition: opacity .12s; }
 
@@ -193,7 +194,10 @@
   <canvas id="c"></canvas>
 
   <div id="hud">
-    <div class="stat"><div class="k">Score</div><div class="v" id="score">0</div></div>
+    <div id="left">
+      <div class="stat"><div class="k">Score</div><div class="v" id="score">0</div></div>
+      <div class="stat"><div class="k">Flips</div><div class="v" id="flipTotal">0</div></div>
+    </div>
     <div id="right">
       <div class="stat"><div class="k">Best</div><div class="v" id="best">0</div></div>
       <div id="liveflip">0.0 flips</div>
@@ -220,7 +224,7 @@
         <p>Move the mouse to pose the skier — it's <b>relative to where you start</b>. <b>Down = crouch/tuck</b>,
         <b>up = stand tall &amp; extend</b>, <b>right = lean forward</b> (front flip), <b>left = lean back</b>
         (backflip). Crouch then snap up fast to <b>jump off the snow anywhere</b>. Tuck to spin faster, extend
-        and center to land upright. Press <b>R</b> to replay.</p>
+        and center to land upright. Press <b>C</b> to re-center controls on your cursor, <b>R</b> to replay.</p>
       </details>
       <button class="btn" id="startBtn">Drop In ▸</button>
       <p class="credit">A tribute to the original <a href="https://www.cs.ubc.ca/~van/sssjava/javademo.html" target="_blank" rel="noopener noreferrer">Ski Stunt Simulator</a> by Michiel van de Panne (UBC).</p>
@@ -487,6 +491,7 @@
     if (state === "replay") { e.preventDefault(); if (!(replay && (replay.recording || replay.gifCapture))) endReplay(); return; }  // any key stops replay (not while capturing)
     if (e.code === "Space") { e.preventDefault(); press(); }
     if (e.key === "r" || e.key === "R") startReplay();
+    if (e.key === "c" || e.key === "C") { anchorHere(); showHint("Controls re-centered on the cursor"); }  // reset the control origin to where the cursor is now
   });
   window.addEventListener("keyup", (e) => { if (e.code === "Space") release(); });
 
@@ -515,7 +520,7 @@
   // ------------------------------------------------------------------ state
   best = parseInt(localStorage.getItem("skistunt_best") || "0", 10) || 0;
   document.getElementById("best").textContent = best;
-  run = { score: 0, flips: 0, drops: 0 };
+  run = { score: 0, flips: 0, totalFlips: 0, drops: 0 };
 
   // ------------------------------------------------------------------ characters
   let character;
@@ -709,7 +714,8 @@
     if (flips >= 1) {                            // reward + tally every landed flip
       const gained = 100 + flips * 200 + (s.tuck < 0.2 ? 40 : 0);
       run.score += gained;
-      run.flips += flips;                        // accumulate across the whole run
+      run.flips += flips;                        // this drop-in's flips (for scoring / result card)
+      run.totalFlips += flips; setFlipTotal();   // running total across the whole session
       s.pendingLandMsg = { flips, gained };
       document.getElementById("score").textContent = run.score;
       for (let i = 0; i < 18; i++) spawnSpray(s, sa, 700);
@@ -1016,6 +1022,7 @@
   }
 
   function startGame() {
+    run.totalFlips = 0; setFlipTotal();   // fresh session from the menu — reset the running flip total
     dropInAgain();
   }
   function dropInAgain() {
@@ -1030,13 +1037,14 @@
     document.getElementById("startCard").classList.add("hidden");
     document.getElementById("resultCard").classList.add("hidden");
     document.getElementById("replaybadge").classList.add("hidden");
-    showHint("Move from where you start: down=crouch, up=extend, left/right=lean back/forward");
+    showHint("Move from where you start: down=crouch, up=extend, left/right=lean — press C to re-center");
   }
 
   // ------------------------------------------------------------------ HUD helpers
   const liveEl = document.getElementById("liveflip");
   function showLive(on) { liveEl.style.opacity = on ? "1" : "0"; }
   function liveFlips(n) { liveEl.textContent = n.toFixed(1) + " flips"; }
+  function setFlipTotal() { document.getElementById("flipTotal").textContent = run.totalFlips; }
   let hintTimer = 0;
   function showHint(t) { hintEl.textContent = t; hintEl.classList.remove("hidden"); hintTimer = 2.6; }
   function hideHint() { hintEl.classList.add("hidden"); }
@@ -1187,6 +1195,45 @@
     drawParticles();
     drawSkier();
 
+    ctx.restore();
+
+    if (state === "play") drawControlPad();
+  }
+
+  // Little corner gauge showing how far the cursor sits from the control origin.
+  // Center = your anchored origin; the knob tracks the cursor's offset, mapped to
+  // the same ranges that drive tuck (vertical) and lean (horizontal).
+  function drawControlPad() {
+    const dx = input.x - input.ax, dy = input.y - input.ay;
+    const pad = 60, m = 18;
+    const cx = m + pad, cy = H - m - pad;
+    const clamp = (v) => Math.max(-1, Math.min(1, v));
+    const kx = clamp(dx / (W * 0.20)) * (pad - 9);
+    const ky = clamp(dy / (H * 0.16)) * (pad - 9);
+    ctx.save();
+    ctx.globalAlpha = 0.92;
+    // panel
+    ctx.fillStyle = "rgba(12,18,26,.5)"; rrect(ctx, cx - pad, cy - pad, pad * 2, pad * 2, 12); ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,.14)"; ctx.lineWidth = 1; rrect(ctx, cx - pad, cy - pad, pad * 2, pad * 2, 12); ctx.stroke();
+    // lean dead-zone (neutral) — faint vertical band
+    const dzw = pad * (0.05 / 0.20);
+    ctx.fillStyle = "rgba(255,255,255,.06)"; ctx.fillRect(cx - dzw, cy - pad + 3, dzw * 2, pad * 2 - 6);
+    // crosshair through the origin
+    ctx.strokeStyle = "rgba(255,255,255,.22)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx - pad + 6, cy); ctx.lineTo(cx + pad - 6, cy);
+    ctx.moveTo(cx, cy - pad + 6); ctx.lineTo(cx, cy + pad - 6); ctx.stroke();
+    // labels
+    ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.font = "9px system-ui,-apple-system,sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("EXTEND", cx, cy - pad + 9); ctx.fillText("TUCK", cx, cy + pad - 9);
+    ctx.save(); ctx.translate(cx - pad + 9, cy); ctx.rotate(-Math.PI / 2); ctx.fillText("BACK", 0, 0); ctx.restore();
+    ctx.save(); ctx.translate(cx + pad - 9, cy); ctx.rotate(Math.PI / 2); ctx.fillText("FWD", 0, 0); ctx.restore();
+    // origin dot + line to the current cursor offset + knob
+    ctx.fillStyle = "#8fd3ff"; ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(143,211,255,.55)"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + kx, cy + ky); ctx.stroke();
+    ctx.fillStyle = "#ffcf33"; ctx.beginPath(); ctx.arc(cx + kx, cy + ky, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.lineWidth = 1; ctx.stroke();
     ctx.restore();
   }
 
