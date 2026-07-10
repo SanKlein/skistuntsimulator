@@ -405,33 +405,32 @@
     // and gradually curves up to a mellow takeoff lip. Buttery, not a sudden kick.
     const lipX = 2320, lipY = 742;
     hermiteRamp(pts, 1750, 882, lipX, lipY, 0.0, -0.6, 36);
-    // huge, long descending landing hill (you fly the gap and land way down it)
+    // huge, long descending landing hill (you fly the gap and land way down it),
+    // easing out until it bottoms into the flat at the base of the half-pipe
     const landY = lipY + 150;
     pts.push({ x: 2460, y: 842 });
     pts.push({ x: 2900, y: 1112 });
     pts.push({ x: 3440, y: 1392 });
     pts.push({ x: 4020, y: 1580 });
-    pts.push({ x: 4600, y: 1668 });
-    // mellow outrun onto the flat
-    hermiteRamp(pts, 4600, 1668, 5240, 1712, 0.14, 0.0, 12);
-    const flatY = 1712;
-    pts.push({ x: 5350, y: flatY });
-    // quarter-pipe: a smooth concave wall that throws you straight up
-    const qpX = 5690, qpY = flatY - 230;
-    hermiteRamp(pts, 5350, flatY, qpX, qpY, 0.0, -1.4, 22);
-    // roll over the lip and land back down to the flat
-    pts.push({ x: 5780, y: qpY + 60 });
-    hermiteRamp(pts, 5780, qpY + 60, 6260, flatY, -0.9, 0.0, 16);
-    const outX = 6260;
-    pts.push({ x: 6480, y: flatY });
+    hermiteRamp(pts, 4020, 1580, 5060, 1730, 0.34, 0.0, 18);
+    const flatY = 1730;
+    // HALF-PIPE: the landing flows straight into a short, steep, concave wall — no
+    // runway, no gap. You ride up the transition and it throws you nearly straight
+    // up (not out), then you come back down onto the flat. A quarter-pipe, not a jump.
+    const qpX = 5320, qpY = flatY - 240;
+    hermiteRamp(pts, 5060, flatY, qpX, qpY, 0.0, -2.3, 24);
+    pts.push({ x: 5380, y: qpY + 34 });                 // roll over the lip
+    hermiteRamp(pts, 5380, qpY + 34, 5820, flatY, -1.5, 0.0, 18);   // curve back down to the flat
+    const outX = 5820;
+    pts.push({ x: 6040, y: flatY });
     // final landing: the terrain keeps rising, so you ride up, stop and slide back → end
-    const A = 6480, Ay = flatY;
+    const A = 6040, Ay = flatY;
     pts.push({ x: A + 200, y: Ay - 90 });
     pts.push({ x: A + 380, y: Ay - 230 });
     pts.push({ x: A + 540, y: Ay - 400 });
     pts.push({ x: A + 680, y: Ay - 600 });
     pts.push({ x: A + 800, y: Ay - 820 });    // keeps climbing (unreachable top)
-    const endX = A + 800, windStart = A + 40, finishLine = outX - 40;
+    const endX = A + 800, windStart = A + 40, finishLine = null;
     course = {
       id: "jump", pts, wall: null, startX, startY,
       lipX, lipY, landX: lipX, landY, pitY: lipY + 2000, endX, windStart, finishLine,
