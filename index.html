@@ -424,16 +424,16 @@
     pts.push({ x: landX + 520, y: landY + 380 });
     hermiteRamp(pts, landX + 520, landY + 380, landX + 1180, landY + 600, 0.55, 0.0, 20);
     const flatY = landY + 600, qpBase = landX + 1180;
-    // QUARTER-PIPE finale: a short, steep, concave transition. Ride up it and its
-    // steep top launches you STRAIGHT UP (see the launch in stepGround); you float,
-    // drop back down onto the ramp and roll back past the flag to end the run.
-    hermiteRamp(pts, qpBase, flatY, qpBase + 210, flatY - 320, 0.0, -3.0, 22);
-    pts.push({ x: qpBase + 244, y: flatY - 460 });   // near-vertical
-    pts.push({ x: qpBase + 260, y: flatY - 560 });   // top
-    const endX = qpBase + 260, windStart = null, finishLine = null;
+    // QUARTER-PIPE finale: a smooth vert-ramp transition — gentle at the base,
+    // curving up to near-vertical at the coping. Pump up it and POP off the lip
+    // (crouch then extend) for a big vertical air, float, drop back into the pipe
+    // and roll back past the flag to end the run. It's unclearable, so no going over.
+    hermiteRamp(pts, qpBase, flatY, qpBase + 190, flatY - 300, 0.0, -2.4, 18);
+    hermiteRamp(pts, qpBase + 190, flatY - 300, qpBase + 252, flatY - 500, -2.4, -5.5, 12);
+    const endX = qpBase + 252, windStart = null, finishLine = null;
     const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - ob.rise, baseY: pitY, type: obstacleId };
     course = {
-      id: "jump", pts, wall, startX, startY, maxSpeed: 860, qp: { baseX: qpBase, baseY: flatY, launchX: qpBase + 180 },
+      id: "jump", pts, wall, startX, startY, maxSpeed: 820, qp: { baseX: qpBase, baseY: flatY },
       lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
@@ -661,18 +661,6 @@
       // ADD to any existing upward velocity (so snapping up off a ramp stacks on
       // the ramp's launch); ignore downward momentum so flat/downhill pops work.
       s.vy = Math.min(s.vy, 0) - JUMP_POP * power * (0.62 + 0.38 * s.charge);
-      leaveGround();
-      return;
-    }
-
-    // QUARTER-PIPE: hitting the steep top redirects your speed STRAIGHT UP (plus a
-    // boost) so you pop vertically off the wall, float, and drop back down onto the
-    // transition — then roll back down past the flag. A little back-drift so you
-    // land over the ramp, not out past it.
-    if (course.qp && s.x >= course.qp.launchX && v > 40) {
-      const speed = Math.hypot(s.vx, s.vy);
-      s.vy = -(speed + 400 + Math.max(0, detuck) * 18);   // up (extra kick if you pop)
-      s.vx = -speed * 0.2;                                 // drift back toward the transition
       leaveGround();
       return;
     }
