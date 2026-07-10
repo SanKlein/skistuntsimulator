@@ -125,6 +125,12 @@
   .card { max-height: 90vh; overflow-y: auto; }
   .lead { margin-top: 10px; font-weight: 700; opacity: .9; }
   .courseTabs { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:12px; }
+  #obstacleRow { margin-top:10px; }
+  .obstacleLbl { display:block; font-size:11px; letter-spacing:.1em; text-transform:uppercase; opacity:.55; margin-bottom:6px; }
+  #obstacleTabs { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
+  .ochip { font-size:12px; font-weight:800; padding:6px 12px; border-radius:9px; cursor:pointer;
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); color:#fff; }
+  .ochip.sel { background:#8fd3ff; color:#062033; border-color:#8fd3ff; }
   .ctab { cursor:pointer; min-width:98px; padding:8px 12px; border-radius:10px; text-align:center;
     background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); color:#fff; }
   .ctab b { display:block; font-size:13px; font-weight:800; }
@@ -217,6 +223,7 @@
       <h1><span class="sub">DDsim tribute</span>Ski Stunt Simulator</h1>
       <p class="lead">Pick your course &amp; rider — then drop in.</p>
       <div id="courseTabs" class="courseTabs"></div>
+      <div id="obstacleRow"><span class="obstacleLbl">Jump over</span><div id="obstacleTabs"></div></div>
       <div id="charTiles" class="ctiles"></div>
       <div id="charEditor" class="ceditor hidden"></div>
       <details class="howto">
@@ -356,7 +363,8 @@
     pts.push({ x: baseX, y: baseY });
     const lipX = 1400, lipY = 455;                 // taller, steeper kicker → more air to flip
     hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.5, -0.6, 18);
-    const gap = 300, pitY = lipY + 620;
+    const ob = OBSTACLES[obstacleId] || OBSTACLES.wall;   // the thing you jump over
+    const gap = Math.max(300, ob.halfW * 2 + 70), pitY = lipY + 620;
     pts.push({ x: lipX + 12, y: pitY });
     const landX = lipX + gap;
     pts.push({ x: landX - 12, y: pitY });
@@ -376,7 +384,8 @@
     pts.push({ x: A + 630, y: Ay - 450 });
     pts.push({ x: A + 740, y: Ay - 640 });    // keeps climbing (unreachable top)
     const endX = A + 740, windStart = A + 60, finishLine = landX + 90;
-    const wall = { x: lipX + gap * 0.5, halfW: 17, topY: lipY - (26 + wallExtra), baseY: pitY };
+    const extra = obstacleId === "wall" ? wallExtra : 0;    // only the brick wall gets the per-drop height wobble
+    const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - (ob.rise + extra), baseY: pitY, type: obstacleId };
     course = {
       id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
       markers: [
@@ -388,9 +397,9 @@
   }
 
   // THE MEGA JUMP — a skateboarding mega-ramp. A tall roll-in bleeds into a long,
-  // smooth runway, then a big kicker throws you across a huge gap onto a long
-  // descending landing hill. Mellow out onto the flat, hit a quarter-pipe that
-  // launches you skyward, land, and ride up the final landing to end the run.
+  // smooth runway; a big kicker throws you across a gap over your chosen obstacle
+  // onto a long descending landing hill; then you ride up a tall vertical
+  // quarter-pipe that shoots you straight up (you can't clear it) to end the run.
   function buildMegaJumpCourse() {
     const startX = 120, startY = 120;
     const pts = [];
@@ -405,39 +414,35 @@
     // and gradually curves up to a mellow takeoff lip. Buttery, not a sudden kick.
     const lipX = 2320, lipY = 742;
     hermiteRamp(pts, 1750, 882, lipX, lipY, 0.0, -0.6, 36);
-    // huge, long descending landing hill (you fly the gap and land way down it),
-    // easing out until it bottoms into the flat at the base of the half-pipe
-    const landY = lipY + 150;
-    pts.push({ x: 2460, y: 842 });
-    pts.push({ x: 2900, y: 1112 });
-    pts.push({ x: 3440, y: 1392 });
-    pts.push({ x: 4020, y: 1580 });
-    hermiteRamp(pts, 4020, 1580, 5060, 1730, 0.34, 0.0, 18);
-    const flatY = 1730;
-    // HALF-PIPE: the landing flows straight into a short, steep, concave wall — no
-    // runway, no gap. You ride up the transition and it throws you nearly straight
-    // up (not out), then you come back down onto the flat. A quarter-pipe, not a jump.
-    const qpX = 5320, qpY = flatY - 240;
-    hermiteRamp(pts, 5060, flatY, qpX, qpY, 0.0, -2.3, 24);
-    pts.push({ x: 5380, y: qpY + 34 });                 // roll over the lip
-    hermiteRamp(pts, 5380, qpY + 34, 5820, flatY, -1.5, 0.0, 18);   // curve back down to the flat
-    const outX = 5820;
-    pts.push({ x: 6040, y: flatY });
-    // final landing: the terrain keeps rising, so you ride up, stop and slide back → end
-    const A = 6040, Ay = flatY;
-    pts.push({ x: A + 200, y: Ay - 90 });
-    pts.push({ x: A + 380, y: Ay - 230 });
-    pts.push({ x: A + 540, y: Ay - 400 });
-    pts.push({ x: A + 680, y: Ay - 600 });
-    pts.push({ x: A + 800, y: Ay - 820 });    // keeps climbing (unreachable top)
-    const endX = A + 800, windStart = A + 40, finishLine = null;
+    // the GAP you clear, with your chosen obstacle sitting in it
+    const ob = OBSTACLES[obstacleId] || OBSTACLES.wall;
+    const gap = Math.max(420, ob.halfW * 2 + 90), pitY = lipY + 780;
+    pts.push({ x: lipX + 12, y: pitY });
+    const landX = lipX + gap;
+    pts.push({ x: landX - 12, y: pitY });
+    const landY = lipY + 130;
+    pts.push({ x: landX, y: landY });
+    // huge, long descending landing hill, easing out to the flat at the QP base
+    pts.push({ x: landX + 520, y: landY + 320 });
+    pts.push({ x: landX + 1140, y: landY + 560 });
+    hermiteRamp(pts, landX + 1140, landY + 560, landX + 2020, landY + 700, 0.28, 0.0, 18);
+    const flatY = landY + 700, qpBase = landX + 2020;
+    // QUARTER-PIPE finale: a tall, smooth, concave wall that curls up toward
+    // vertical. You ride up it and drop straight back down — it keeps rising past
+    // the top, so you can never clear it. Crouch-pop off the transition for big air.
+    hermiteRamp(pts, qpBase, flatY, qpBase + 300, flatY - 300, 0.0, -2.6, 24);
+    pts.push({ x: qpBase + 360, y: flatY - 540 });   // steepening
+    pts.push({ x: qpBase + 394, y: flatY - 800 });   // near-vertical
+    pts.push({ x: qpBase + 412, y: flatY - 1080 });  // unreachable top
+    const endX = qpBase + 412, windStart = qpBase - 30, finishLine = null;
+    const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - ob.rise, baseY: pitY, type: obstacleId };
     course = {
-      id: "jump", pts, wall: null, startX, startY,
-      lipX, lipY, landX: lipX, landY, pitY: lipY + 2000, endX, windStart, finishLine,
+      id: "jump", pts, wall, startX, startY,
+      lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
-        { x: qpX, y: qpY, color: "#3ca0ff" },
-        { x: endX, y: Ay - 820, color: "#2ecc71" },
+        { x: landX, y: landY, color: "#3ca0ff" },
+        { x: qpBase, y: flatY, color: "#2ecc71" },
       ],
     };
   }
@@ -569,6 +574,19 @@
   // ------------------------------------------------------------------ course
   let courseId = localStorage.getItem("skistunt_course") || "wall";
   function selectCourse(id) { courseId = id; localStorage.setItem("skistunt_course", id); }
+
+  // The thing you jump over on the gap courses (The Wall + The Mega Jump). `rise`
+  // is how far its top pokes above the takeoff lip; `halfW` its half-width.
+  const OBSTACLES = {
+    wall:     { label: "Wall",     halfW: 18,  rise: 26 },
+    temple:   { label: "Temple",   halfW: 46,  rise: 40 },
+    mountain: { label: "Mountain", halfW: 128, rise: 74 },
+    fire:     { label: "Fire",     halfW: 40,  rise: 30 },
+    truck:    { label: "Truck",    halfW: 60,  rise: 14 },
+  };
+  let obstacleId = localStorage.getItem("skistunt_obstacle") || "wall";
+  if (!OBSTACLES[obstacleId]) obstacleId = "wall";
+  function selectObstacle(id) { obstacleId = id; localStorage.setItem("skistunt_obstacle", id); }
 
   function resetSkier() {
     buildCourse();
@@ -1308,28 +1326,115 @@
 
   function drawWall() {
     const wl = course.wall;
-    if (!wl) return;                        // jump / crash courses have no wall
-    const x = wl.x - wl.halfW, w = wl.halfW * 2;
-    const top = wl.topY, h = wl.baseY - wl.topY;
+    if (!wl) return;                        // crash course has no obstacle
     ctx.save();
-    // brick body
-    ctx.fillStyle = "#b0573f";
-    ctx.fillRect(x, top, w, h);
-    // mortar rows
+    const t = wl.type || "wall";
+    if (t === "temple") drawTemple(wl.x, wl.topY, wl.baseY, wl.halfW);
+    else if (t === "mountain") drawMountain(wl.x, wl.topY, wl.baseY, wl.halfW);
+    else if (t === "fire") drawFire(wl.x, wl.topY, wl.baseY, wl.halfW);
+    else if (t === "truck") drawTruck(wl.x, wl.topY, wl.baseY, wl.halfW);
+    else drawBrickWall(wl.x, wl.topY, wl.baseY, wl.halfW);
+    ctx.restore();
+  }
+
+  function drawBrickWall(cx, top, base, hw) {
+    const x = cx - hw, w = hw * 2, h = base - top;
+    ctx.fillStyle = "#b0573f"; ctx.fillRect(x, top, w, h);
     ctx.strokeStyle = "rgba(255,255,255,.25)"; ctx.lineWidth = 1.5;
-    const rows = 6, rh = 16;
+    const rh = 16, rows = Math.ceil(h / rh);
     for (let i = 0; i < rows; i++) {
       const ry = top + i * rh;
       ctx.beginPath(); ctx.moveTo(x, ry); ctx.lineTo(x + w, ry); ctx.stroke();
       const offset = i % 2 === 0 ? 0 : w / 2;
       ctx.beginPath(); ctx.moveTo(x + offset, ry); ctx.lineTo(x + offset, ry + rh); ctx.stroke();
     }
-    // snowy cap
     ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.ellipse(cx, top, hw + 3, 6, 0, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // A tiered Chinese pagoda / temple, tower-tall to fill the gap.
+  function drawTemple(cx, top, base, hw) {
+    const podium = base - 34;
+    ctx.fillStyle = "#8a7a63"; ctx.fillRect(cx - hw, podium, hw * 2, base - podium);   // stone podium
+    ctx.fillStyle = "#6f6250"; ctx.fillRect(cx - hw, base - 8, hw * 2, 8);
+    const bodyTop = top + 24, bodyH = podium - bodyTop, tiers = 3, th = bodyH / tiers;
+    for (let i = 0; i < tiers; i++) {
+      const ty = bodyTop + i * th;
+      const tw = hw * (0.62 + 0.12 * (tiers - 1 - i));    // wider toward the bottom
+      ctx.fillStyle = "#b23b2e";                          // red body
+      ctx.fillRect(cx - tw * 0.72, ty + th * 0.30, tw * 1.44, th * 0.72);
+      ctx.strokeStyle = "#e4c56a"; ctx.lineWidth = 2;     // gold trim
+      ctx.strokeRect(cx - tw * 0.72, ty + th * 0.30, tw * 1.44, th * 0.72);
+      ctx.fillStyle = "#2f6b3f";                          // green upturned roof
+      ctx.beginPath();
+      ctx.moveTo(cx - tw, ty + th * 0.36);
+      ctx.quadraticCurveTo(cx - tw * 1.18, ty + th * 0.36, cx - tw * 1.24, ty + th * 0.20);
+      ctx.lineTo(cx, ty - th * 0.06);
+      ctx.lineTo(cx + tw * 1.24, ty + th * 0.20);
+      ctx.quadraticCurveTo(cx + tw * 1.18, ty + th * 0.36, cx + tw, ty + th * 0.36);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.strokeStyle = "#e4c56a"; ctx.lineWidth = 3;       // gold finial
+    ctx.beginPath(); ctx.moveTo(cx, top + 2); ctx.lineTo(cx, top + 22); ctx.stroke();
+    ctx.fillStyle = "#e4c56a"; ctx.beginPath(); ctx.arc(cx, top + 4, 4, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // A rocky mountain peak with a snow cap.
+  function drawMountain(cx, top, base, hw) {
+    ctx.fillStyle = "#6b7684";                            // back shoulder
+    ctx.beginPath(); ctx.moveTo(cx - hw, base); ctx.lineTo(cx - hw * 0.24, top + 34); ctx.lineTo(cx + hw * 0.75, base); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#818d9b";                            // main face
+    ctx.beginPath(); ctx.moveTo(cx - hw, base); ctx.lineTo(cx, top); ctx.lineTo(cx + hw, base); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,.14)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx, top); ctx.lineTo(cx + hw * 0.34, base); ctx.stroke();
+    const s = hw * 0.42;                                  // jagged snow cap
+    ctx.fillStyle = "#ffffff";
     ctx.beginPath();
-    ctx.ellipse(wl.x, top, wl.halfW + 3, 6, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+    ctx.moveTo(cx, top);
+    ctx.lineTo(cx - s * 0.7, top + s);
+    ctx.lineTo(cx - s * 0.3, top + s * 0.74);
+    ctx.lineTo(cx, top + s * 1.05);
+    ctx.lineTo(cx + s * 0.32, top + s * 0.74);
+    ctx.lineTo(cx + s * 0.72, top + s);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // A roaring bonfire — flickers each frame.
+  function drawFire(cx, top, base, hw) {
+    ctx.fillStyle = "#2e2119";                            // charred logs
+    ctx.fillRect(cx - hw * 0.85, base - 26, hw * 1.7, 26);
+    ctx.strokeStyle = "#5a3f2c"; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(cx - hw * 0.7, base - 6); ctx.lineTo(cx + hw * 0.7, base - 20);
+    ctx.moveTo(cx - hw * 0.7, base - 20); ctx.lineTo(cx + hw * 0.7, base - 6); ctx.stroke();
+    const bottom = base - 24;
+    const flame = (spread, col, tip) => {
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.moveTo(cx - spread, bottom);
+      ctx.quadraticCurveTo(cx - spread * 1.15, (top + bottom) * 0.5, cx - spread * 0.28, top + (bottom - top) * 0.22 * Math.random());
+      ctx.quadraticCurveTo(cx - spread * 0.08, top - tip, cx, top - tip);
+      ctx.quadraticCurveTo(cx + spread * 0.08, top - tip, cx + spread * 0.28, top + (bottom - top) * 0.22 * Math.random());
+      ctx.quadraticCurveTo(cx + spread * 1.15, (top + bottom) * 0.5, cx + spread, bottom);
+      ctx.closePath(); ctx.fill();
+    };
+    flame(hw, "#e8451f", -6);
+    flame(hw * 0.66, "#ff8a1e", 8);
+    flame(hw * 0.36, "#ffd23c", 18);
+  }
+
+  // A box truck perched on a support podium.
+  function drawTruck(cx, top, base, hw) {
+    const bw = hw * 1.7, bh = hw * 0.82, by = top + 4, bx = cx - bw / 2;
+    const deckY = by + bh;
+    ctx.fillStyle = "#59636e";                            // podium
+    ctx.beginPath(); ctx.moveTo(cx - hw * 0.55, base); ctx.lineTo(cx - hw * 0.72, deckY); ctx.lineTo(cx + hw * 0.72, deckY); ctx.lineTo(cx + hw * 0.55, base); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#e3e6ea"; ctx.fillRect(bx, by, bw * 0.6, bh);              // trailer box
+    ctx.strokeStyle = "#b9bfc7"; ctx.lineWidth = 1.5; ctx.strokeRect(bx + bw * 0.04, by + bh * 0.16, bw * 0.52, bh * 0.68);
+    ctx.fillStyle = "#c0392b"; ctx.fillRect(bx + bw * 0.6, by + bh * 0.26, bw * 0.4, bh * 0.74);  // cab
+    ctx.fillStyle = "#9fd0e6"; ctx.fillRect(bx + bw * 0.64, by + bh * 0.34, bw * 0.3, bh * 0.32);  // windshield
+    ctx.fillStyle = "#1b1e22";                            // wheels
+    const wy = by + bh;
+    for (const wx of [bx + bw * 0.16, bx + bw * 0.34, bx + bw * 0.82]) { ctx.beginPath(); ctx.arc(wx, wy, bh * 0.2, 0, Math.PI * 2); ctx.fill(); }
   }
 
   function drawParticles() {
@@ -1714,7 +1819,7 @@
     const el = document.getElementById("courseTabs");
     const courses = [
       { id: "wall",  label: "The Wall",  desc: "Flip the wall" },
-      { id: "jump",  label: "The Mega Jump",  desc: "Mega-ramp: huge air + quarter-pipe" },
+      { id: "jump",  label: "The Mega Jump",  desc: "Clear the gap, hit the quarter-pipe" },
       { id: "crash", label: "The Crash", desc: "Survive the jagged hill" },
     ];
     el.innerHTML = "";
@@ -1727,6 +1832,24 @@
         [...el.children].forEach((x) => x.classList.remove("sel"));
         b.classList.add("sel");
         resetSkier();                              // rebuild the backdrop course
+        cam.x = skier.x - W * 0.34; cam.y = skier.y - H * 0.56;
+      });
+      el.appendChild(b);
+    });
+  }
+
+  function buildObstacleTabs() {
+    const el = document.getElementById("obstacleTabs");
+    el.innerHTML = "";
+    Object.keys(OBSTACLES).forEach((id) => {
+      const b = document.createElement("button");
+      b.className = "ochip" + (id === obstacleId ? " sel" : "");
+      b.textContent = OBSTACLES[id].label;
+      b.addEventListener("click", () => {
+        selectObstacle(id);
+        [...el.children].forEach((x) => x.classList.remove("sel"));
+        b.classList.add("sel");
+        resetSkier();                              // rebuild so the preview shows the new obstacle
         cam.x = skier.x - W * 0.34; cam.y = skier.y - H * 0.56;
       });
       el.appendChild(b);
@@ -1881,6 +2004,7 @@
     document.getElementById("replaybadge").classList.add("hidden");
     showLive(false);
     buildCourseTabs();
+    buildObstacleTabs();
     buildCharacterUI();
     resetSkier();
     cam.x = skier.x - W * 0.34; cam.y = skier.y - H * 0.56;
@@ -1896,6 +2020,7 @@
   });
 
   buildCourseTabs();
+  buildObstacleTabs();
   buildCharacterUI();
   document.getElementById("startBtn").addEventListener("click", startGame);
   document.getElementById("againBtn").addEventListener("click", () => {
