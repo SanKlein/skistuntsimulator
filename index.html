@@ -377,20 +377,20 @@
     hermiteRamp(pts, landX + 430, landY + 360, landX + 1420, landY + 480, 1.0, -0.32, 30);
     // finishing wall: the terrain keeps rising, so you ride up, stop, and slide
     // back down for a few seconds before the round ends (if you're still up).
+    // Shorter & steeper so the ramp-up after the landing isn't so long.
     const A = landX + 1420, Ay = landY + 480;
-    pts.push({ x: A + 180, y: Ay - 60 });
-    pts.push({ x: A + 350, y: Ay - 160 });
-    pts.push({ x: A + 500, y: Ay - 290 });
-    pts.push({ x: A + 630, y: Ay - 450 });
-    pts.push({ x: A + 740, y: Ay - 640 });    // keeps climbing (unreachable top)
-    const endX = A + 740, windStart = A + 60, finishLine = landX + 90;
+    pts.push({ x: A + 150, y: Ay - 90 });
+    pts.push({ x: A + 280, y: Ay - 240 });
+    pts.push({ x: A + 390, y: Ay - 430 });
+    pts.push({ x: A + 480, y: Ay - 650 });    // keeps climbing (unreachable top)
+    const endX = A + 480, windStart = A + 55, finishLine = landX + 90;
     const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - (ob.rise + wallExtra), baseY: pitY, type: "wall" };
     course = {
       id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
         { x: landX + 8, y: landY, color: "#3ca0ff" },
-        { x: A + 740, y: Ay - 640, color: "#2ecc71" },
+        { x: A + 480, y: Ay - 650, color: "#2ecc71" },
       ],
     };
   }
