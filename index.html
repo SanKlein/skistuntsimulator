@@ -419,21 +419,23 @@
     pts.push({ x: landX - 12, y: pitY });
     const landY = lipY + 130;
     pts.push({ x: landX, y: landY });
-    // short descending landing hill — catches the jump then eases straight into
-    // the quarter-pipe base with no flat run-out
+    // short descending landing hill — catches the jump then eases into the half-pipe
     pts.push({ x: landX + 520, y: landY + 380 });
     hermiteRamp(pts, landX + 520, landY + 380, landX + 1180, landY + 600, 0.55, 0.0, 20);
     const flatY = landY + 600, qpBase = landX + 1180;
-    // QUARTER-PIPE finale: a smooth vert-ramp transition — gentle at the base,
-    // curving up to near-vertical at the coping. Pump up it and POP off the lip
-    // (crouch then extend) for a big vertical air, float, drop back into the pipe
-    // and roll back past the flag to end the run. It's unclearable, so no going over.
-    hermiteRamp(pts, qpBase, flatY, qpBase + 190, flatY - 300, 0.0, -2.4, 18);
-    hermiteRamp(pts, qpBase + 190, flatY - 300, qpBase + 252, flatY - 500, -2.4, -5.5, 12);
-    const endX = qpBase + 252, windStart = null, finishLine = null;
+    // HALF-PIPE finale (a U): ride down the near wall into the pipe, across the
+    // bottom, and up the near-vertical FAR wall. Vertical is what sends you straight
+    // up — pump/pop off the coping, float, and drop back into the pipe. The run ends
+    // once you've been up the far wall and settle (or roll back out past the flag).
+    hermiteRamp(pts, qpBase, flatY, qpBase + 170, flatY + 140, 0.0, 0.0, 16);              // near wall — drop into the pipe
+    pts.push({ x: qpBase + 360, y: flatY + 140 });                                          // flat bottom
+    hermiteRamp(pts, qpBase + 360, flatY + 140, qpBase + 500, flatY - 150, 0.0, -5.5, 16);  // far wall, curving to vertical
+    pts.push({ x: qpBase + 510, y: flatY - 250 });                                          // near-vertical coping
+    pts.push({ x: qpBase + 650, y: flatY - 250 });                                          // far deck
+    const endX = qpBase + 650, windStart = null, finishLine = null;
     const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - ob.rise, baseY: pitY, type: obstacleId };
     course = {
-      id: "jump", pts, wall, startX, startY, maxSpeed: 820, qp: { baseX: qpBase, baseY: flatY },
+      id: "jump", pts, wall, startX, startY, maxSpeed: 820, qp: { baseX: qpBase, wentX: qpBase + 360, wentY: flatY - 30 },
       lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
@@ -686,14 +688,16 @@
     // on their feet). A finish-line + settle net cover the edge cases.
     if (s.launched) {
       if (course.qp) {
-        // MEGA JUMP: the quarter-pipe is the finale. Ride up it and pop off; the run
-        // ends once you've been UP (or aired off it) and rolled back past the flag.
-        // Require x past the QP base so the kicker jump's height doesn't count as "up".
-        if (s.x > course.qp.baseX && s.y < course.qp.baseY - 120) s.wentUp = true;
+        // MEGA JUMP half-pipe finale. "Went up" = climbed the far wall (past wentX and
+        // up above wentY) so the kicker jump doesn't count. Ends when you roll back out
+        // past the flag, or settle in the pipe after being up the wall.
+        if (s.x > course.qp.wentX && s.y < course.qp.wentY) s.wentUp = true;
         if (s.wentUp) {
-          if (s.x < course.qp.baseX) return finishRun();            // rolled back past the flag → over
-        } else if (Math.abs(v) < 40) {                              // stalled before ever reaching the QP
-          s.slowTime += dt; if (s.slowTime > 1.6) return finishRun();
+          if (s.x < course.qp.baseX) return finishRun();            // rolled back out past the flag → over
+          if (Math.abs(v) < 42) { s.slowTime += dt; if (s.slowTime > 1.3) return finishRun(); }  // or settled
+          else s.slowTime = 0;
+        } else if (Math.abs(v) < 40) {                              // stalled before ever reaching the pipe
+          s.slowTime += dt; if (s.slowTime > 1.8) return finishRun();
         } else s.slowTime = 0;
       } else {
         if (course.windStart != null && s.x > course.windStart && v <= 0) s.comingBack = true;
@@ -710,7 +714,7 @@
     s.vy += G * dt;
     s.x += s.vx * dt;
     s.y += s.vy * dt;
-    if (course.qp && s.x > course.qp.baseX && s.y < course.qp.baseY - 120) s.wentUp = true;   // aired off the quarter-pipe
+    if (course.qp && s.x > course.qp.wentX && s.y < course.qp.wentY) s.wentUp = true;   // aired off the far wall
 
     // tuck control (cursor position → tuck amount)
     s.tuck += (tuckTarget() - s.tuck) * Math.min(1, dt * 32);
