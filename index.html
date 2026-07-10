@@ -413,28 +413,27 @@
     hermiteRamp(pts, 1150, 900, lipX, lipY, 0.0, -0.62, 26);
     // the GAP you clear, with your chosen obstacle sitting in it
     const ob = OBSTACLES[obstacleId] || OBSTACLES.wall;
-    const gap = Math.max(420, ob.halfW * 2 + 90), pitY = lipY + 780;
+    const gap = Math.max(380, ob.halfW * 2 + 80), pitY = lipY + 780;
     pts.push({ x: lipX + 12, y: pitY });
     const landX = lipX + gap;
     pts.push({ x: landX - 12, y: pitY });
     const landY = lipY + 130;
     pts.push({ x: landX, y: landY });
-    // LONG descending landing hill so it catches big jumps, keeping speed as it
-    // eases straight into the quarter-pipe base (no flat run-out)
-    pts.push({ x: landX + 700, y: landY + 400 });
-    pts.push({ x: landX + 1500, y: landY + 700 });
-    hermiteRamp(pts, landX + 1500, landY + 700, landX + 2300, landY + 840, 0.34, 0.0, 20);
-    const flatY = landY + 840, qpBase = landX + 2300;
-    // QUARTER-PIPE finale: a SHORT, steep, concave transition that sends you nearly
-    // straight up. Ride up and pop off it, float, come back down and land — then
-    // roll back down past the flag to end the run. It's unclearable (keeps rising).
-    hermiteRamp(pts, qpBase, flatY, qpBase + 240, flatY - 300, 0.0, -2.6, 22);
-    pts.push({ x: qpBase + 286, y: flatY - 460 });   // steep, near-vertical lip
-    pts.push({ x: qpBase + 308, y: flatY - 620 });   // short top (much lower than before)
-    const endX = qpBase + 308, windStart = null, finishLine = null;
+    // descending landing hill (shorter) — catches the jump then eases straight into
+    // the quarter-pipe base with no flat run-out
+    pts.push({ x: landX + 620, y: landY + 400 });
+    hermiteRamp(pts, landX + 620, landY + 400, landX + 1600, landY + 680, 0.5, 0.0, 22);
+    const flatY = landY + 680, qpBase = landX + 1600;
+    // QUARTER-PIPE finale: a short, steep, concave transition. You ride up it but
+    // CAN'T clear it (it keeps rising past what your speed can reach), so you come
+    // back down and roll back past the flag. Crouch-pop off it for straight-up air.
+    hermiteRamp(pts, qpBase, flatY, qpBase + 210, flatY - 320, 0.0, -3.0, 22);
+    pts.push({ x: qpBase + 244, y: flatY - 460 });   // near-vertical
+    pts.push({ x: qpBase + 260, y: flatY - 560 });   // top (out of reach at this speed)
+    const endX = qpBase + 260, windStart = null, finishLine = null;
     const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - ob.rise, baseY: pitY, type: obstacleId };
     course = {
-      id: "jump", pts, wall, startX, startY, maxSpeed: 1020, qp: { baseX: qpBase, baseY: flatY },
+      id: "jump", pts, wall, startX, startY, maxSpeed: 860, qp: { baseX: qpBase, baseY: flatY },
       lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
