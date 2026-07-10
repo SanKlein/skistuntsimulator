@@ -689,7 +689,8 @@
       if (course.qp) {
         // MEGA JUMP: the quarter-pipe is the finale. Ride up it and pop off; the run
         // ends once you've been UP (or aired off it) and rolled back past the flag.
-        if (s.y < course.qp.baseY - 120) s.wentUp = true;
+        // Require x past the QP base so the kicker jump's height doesn't count as "up".
+        if (s.x > course.qp.baseX && s.y < course.qp.baseY - 120) s.wentUp = true;
         if (s.wentUp) {
           if (s.x < course.qp.baseX) return finishRun();            // rolled back past the flag → over
         } else if (Math.abs(v) < 40) {                              // stalled before ever reaching the QP
