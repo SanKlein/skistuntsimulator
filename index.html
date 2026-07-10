@@ -374,10 +374,10 @@
     // ROUNDED landing bowl: roll over the hump, scoop down the smooth concave face,
     // bottom out, then curve back up — one continuous rounded valley (like the original)
     hermiteRamp(pts, landX, landY, landX + 430, landY + 360, 0.0, 1.0, 22);
-    hermiteRamp(pts, landX + 430, landY + 360, landX + 1120, landY + 470, 1.0, -0.4, 26);
+    hermiteRamp(pts, landX + 430, landY + 360, landX + 1420, landY + 480, 1.0, -0.32, 30);
     // finishing wall: the terrain keeps rising, so you ride up, stop, and slide
     // back down for a few seconds before the round ends (if you're still up).
-    const A = landX + 1120, Ay = landY + 470;
+    const A = landX + 1420, Ay = landY + 480;
     pts.push({ x: A + 180, y: Ay - 60 });
     pts.push({ x: A + 350, y: Ay - 160 });
     pts.push({ x: A + 500, y: Ay - 290 });
