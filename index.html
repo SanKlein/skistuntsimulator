@@ -363,8 +363,8 @@
     pts.push({ x: baseX, y: baseY });
     const lipX = 1400, lipY = 455;                 // taller, steeper kicker → more air to flip
     hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.5, -0.6, 18);
-    const ob = OBSTACLES[obstacleId] || OBSTACLES.wall;   // the thing you jump over
-    const gap = Math.max(300, ob.halfW * 2 + 70), pitY = lipY + 620;
+    const ob = OBSTACLES.wall;                            // The Wall always uses the brick wall
+    const gap = 300, pitY = lipY + 620;
     pts.push({ x: lipX + 12, y: pitY });
     const landX = lipX + gap;
     pts.push({ x: landX - 12, y: pitY });
@@ -384,8 +384,7 @@
     pts.push({ x: A + 630, y: Ay - 450 });
     pts.push({ x: A + 740, y: Ay - 640 });    // keeps climbing (unreachable top)
     const endX = A + 740, windStart = A + 60, finishLine = landX + 90;
-    const extra = obstacleId === "wall" ? wallExtra : 0;    // only the brick wall gets the per-drop height wobble
-    const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - (ob.rise + extra), baseY: pitY, type: obstacleId };
+    const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - (ob.rise + wallExtra), baseY: pitY, type: "wall" };
     course = {
       id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
       markers: [
@@ -1832,11 +1831,17 @@
         selectCourse(c.id);
         [...el.children].forEach((x) => x.classList.remove("sel"));
         b.classList.add("sel");
+        updateObstacleRow();                       // only the Mega Jump lets you pick the obstacle
         resetSkier();                              // rebuild the backdrop course
         cam.x = skier.x - W * 0.34; cam.y = skier.y - H * 0.56;
       });
       el.appendChild(b);
     });
+  }
+
+  function updateObstacleRow() {
+    // the obstacle picker only applies to the Mega Jump
+    document.getElementById("obstacleRow").classList.toggle("hidden", courseId !== "jump");
   }
 
   function buildObstacleTabs() {
@@ -2006,6 +2011,7 @@
     showLive(false);
     buildCourseTabs();
     buildObstacleTabs();
+    updateObstacleRow();
     buildCharacterUI();
     resetSkier();
     cam.x = skier.x - W * 0.34; cam.y = skier.y - H * 0.56;
@@ -2022,6 +2028,7 @@
 
   buildCourseTabs();
   buildObstacleTabs();
+    updateObstacleRow();
   buildCharacterUI();
   document.getElementById("startBtn").addEventListener("click", startGame);
   document.getElementById("againBtn").addEventListener("click", () => {
