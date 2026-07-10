@@ -425,14 +425,13 @@
     pts.push({ x: landX + 1500, y: landY + 700 });
     hermiteRamp(pts, landX + 1500, landY + 700, landX + 2300, landY + 840, 0.34, 0.0, 20);
     const flatY = landY + 840, qpBase = landX + 2300;
-    // QUARTER-PIPE finale: a tall, smooth, concave wall that curls up toward
-    // vertical. You ride up it and drop straight back down — it keeps rising past
-    // the top, so you can never clear it. Crouch-pop off the transition for big air.
-    hermiteRamp(pts, qpBase, flatY, qpBase + 300, flatY - 300, 0.0, -2.6, 24);
-    pts.push({ x: qpBase + 360, y: flatY - 540 });   // steepening
-    pts.push({ x: qpBase + 394, y: flatY - 800 });   // near-vertical
-    pts.push({ x: qpBase + 412, y: flatY - 1080 });  // unreachable top
-    const endX = qpBase + 412, windStart = null, finishLine = null;
+    // QUARTER-PIPE finale: a SHORT, steep, concave transition that sends you nearly
+    // straight up. Ride up and pop off it, float, come back down and land — then
+    // roll back down past the flag to end the run. It's unclearable (keeps rising).
+    hermiteRamp(pts, qpBase, flatY, qpBase + 240, flatY - 300, 0.0, -2.6, 22);
+    pts.push({ x: qpBase + 286, y: flatY - 460 });   // steep, near-vertical lip
+    pts.push({ x: qpBase + 308, y: flatY - 620 });   // short top (much lower than before)
+    const endX = qpBase + 308, windStart = null, finishLine = null;
     const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - ob.rise, baseY: pitY, type: obstacleId };
     course = {
       id: "jump", pts, wall, startX, startY, maxSpeed: 1020, qp: { baseX: qpBase, baseY: flatY },
@@ -688,12 +687,14 @@
     // on their feet). A finish-line + settle net cover the edge cases.
     if (s.launched) {
       if (course.qp) {
-        // MEGA JUMP: the quarter-pipe is the finale. Don't end while you're riding
-        // up it — only once you've gone UP (or aired off it) and settled back at the bottom.
+        // MEGA JUMP: the quarter-pipe is the finale. Ride up it and pop off; the run
+        // ends once you've been UP (or aired off it) and rolled back past the flag.
         if (s.y < course.qp.baseY - 120) s.wentUp = true;
-        const atBottom = s.y > course.qp.baseY - 70;
-        if (s.wentUp && atBottom && Math.abs(v) < 60) { s.slowTime += dt; if (s.slowTime > 1.0) return finishRun(); }
-        else s.slowTime = 0;
+        if (s.wentUp) {
+          if (s.x < course.qp.baseX) return finishRun();            // rolled back past the flag → over
+        } else if (Math.abs(v) < 40) {                              // stalled before ever reaching the QP
+          s.slowTime += dt; if (s.slowTime > 1.6) return finishRun();
+        } else s.slowTime = 0;
       } else {
         if (course.windStart != null && s.x > course.windStart && v <= 0) s.comingBack = true;
         if (s.comingBack) { s.endTimer += dt; if (s.endTimer > 2.6) return finishRun(); }
