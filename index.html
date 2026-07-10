@@ -399,22 +399,21 @@
     // tall, steep roll-in tower
     pts.push({ x: 480, y: 360 });
     pts.push({ x: 820, y: 610 });
-    // long, smooth runway easing flatter toward the kicker
-    hermiteRamp(pts, 820, 610, 1700, 860, 0.72, 0.16, 20);
-    pts.push({ x: 1900, y: 892 });
-    // the kicker (gap-jump takeoff)
-    const baseX = 1900, baseY = 892;
-    const lipX = 2180, lipY = 742;                    // tall, steep kicker → huge air
-    hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.5, -0.72, 20);
+    // long runway that eases all the way down to flat at the base of the kicker
+    hermiteRamp(pts, 820, 610, 1750, 882, 0.72, 0.0, 24);
+    // the kicker — one long, smooth arc: starts flat (matching the runway, no kink)
+    // and gradually curves up to a mellow takeoff lip. Buttery, not a sudden kick.
+    const lipX = 2320, lipY = 742;
+    hermiteRamp(pts, 1750, 882, lipX, lipY, 0.0, -0.6, 36);
     // huge, long descending landing hill (you fly the gap and land way down it)
     const landY = lipY + 150;
-    pts.push({ x: 2320, y: 842 });
-    pts.push({ x: 2760, y: 1092 });
-    pts.push({ x: 3320, y: 1372 });
-    pts.push({ x: 3900, y: 1562 });
-    pts.push({ x: 4500, y: 1652 });
+    pts.push({ x: 2460, y: 842 });
+    pts.push({ x: 2900, y: 1112 });
+    pts.push({ x: 3440, y: 1392 });
+    pts.push({ x: 4020, y: 1580 });
+    pts.push({ x: 4600, y: 1668 });
     // mellow outrun onto the flat
-    hermiteRamp(pts, 4500, 1652, 5150, 1712, 0.15, 0.0, 12);
+    hermiteRamp(pts, 4600, 1668, 5240, 1712, 0.14, 0.0, 12);
     const flatY = 1712;
     pts.push({ x: 5350, y: flatY });
     // quarter-pipe: a smooth concave wall that throws you straight up
