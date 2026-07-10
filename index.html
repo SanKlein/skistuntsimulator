@@ -431,10 +431,10 @@
     pts.push({ x: qpBase + 360, y: flatY - 540 });   // steepening
     pts.push({ x: qpBase + 394, y: flatY - 800 });   // near-vertical
     pts.push({ x: qpBase + 412, y: flatY - 1080 });  // unreachable top
-    const endX = qpBase + 412, windStart = qpBase - 30, finishLine = null;
+    const endX = qpBase + 412, windStart = null, finishLine = null;
     const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - ob.rise, baseY: pitY, type: obstacleId };
     course = {
-      id: "jump", pts, wall, startX, startY, maxSpeed: 1020,
+      id: "jump", pts, wall, startX, startY, maxSpeed: 1020, qp: { baseX: qpBase, baseY: flatY },
       lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
@@ -601,6 +601,7 @@
       spun: 0,                // radians accumulated in the current flight
       slowTime: 0,            // how long we've been nearly stopped (for settling)
       comingBack: false,      // has turned around on the finishing hill
+      wentUp: false,          // has ridden up / aired off the mega-jump quarter-pipe
       endTimer: 0,            // time spent sliding back before the round ends
       bounces: 0,             // consecutive off-angle bounces in the current flight
       swing: 0, swingV: 0,    // springy sway of dangling accessories (cape/flag/purse)
@@ -685,11 +686,20 @@
     // give them a few seconds of the slide-back and then end the round (if still
     // on their feet). A finish-line + settle net cover the edge cases.
     if (s.launched) {
-      if (course.windStart != null && s.x > course.windStart && v <= 0) s.comingBack = true;
-      if (s.comingBack) { s.endTimer += dt; if (s.endTimer > 2.6) return finishRun(); }
-      if (v < -20 && course.finishLine != null && s.x < course.finishLine) return finishRun();
-      if (Math.abs(v) < 40) { s.slowTime += dt; if (s.slowTime > 1.6) return finishRun(); }
-      else s.slowTime = 0;
+      if (course.qp) {
+        // MEGA JUMP: the quarter-pipe is the finale. Don't end while you're riding
+        // up it — only once you've gone UP (or aired off it) and settled back at the bottom.
+        if (s.y < course.qp.baseY - 120) s.wentUp = true;
+        const atBottom = s.y > course.qp.baseY - 70;
+        if (s.wentUp && atBottom && Math.abs(v) < 60) { s.slowTime += dt; if (s.slowTime > 1.0) return finishRun(); }
+        else s.slowTime = 0;
+      } else {
+        if (course.windStart != null && s.x > course.windStart && v <= 0) s.comingBack = true;
+        if (s.comingBack) { s.endTimer += dt; if (s.endTimer > 2.6) return finishRun(); }
+        if (v < -20 && course.finishLine != null && s.x < course.finishLine) return finishRun();
+        if (Math.abs(v) < 40) { s.slowTime += dt; if (s.slowTime > 1.6) return finishRun(); }
+        else s.slowTime = 0;
+      }
     }
   }
 
@@ -698,6 +708,7 @@
     s.vy += G * dt;
     s.x += s.vx * dt;
     s.y += s.vy * dt;
+    if (course.qp && s.x > course.qp.baseX && s.y < course.qp.baseY - 120) s.wentUp = true;   // aired off the quarter-pipe
 
     // tuck control (cursor position → tuck amount)
     s.tuck += (tuckTarget() - s.tuck) * Math.min(1, dt * 32);
