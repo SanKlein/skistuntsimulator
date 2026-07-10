@@ -405,15 +405,15 @@
     const pts = [];
     pts.push({ x: 0, y: startY - 40 });
     pts.push({ x: startX, y: startY });
-    // tall, steep roll-in tower
-    pts.push({ x: 480, y: 360 });
-    pts.push({ x: 820, y: 610 });
-    // long runway that eases all the way down to flat at the base of the kicker
-    hermiteRamp(pts, 820, 610, 1750, 882, 0.72, 0.0, 24);
+    // tall, STEEP roll-in tower — plunges hard so you build speed fast
+    pts.push({ x: 440, y: 470 });
+    pts.push({ x: 760, y: 850 });
+    // runway that eases down to the flat at the base of the kicker
+    hermiteRamp(pts, 760, 850, 1760, 905, 1.15, 0.0, 26);
     // the kicker — one long, smooth arc: starts flat (matching the runway, no kink)
     // and gradually curves up to a mellow takeoff lip. Buttery, not a sudden kick.
     const lipX = 2320, lipY = 742;
-    hermiteRamp(pts, 1750, 882, lipX, lipY, 0.0, -0.6, 36);
+    hermiteRamp(pts, 1760, 905, lipX, lipY, 0.0, -0.6, 36);
     // the GAP you clear, with your chosen obstacle sitting in it
     const ob = OBSTACLES[obstacleId] || OBSTACLES.wall;
     const gap = Math.max(420, ob.halfW * 2 + 90), pitY = lipY + 780;
@@ -422,11 +422,11 @@
     pts.push({ x: landX - 12, y: pitY });
     const landY = lipY + 130;
     pts.push({ x: landX, y: landY });
-    // huge, long descending landing hill, easing out to the flat at the QP base
-    pts.push({ x: landX + 520, y: landY + 320 });
-    pts.push({ x: landX + 1140, y: landY + 560 });
-    hermiteRamp(pts, landX + 1140, landY + 560, landX + 2020, landY + 700, 0.28, 0.0, 18);
-    const flatY = landY + 700, qpBase = landX + 2020;
+    // descending landing hill — kept SHORT so you arrive at the quarter-pipe with
+    // plenty of speed, easing straight into the QP base with no long flat run-out
+    pts.push({ x: landX + 460, y: landY + 340 });
+    hermiteRamp(pts, landX + 460, landY + 340, landX + 1120, landY + 470, 0.55, 0.0, 16);
+    const flatY = landY + 470, qpBase = landX + 1120;
     // QUARTER-PIPE finale: a tall, smooth, concave wall that curls up toward
     // vertical. You ride up it and drop straight back down — it keeps rising past
     // the top, so you can never clear it. Crouch-pop off the transition for big air.
@@ -437,7 +437,7 @@
     const endX = qpBase + 412, windStart = qpBase - 30, finishLine = null;
     const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - ob.rise, baseY: pitY, type: obstacleId };
     course = {
-      id: "jump", pts, wall, startX, startY,
+      id: "jump", pts, wall, startX, startY, maxSpeed: 1020,
       lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
@@ -643,7 +643,8 @@
     let v = s.vx * cos + s.vy * sin;
     v += G * RUN_GRAV * sin * dt;             // gravity along the slope
     v -= Math.sign(v) * FRICTION * dt;         // friction opposes motion
-    v = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, v));
+    const vmax = course.maxSpeed || MAX_SPEED;   // some courses (the mega ramp) run faster
+    v = Math.max(-vmax, Math.min(vmax, v));
     s.vx = cos * v;
     s.vy = sin * v;
     s.x += s.vx * dt;
