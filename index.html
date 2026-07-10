@@ -419,11 +419,12 @@
     pts.push({ x: landX - 12, y: pitY });
     const landY = lipY + 130;
     pts.push({ x: landX, y: landY });
-    // descending landing hill — kept SHORT so you arrive at the quarter-pipe with
-    // plenty of speed, easing straight into the QP base with no long flat run-out
-    pts.push({ x: landX + 460, y: landY + 340 });
-    hermiteRamp(pts, landX + 460, landY + 340, landX + 1120, landY + 470, 0.55, 0.0, 16);
-    const flatY = landY + 470, qpBase = landX + 1120;
+    // LONG descending landing hill so it catches big jumps, keeping speed as it
+    // eases straight into the quarter-pipe base (no flat run-out)
+    pts.push({ x: landX + 700, y: landY + 400 });
+    pts.push({ x: landX + 1500, y: landY + 700 });
+    hermiteRamp(pts, landX + 1500, landY + 700, landX + 2300, landY + 840, 0.34, 0.0, 20);
+    const flatY = landY + 840, qpBase = landX + 2300;
     // QUARTER-PIPE finale: a tall, smooth, concave wall that curls up toward
     // vertical. You ride up it and drop straight back down — it keeps rising past
     // the top, so you can never clear it. Crouch-pop off the transition for big air.
@@ -748,8 +749,8 @@
       }
       return evalLanding();
     }
-    // fell off the end
-    if (s.x > course.endX) return finishRun();
+    // fell off the end (not on the mega jump — the QP is the end there)
+    if (!course.qp && s.x > course.endX) return finishRun();
   }
 
   // Settle cleanly onto the slope and tally any flips.
@@ -1176,8 +1177,8 @@
       if (!skier.dead) {
         if (skier.onGround) stepGround(dt);
         else stepAir(dt);
-        // reached the flat runout after a clean landing?
-        if (skier.onGround && skier.x > course.endX - 120 && skier.launched) finishRun();
+        // reached the flat runout after a clean landing? (mega jump ends via the QP settle instead)
+        if (!course.qp && skier.onGround && skier.x > course.endX - 120 && skier.launched) finishRun();
       }
       stepParticles(dt);
       updateSway(dt);
