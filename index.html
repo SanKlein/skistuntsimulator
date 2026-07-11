@@ -385,7 +385,7 @@
     const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - (70 + wallExtra * 0.4), baseY: pitY, type: "wall" };
     course = {
       id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
-      maxSpeed: 640, jumpPop: 520,
+      maxSpeed: 640, jumpPop: 580, jumpFull: 6.5,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
         { x: landX + 8, y: landY, color: "#3ca0ff" },
@@ -666,7 +666,7 @@
 
     // JUMP: crouch, then snap upward fast, to hop off the snow anywhere.
     if (detuck > JUMP_DETUCK && s.charge > 0.15) {
-      const power = Math.min(1, detuck / JUMP_FULL);
+      const power = Math.min(1, detuck / (course.jumpFull || JUMP_FULL));   // lower jumpFull = easier to reach full bounce
       // ADD to any existing upward velocity (so snapping up off a ramp stacks on
       // the ramp's launch); ignore downward momentum so flat/downhill pops work.
       s.vy = Math.min(s.vy, 0) - (course.jumpPop || JUMP_POP) * power * (0.62 + 0.38 * s.charge);
