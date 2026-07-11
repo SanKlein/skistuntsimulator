@@ -371,16 +371,17 @@
     pts.push({ x: landX - 12, y: pitY });
     const landY = lipY + 58;                        // landing hump, just below the lip
     pts.push({ x: landX, y: landY });
-    // gentle, SHALLOW rounded landing — a mellow scoop, nothing deep (chill course)
-    hermiteRamp(pts, landX, landY, landX + 380, landY + 190, 0.0, 0.7, 20);
-    hermiteRamp(pts, landX + 380, landY + 190, landX + 1180, landY + 250, 0.7, -0.28, 26);
+    // gentle, SHALLOW rounded landing — a mellow scoop, nothing deep (chill course).
+    // Shorter now: less landing run and a tighter finishing ramp.
+    hermiteRamp(pts, landX, landY, landX + 320, landY + 180, 0.0, 0.7, 18);
+    hermiteRamp(pts, landX + 320, landY + 180, landX + 860, landY + 230, 0.7, -0.28, 22);
     // finishing wall: keeps rising, so you ride up, stop, and slide back down to end.
-    const A = landX + 1180, Ay = landY + 250;
-    pts.push({ x: A + 150, y: Ay - 90 });
-    pts.push({ x: A + 280, y: Ay - 240 });
-    pts.push({ x: A + 390, y: Ay - 430 });
-    pts.push({ x: A + 480, y: Ay - 650 });    // keeps climbing (unreachable top)
-    const endX = A + 480, windStart = A + 55, finishLine = landX + 90;
+    const A = landX + 860, Ay = landY + 230;
+    pts.push({ x: A + 110, y: Ay - 90 });
+    pts.push({ x: A + 210, y: Ay - 240 });
+    pts.push({ x: A + 300, y: Ay - 430 });
+    pts.push({ x: A + 380, y: Ay - 650 });    // keeps climbing (unreachable top)
+    const endX = A + 380, windStart = A + 45, finishLine = landX + 90;
     // moderate wall — a good pump just clears it; ride off without pumping and you hit it
     const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - (70 + wallExtra * 0.4), baseY: pitY, type: "wall" };
     course = {
@@ -389,7 +390,7 @@
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
         { x: landX + 8, y: landY, color: "#3ca0ff" },
-        { x: A + 480, y: Ay - 650, color: "#2ecc71" },
+        { x: A + 380, y: Ay - 650, color: "#2ecc71" },
       ],
     };
   }
