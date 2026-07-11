@@ -301,7 +301,7 @@
 
   // ------------------------------------------------------------------ tuning
   const G = 1650;            // gravity px/s^2
-  const RUN_GRAV = 0.45;     // how much gravity accelerates you along the slope
+  const RUN_GRAV = 0.6;      // how much gravity accelerates you along the slope — punchier downhill pickup
   const FRICTION = 5;        // moderate friction: hold speed on hills, but settle on the flats (no endless coasting)
   const MIN_SPEED = 180, MAX_SPEED = 880;   // top speed cap (per-course overrides via course.maxSpeed)
   const POP = 660;           // launch spring off the ramp lip
@@ -443,7 +443,7 @@
     const endX = copX + 520, windStart = null, finishLine = null;
     const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - ob.rise, baseY: pitY, type: obstacleId };
     course = {
-      id: "jump", pts, wall, startX, startY, maxSpeed: 850, qp: { baseX: qpBase, wentX: qpBase + 60, wentY: flatY - 110, topX: copX },
+      id: "jump", pts, wall, startX, startY, maxSpeed: 920, qp: { baseX: qpBase, wentX: qpBase + 60, wentY: flatY - 110, topX: copX },
       lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
@@ -742,9 +742,10 @@
     s.vy += G * dt;
     s.x += s.vx * dt;
     s.y += s.vy * dt;
-    // The quarter-pipe coping is a hard lip: you can't drift right past it in the air,
-    // so you always come back down on the pipe side (left), never over onto the deck.
-    if (course.qp && s.x > course.qp.topX) { s.x = course.qp.topX; if (s.vx > 0) s.vx = 0; }
+    // The quarter-pipe coping is a hard lip: if you'd drift right past it in the air,
+    // it stops you AND nudges you back a touch to the left, so you always come down
+    // clearly on the pipe side and never over onto the deck.
+    if (course.qp && s.x > course.qp.topX) { s.x = course.qp.topX; s.vx = Math.min(s.vx, -18); }
     if (course.qp && s.x > course.qp.wentX && s.y < course.qp.wentY) s.wentUp = true;   // aired off the far wall
 
     // tuck control (cursor position → tuck amount)
