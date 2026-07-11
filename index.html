@@ -413,7 +413,7 @@
     hermiteRamp(pts, 820, 830, lipX, lipY, 0.0, -0.78, 22);
     // the GAP you clear, with your chosen obstacle sitting in it
     const ob = OBSTACLES[obstacleId] || OBSTACLES.wall;
-    const gap = Math.max(380, ob.halfW * 2 + 80), pitY = lipY + 780;
+    const gap = Math.max(280, ob.halfW * 2 + 50), pitY = lipY + 780;
     pts.push({ x: lipX + 12, y: pitY });
     const landX = lipX + gap;
     pts.push({ x: landX - 12, y: pitY });
@@ -429,19 +429,20 @@
     // reads as a ramp structure, not a floating rectangle). Carry your own speed up the
     // vertical and fly STRAIGHT UP off the coping (no boost), flip, drop back in, and
     // roll back past the flag to end.
-    const R = 210;
+    const R = 230;
     for (let i = 1; i <= 18; i++) {
       const th = (i / 18) * (Math.PI / 2);
       pts.push({ x: qpBase + R * Math.sin(th), y: flatY - R * (1 - Math.cos(th)) });
     }
-    pts.push({ x: qpBase + R + 4, y: flatY - R - 80 });    // truly-vertical coping (~80px, ~1.5 ski lengths)
-    pts.push({ x: qpBase + R + 110, y: flatY - R - 80 });  // short flat deck on top
+    pts.push({ x: qpBase + R + 1, y: flatY - R - 50 });    // truly-vertical coping...
+    pts.push({ x: qpBase + R + 2, y: flatY - R - 100 });   // ...~100px (~1.5 ski lengths), out of reach
+    pts.push({ x: qpBase + R + 110, y: flatY - R - 100 });  // short flat deck on top
     pts.push({ x: qpBase + R + 240, y: flatY - 30 });      // back of the ramp slopes down
     pts.push({ x: qpBase + R + 560, y: flatY - 30 });      // flat runout tail
     const endX = qpBase + R + 560, windStart = null, finishLine = null;
     const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - ob.rise, baseY: pitY, type: obstacleId };
     course = {
-      id: "jump", pts, wall, startX, startY, maxSpeed: 850, qp: { baseX: qpBase, wentX: qpBase + 60, wentY: flatY - 110 },
+      id: "jump", pts, wall, startX, startY, maxSpeed: 660, qp: { baseX: qpBase, wentX: qpBase + 60, wentY: flatY - 110 },
       lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
@@ -785,14 +786,19 @@
   function evalLanding() {
     const s = skier;
     const sa = slopeAt(s.x);
-    // error from nearest upright, measured relative to the slope
-    let err = s.angle - sa;
+    // On the half-pipe you drop back into a steep transition — judge the landing
+    // against UPRIGHT (not the near-vertical wall) and be extra forgiving.
+    const ref = course.qp ? 0 : sa;
+    const landTol = course.qp ? 1.15 : LAND_TOL;
+    const bounceTol = course.qp ? 2.0 : BOUNCE_TOL;
+    // error from nearest upright, measured relative to the reference angle
+    let err = s.angle - ref;
     err = err - Math.round(err / (Math.PI * 2)) * (Math.PI * 2); // -> [-pi,pi]
     const ae = Math.abs(err);
 
-    if (ae <= LAND_TOL) return landClean(s, sa);          // stuck it
+    if (ae <= landTol) return landClean(s, sa);          // stuck it
 
-    if (ae <= BOUNCE_TOL) {
+    if (ae <= bounceTol) {
       // Landed on the nose or tail of the skis — bounce instead of wiping out.
       // Keep going with a little less speed and reduced spin, so you can
       // straighten up and land it on the next touch. Out of bounce energy = you
