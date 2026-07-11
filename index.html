@@ -124,14 +124,14 @@
   /* ---- character select ---- */
   .card { max-height: 90vh; overflow-y: auto; }
   .lead { margin-top: 10px; font-weight: 700; opacity: .9; }
-  .courseTabs { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:12px; }
+  .courseTabs { display:flex; gap:8px; justify-content:center; flex-wrap:nowrap; margin-top:12px; }
   #obstacleRow { margin-top:10px; }
   .obstacleLbl { display:block; font-size:11px; letter-spacing:.1em; text-transform:uppercase; opacity:.55; margin-bottom:6px; }
   #obstacleTabs { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
   .ochip { font-size:12px; font-weight:800; padding:6px 12px; border-radius:9px; cursor:pointer;
     background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); color:#fff; }
   .ochip.sel { background:#8fd3ff; color:#062033; border-color:#8fd3ff; }
-  .ctab { cursor:pointer; min-width:98px; padding:8px 12px; border-radius:10px; text-align:center;
+  .ctab { cursor:pointer; flex:1 1 0; min-width:0; padding:8px 10px; border-radius:10px; text-align:center;
     background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); color:#fff; }
   .ctab b { display:block; font-size:13px; font-weight:800; }
   .ctab span { display:block; font-size:10px; opacity:.7; margin-top:2px; }
@@ -1854,8 +1854,8 @@
     const el = document.getElementById("courseTabs");
     const courses = [
       { id: "wall",  label: "The Wall",  desc: "Flip the wall" },
-      { id: "jump",  label: "The Big Jump",  desc: "Clear the gap, hit the quarter-pipe" },
-      { id: "crash", label: "The Crash", desc: "Survive the jagged hill" },
+      { id: "jump",  label: "The Big Jump",  desc: "Gap + quarter-pipe" },
+      { id: "crash", label: "The Crash", desc: "Survive the hill" },
     ];
     el.innerHTML = "";
     courses.forEach((c) => {
