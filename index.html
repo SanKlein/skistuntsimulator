@@ -424,18 +424,19 @@
     pts.push({ x: landX + 520, y: landY + 380 });
     hermiteRamp(pts, landX + 520, landY + 380, landX + 1180, landY + 600, 0.55, 0.0, 20);
     const flatY = landY + 600, qpBase = landX + 1180;
-    // VERT-RAMP finale: the landing flows straight in and up a smooth concave
-    // transition into a short, truly-VERTICAL section, topped by a FLAT deck.
-    // Pump/pop off the vertical for a straight-up air, drop back down, and roll
-    // back past the flag to end. The deck sits just out of reach (unclearable).
-    hermiteRamp(pts, qpBase, flatY, qpBase + 150, flatY - 250, 0.0, -4.5, 18);   // smooth curve up toward vertical
-    pts.push({ x: qpBase + 165, y: flatY - 370 });   // vertical
-    pts.push({ x: qpBase + 170, y: flatY - 460 });   // vertical, coping
-    pts.push({ x: qpBase + 310, y: flatY - 460 });   // FLAT deck on top
-    const endX = qpBase + 310, windStart = null, finishLine = null;
+    // HALF-PIPE finale: a smooth skateboard-style transition — gentle at the base,
+    // rolling up through 45° and steepening to TRULY VERTICAL at the coping, capped
+    // by a flat deck. You carry your own speed up the vertical and fly STRAIGHT UP
+    // off the coping (no boost), flip, and drop back in. Roll back past the flag to end.
+    hermiteRamp(pts, qpBase, flatY, qpBase + 190, flatY - 130, 0.0, -1.2, 16);              // gradual roll-in curve
+    hermiteRamp(pts, qpBase + 190, flatY - 130, qpBase + 275, flatY - 250, -1.2, -7.0, 14); // steepen toward vertical
+    pts.push({ x: qpBase + 281, y: flatY - 310 });   // vertical
+    pts.push({ x: qpBase + 284, y: flatY - 360 });   // vertical coping (~88°)
+    pts.push({ x: qpBase + 420, y: flatY - 360 });   // flat deck
+    const endX = qpBase + 420, windStart = null, finishLine = null;
     const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - ob.rise, baseY: pitY, type: obstacleId };
     course = {
-      id: "jump", pts, wall, startX, startY, maxSpeed: 780, qp: { baseX: qpBase, wentX: qpBase + 80, wentY: flatY - 130 },
+      id: "jump", pts, wall, startX, startY, maxSpeed: 850, qp: { baseX: qpBase, wentX: qpBase + 80, wentY: flatY - 120 },
       lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
@@ -676,6 +677,9 @@
     const lookX = s.x + s.vx * dt;
     const ballisticY = s.y + s.vy * dt;
     if (v > 60 && ballisticY < ground(lookX) - 1 && s.x >= course.lipX - 40) {
+      // Half-pipe coping (mega jump): NO boost — you fly off with your own momentum.
+      // Off the vertical wall that's straight up, so you rise, flip, and drop back in.
+      if (course.qp && s.x > course.qp.baseX) { leaveGround(); return; }
       // On The Wall the passive ride-off is weak — you must POP (crouch then extend)
       // right at the top of the ramp to clear the wall; a good pop gives flip air.
       const wallGate = course.id === "wall";
