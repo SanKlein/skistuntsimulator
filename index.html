@@ -498,7 +498,22 @@
     }
     return p[p.length - 1].y;
   }
+  // Slope of the terrain segment the skier is actually on (true local slope).
+  function segmentSlope(x) {
+    const p = course.pts;
+    if (x <= p[0].x || x >= p[p.length - 1].x) return 0;
+    for (let i = 0; i < p.length - 1; i++) {
+      if (x >= p[i].x && x <= p[i + 1].x) return Math.atan2(p[i + 1].y - p[i].y, p[i + 1].x - p[i].x);
+    }
+    return 0;
+  }
   function slopeAt(x) {
+    // A ±6px window smooths curves nicely, but a near-vertical WALL is only a couple
+    // px wide, so the window under-reads it (≈82° instead of ~90°) and leaves a
+    // forward velocity that flings you over the lip. On a genuinely steep segment,
+    // use the true local slope so a vertical wall reads as vertical.
+    const seg = segmentSlope(x);
+    if (Math.abs(seg) > 1.35) return seg;          // > ~77° — it's a wall, trust the real slope
     const e = 6;
     return Math.atan2(ground(x + e) - ground(x - e), 2 * e); // radians, +down
   }
