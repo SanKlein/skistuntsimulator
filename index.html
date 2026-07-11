@@ -671,6 +671,11 @@
     s.vy = sin * v;
     s.x += s.vx * dt;
     if (s.x < 0) { s.x = 0; v = 0; }           // don't slide off the top of the hill
+    // Quarter-pipe coping is a hard lip: you can't ride/roll right past it onto the
+    // deck. Clamp POSITION only (keep your speed) so you still fly straight up off it,
+    // then slide back down — never over. The slope stays vertical here, so no rightward
+    // push and you keep all your upward momentum for the launch.
+    if (course.qp && s.x > course.qp.topX) s.x = course.qp.topX;
     s.y = ground(s.x);
     s.angle = sa;
     const prevTuck = s.tuck;
