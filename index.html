@@ -371,23 +371,21 @@
     pts.push({ x: landX - 12, y: pitY });
     const landY = lipY + 58;                        // landing hump, just below the lip
     pts.push({ x: landX, y: landY });
-    // ROUNDED landing bowl: roll over the hump, scoop down the smooth concave face,
-    // bottom out, then curve back up — one continuous rounded valley (like the original)
-    hermiteRamp(pts, landX, landY, landX + 430, landY + 360, 0.0, 1.0, 22);
-    hermiteRamp(pts, landX + 430, landY + 360, landX + 1420, landY + 480, 1.0, -0.32, 30);
-    // finishing wall: the terrain keeps rising, so you ride up, stop, and slide
-    // back down for a few seconds before the round ends (if you're still up).
-    // Shorter & steeper so the ramp-up after the landing isn't so long.
-    const A = landX + 1420, Ay = landY + 480;
+    // gentle, SHALLOW rounded landing — a mellow scoop, nothing deep (chill course)
+    hermiteRamp(pts, landX, landY, landX + 380, landY + 190, 0.0, 0.7, 20);
+    hermiteRamp(pts, landX + 380, landY + 190, landX + 1180, landY + 250, 0.7, -0.28, 26);
+    // finishing wall: keeps rising, so you ride up, stop, and slide back down to end.
+    const A = landX + 1180, Ay = landY + 250;
     pts.push({ x: A + 150, y: Ay - 90 });
     pts.push({ x: A + 280, y: Ay - 240 });
     pts.push({ x: A + 390, y: Ay - 430 });
     pts.push({ x: A + 480, y: Ay - 650 });    // keeps climbing (unreachable top)
     const endX = A + 480, windStart = A + 55, finishLine = landX + 90;
-    // taller wall — you only just clear it with a well-charged pop
-    const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - (ob.rise + 40 + wallExtra), baseY: pitY, type: "wall" };
+    // moderate wall — a good pump just clears it; ride off without pumping and you hit it
+    const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - (70 + wallExtra * 0.4), baseY: pitY, type: "wall" };
     course = {
       id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
+      maxSpeed: 640, jumpPop: 420,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
         { x: landX + 8, y: landY, color: "#3ca0ff" },
@@ -664,7 +662,7 @@
       const power = Math.min(1, detuck / JUMP_FULL);
       // ADD to any existing upward velocity (so snapping up off a ramp stacks on
       // the ramp's launch); ignore downward momentum so flat/downhill pops work.
-      s.vy = Math.min(s.vy, 0) - JUMP_POP * power * (0.62 + 0.38 * s.charge);
+      s.vy = Math.min(s.vy, 0) - (course.jumpPop || JUMP_POP) * power * (0.62 + 0.38 * s.charge);
       leaveGround();
       return;
     }
