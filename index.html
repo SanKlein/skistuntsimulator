@@ -656,6 +656,10 @@
     s.bounces = 0;
     s.L = LAUNCH_SEED * s.lean * (s.lean > 0 ? FWD_SPIN : 1);   // seed spin from your lean (front flips boosted)
     s.spun = 0;
+    // Quarter-pipe: whichever way you leave the wall (crest OR pump), tip BACK-left
+    // off the lip (like a >90° overhang) so you always drop into the pipe, never over
+    // the top. Discards any rightward velocity the curved wall gave you.
+    if (course.qp && s.x > course.qp.baseX) s.vx = Math.min(s.vx, 0) - 22;
     showLive(true);
   }
 
@@ -706,9 +710,8 @@
       // Fly off the lip with your OWN momentum — no boost, just like the original.
       // On the quarter-pipe this fires only if you reach the lip with real speed; too
       // slow and you never crest it, so gravity just carries you back down the ramp.
-      // Give the QP lip a small BACK-LEFT kick (like a >90° overhang) so you drop back
-      // into the pipe and never sail over the top.
-      if (course.qp && s.x > course.qp.baseX) s.vx = Math.min(s.vx, 0) - 22;
+      // (The QP back-left "overhang" kick is applied in leaveGround, so it covers the
+      // pump launch too — not just this crest path.)
       leaveGround();
       return;
     }
