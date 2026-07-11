@@ -816,7 +816,7 @@
     }
 
     const flips = Math.round(Math.abs(s.spun) / (Math.PI * 2));
-    return crash("WIPEOUT!", flips ? (flips + (flips === 1 ? " flip" : " flips") + " but landed sideways") : "landed sideways");
+    return crash("WIPEOUT!", flips ? (flips + (flips === 1 ? " flip" : " flips")) : null);
   }
 
   // ------------------------------------------------------------------ particles
@@ -837,27 +837,36 @@
   }
 
   // ------------------------------------------------------------------ flow
-  // Evaluate the wipeout: what got hit + how hard = which bones broke.
-  function injuryReport(hit, speed, flips) {
+  // Evaluate the wipeout: which body part hit (from the skier's orientation) + how
+  // hard (impact speed & spin) = how they fell and which bones broke.
+  function injuryReport(speed, flips, tilt) {
     const sev = Math.min(1.35, speed / 760 + flips * 0.05);   // impact severity
     const n = sev < 0.5 ? 1 : (sev < 0.9 ? (Math.random() < 0.5 ? 2 : 1) : (Math.random() < 0.45 ? 3 : 2));
-    const bones = {
-      wall:   ["collarbone", "nose", "jaw", "2 ribs", "3 ribs", "left shoulder", "right shoulder", "left wrist", "right wrist", "a rib"],
-      gap:    ["left femur", "right femur", "left tibia", "right shin", "pelvis", "tailbone", "left ankle", "right ankle", "both knees"],
-      ground: ["collarbone", "left wrist", "right wrist", "left ankle", "right ankle", "nose", "tailbone", "a rib", "2 ribs", "left femur", "right shin", "kneecap"],
-    }[hit] || [];
+    // tilt = orientation vs the ground, wrapped to [-PI, PI]. 0 = flat, ±PI = upside down.
+    let a = ((tilt % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI) - Math.PI;
+    const m = Math.abs(a);
+    let zone, bones;
+    if (m > 2.2) { zone = "landed on your head";  bones = ["skull", "neck", "jaw", "nose", "a vertebra", "collarbone"]; }
+    else if (m > 1.2) {
+      if (a > 0) { zone = "came down on your shoulder"; bones = ["collarbone", "shoulder blade", "shoulder", "upper arm", "3 ribs", "2 ribs"]; }
+      else { zone = "slammed onto your back"; bones = ["a vertebra", "tailbone", "pelvis", "3 ribs", "lower back", "a rib"]; }
+    }
+    else if (m > 0.6) { zone = "caught an edge onto your side"; bones = ["collarbone", "hip", "2 ribs", "wrist", "forearm", "shoulder"]; }
+    else { zone = "buckled your legs on impact"; bones = ["left femur", "right femur", "left tibia", "right shin", "ankle", "kneecap", "pelvis"]; }
     const verb = sev < 0.5 ? "bruised" : sev < 0.9 ? "broke" : (Math.random() < 0.5 ? "shattered" : "snapped");
     const picks = [], avail = bones.slice();
     for (let i = 0; i < n && avail.length; i++) picks.push(avail.splice(Math.floor(Math.random() * avail.length), 1)[0]);
     const list = picks.length <= 1 ? (picks[0] || "everything") : picks.slice(0, -1).join(", ") + " and " + picks[picks.length - 1];
-    return "🦴 " + verb + " your " + list;
+    return zone + " — 🦴 " + verb + " your " + list;
   }
 
   function crash(title, msg) {
     skier.dead = true;
-    const speed = Math.hypot(skier.vx, skier.vy);
-    const hit = title === "SPLAT!" ? "wall" : title === "PLUNGE!" ? "gap" : "ground";
-    const injury = injuryReport(hit, speed, run.flips);
+    const s = skier;
+    const speed = Math.hypot(s.vx, s.vy);
+    // orientation vs the surface for a ground landing, vs upright for a wall/gap hit
+    const ref = title === "SPLAT!" || title === "PLUNGE!" ? 0 : slopeAt(s.x);
+    const injury = injuryReport(speed, run.flips, s.angle - ref);
     showResult(false, title, (msg ? msg + " · " : "") + injury);
   }
   function finishRun() { // reached runout upright
