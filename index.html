@@ -597,8 +597,8 @@
     buildCourse();
     const x = course.startX + 10;
     skier = {
-      x, y: ground(x) - 120,  // drop in from above the snow
-      vx: 180, vy: 0,
+      x, y: ground(x) - 40,   // drop in from just above the snow (a small drop, so no big landing-speed jolt — speed builds from the ramp itself)
+      vx: 150, vy: 0,
       angle: 0,               // 0 = upright, radians (canvas rotate)
       L: 0,                   // angular momentum (only meaningful in air)
       tuck: 0,                // 0 extended .. 1 tucked
