@@ -409,9 +409,10 @@
     // no flat runway, no bump — so you hit the takeoff quickly after dropping in.
     pts.push({ x: 400, y: 520 });
     hermiteRamp(pts, 400, 520, 820, 830, 1.35, 0.0, 16);
-    // the kicker rises straight out of the valley to the lip
+    // the kicker rises straight out of the valley to the lip — a touch steeper so
+    // your momentum alone carries you over the gap now that there's no launch boost
     const lipX = 1220, lipY = 650;
-    hermiteRamp(pts, 820, 830, lipX, lipY, 0.0, -0.62, 22);
+    hermiteRamp(pts, 820, 830, lipX, lipY, 0.0, -0.78, 22);
     // the GAP you clear, with your chosen obstacle sitting in it
     const ob = OBSTACLES[obstacleId] || OBSTACLES.wall;
     const gap = Math.max(380, ob.halfW * 2 + 80), pitY = lipY + 780;
@@ -677,15 +678,8 @@
     const lookX = s.x + s.vx * dt;
     const ballisticY = s.y + s.vy * dt;
     if (v > 60 && ballisticY < ground(lookX) - 1 && s.x >= course.lipX - 40) {
-      // Half-pipe coping (mega jump): NO boost — you fly off with your own momentum.
-      // Off the vertical wall that's straight up, so you rise, flip, and drop back in.
-      if (course.qp && s.x > course.qp.baseX) { leaveGround(); return; }
-      // On The Wall the passive ride-off is weak — you must POP (crouch then extend)
-      // right at the top of the ramp to clear the wall; a good pop gives flip air.
-      const wallGate = course.id === "wall";
-      const snap = Math.min(wallGate ? 460 : 380, Math.max(0, detuck) * (wallGate ? 30 : 26));
-      const base = wallGate ? (0.30 + 0.22 * s.charge) : (0.55 + 0.45 * s.charge);
-      s.vy -= POP * base + snap;
+      // Fly off the lip with your OWN momentum — no boost, just like the original.
+      // (To actually jump/pump, crouch then extend — that's the ground-jump above.)
       leaveGround();
       return;
     }
