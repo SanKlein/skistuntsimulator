@@ -429,12 +429,16 @@
     // so it's smooth. Carry speed up it and you fly off the lip (your own momentum,
     // no boost), flip, and come back down to land it; too slow and you just ride back
     // down. Roll back past the flag (or crash) to end.
-    const R = 260;
-    for (let i = 1; i <= 24; i++) {
-      const th = (i / 24) * (Math.PI / 2);   // FULL quarter-circle → the lip is truly vertical (90°)
+    const R = 230;
+    for (let i = 1; i <= 22; i++) {
+      const th = (i / 22) * (Math.PI / 2);   // full quarter-circle up to vertical
       pts.push({ x: qpBase + R * Math.sin(th), y: flatY - R * (1 - Math.cos(th)) });
     }
-    const copX = qpBase + R, copY = flatY - R;            // vertical lip: leave it and you go STRAIGHT up
+    // then a real stretch of truly-vertical wall at the top (continues smoothly from
+    // the arc, which is already vertical there) — leave THIS and you go straight up
+    pts.push({ x: qpBase + R + 1, y: flatY - R - 45 });
+    pts.push({ x: qpBase + R + 2, y: flatY - R - 90 });
+    const copX = qpBase + R + 2, copY = flatY - R - 90;   // top of the vertical lip
     pts.push({ x: copX + 60, y: copY });                  // short flat deck behind the lip
     pts.push({ x: copX + 200, y: flatY - 30 });           // back of the ramp slopes down
     pts.push({ x: copX + 520, y: flatY - 30 });           // flat runout tail
