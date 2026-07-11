@@ -430,18 +430,17 @@
     // so it's smooth. Carry speed up it and you fly off the lip (your own momentum,
     // no boost), flip, and come back down to land it; too slow and you just ride back
     // down. Roll back past the flag (or crash) to end.
-    const R = 200;
-    for (let i = 1; i <= 20; i++) {
-      const th = (i / 20) * (Math.PI / 2);   // full quarter-circle up to vertical
+    const R = 240;
+    for (let i = 1; i <= 22; i++) {
+      const th = (i / 22) * (Math.PI / 2);   // full quarter-circle up to vertical
       pts.push({ x: qpBase + R * Math.sin(th), y: flatY - R * (1 - Math.cos(th)) });
     }
-    // then a TALLER stretch of near-vertical wall at the top — as close to 90° as a
-    // heightmap allows (~0.3px of x per 40px of rise ≈ 89.6°), so you go straight up.
-    pts.push({ x: qpBase + R + 0.3, y: flatY - R - 40 });
-    pts.push({ x: qpBase + R + 0.6, y: flatY - R - 80 });
-    pts.push({ x: qpBase + R + 0.9, y: flatY - R - 120 });
-    const copX = qpBase + R + 0.9, copY = flatY - R - 120;   // top of the near-vertical lip
-    pts.push({ x: copX + 60, y: copY });                  // short flat deck behind the lip
+    // then a tall stretch of near-vertical wall — as close to 90° as a heightmap allows
+    // (~0.3px of x per 40px of rise ≈ 89.6°). The top is OUT OF REACH of your speed, so
+    // pure gravity carries you up, stops you, and slides you back down. No launch.
+    for (let i = 1; i <= 5; i++) pts.push({ x: qpBase + R + 0.3 * i, y: flatY - R - 40 * i });
+    const copX = qpBase + R + 1.5, copY = flatY - R - 200;   // top of the near-vertical wall
+    pts.push({ x: copX + 60, y: copY });                  // short flat deck behind the top
     pts.push({ x: copX + 200, y: flatY - 30 });           // back of the ramp slopes down
     pts.push({ x: copX + 520, y: flatY - 30 });           // flat runout tail
     const endX = copX + 520, windStart = null, finishLine = null;
@@ -656,10 +655,6 @@
     s.bounces = 0;
     s.L = LAUNCH_SEED * s.lean * (s.lean > 0 ? FWD_SPIN : 1);   // seed spin from your lean (front flips boosted)
     s.spun = 0;
-    // Quarter-pipe: whichever way you leave the wall (crest OR pump), tip BACK-left
-    // off the lip (like a >90° overhang) so you always drop into the pipe, never over
-    // the top. Discards any rightward velocity the curved wall gave you.
-    if (course.qp && s.x > course.qp.baseX) s.vx = Math.min(s.vx, 0) - 22;
     showLive(true);
   }
 
@@ -706,12 +701,11 @@
     // the lip, so a well-timed pop launches you high.
     const lookX = s.x + s.vx * dt;
     const ballisticY = s.y + s.vy * dt;
-    if (v > 60 && ballisticY < ground(lookX) - 1 && s.x >= course.lipX - 40) {
+    if (v > 60 && ballisticY < ground(lookX) - 1 && s.x >= course.lipX - 40 && !(course.qp && s.x > course.qp.baseX)) {
       // Fly off the lip with your OWN momentum — no boost, just like the original.
-      // On the quarter-pipe this fires only if you reach the lip with real speed; too
-      // slow and you never crest it, so gravity just carries you back down the ramp.
-      // (The QP back-left "overhang" kick is applied in leaveGround, so it covers the
-      // pump launch too — not just this crest path.)
+      // NOT off the quarter-pipe: that's pure gravity — you ride up the wall, slow,
+      // stop and slide back down. It's tall enough you can't reach the top, so you
+      // never launch off it or go over. (Pump if you want air.)
       leaveGround();
       return;
     }
