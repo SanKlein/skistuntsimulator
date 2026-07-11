@@ -423,23 +423,22 @@
     // slope-0 join, no deep dip in front of the ramp.
     hermiteRamp(pts, landX, landY, landX + 520, landY + 180, 0.7, 0.0, 22);
     const flatY = landY + 180, qpBase = landX + 520;
-    // QUARTER-PIPE finale: a real skate ramp. A constant-radius arc curves smoothly
-    // from flat up to vertical, a section of TRULY VERTICAL (90°) coping (~1.5 ski
-    // lengths), a short flat deck, then the ramp's BACK slopes down to a runout (so it
-    // reads as a ramp structure, not a floating rectangle). Carry your own speed up the
-    // vertical and fly STRAIGHT UP off the coping (no boost), flip, drop back in, and
-    // roll back past the flag to end.
-    const R = 300;
-    for (let i = 1; i <= 20; i++) {
-      const th = (i / 20) * (Math.PI / 2);
+    // QUARTER-PIPE finale: a real skate ramp — one smooth constant-radius arc that
+    // curves from flat up to a steep (~80°) lip, then a flat deck, then the ramp's
+    // BACK slopes down to a runout. NO near-vertical spike (that made slopeAt jitter),
+    // so it's smooth. Carry speed up it and you fly off the lip (your own momentum,
+    // no boost), flip, and come back down to land it; too slow and you just ride back
+    // down. Roll back past the flag (or crash) to end.
+    const R = 280, topTh = 80 * Math.PI / 180;
+    for (let i = 1; i <= 22; i++) {
+      const th = (i / 22) * topTh;
       pts.push({ x: qpBase + R * Math.sin(th), y: flatY - R * (1 - Math.cos(th)) });
     }
-    pts.push({ x: qpBase + R + 1, y: flatY - R - 75 });    // truly-vertical coping...
-    pts.push({ x: qpBase + R + 2, y: flatY - R - 150 });   // ...~150px, still out of reach at speed
-    pts.push({ x: qpBase + R + 120, y: flatY - R - 150 });  // short flat deck on top
-    pts.push({ x: qpBase + R + 260, y: flatY - 30 });      // back of the ramp slopes down
-    pts.push({ x: qpBase + R + 580, y: flatY - 30 });      // flat runout tail
-    const endX = qpBase + R + 580, windStart = null, finishLine = null;
+    const copX = qpBase + R * Math.sin(topTh), copY = flatY - R * (1 - Math.cos(topTh));  // lip
+    pts.push({ x: copX + 120, y: copY });                 // flat deck on top
+    pts.push({ x: copX + 260, y: flatY - 30 });           // back of the ramp slopes down
+    pts.push({ x: copX + 580, y: flatY - 30 });           // flat runout tail
+    const endX = copX + 580, windStart = null, finishLine = null;
     const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - ob.rise, baseY: pitY, type: obstacleId };
     course = {
       id: "jump", pts, wall, startX, startY, maxSpeed: 780, qp: { baseX: qpBase, wentX: qpBase + 60, wentY: flatY - 110 },
@@ -682,9 +681,10 @@
     // the lip, so a well-timed pop launches you high.
     const lookX = s.x + s.vx * dt;
     const ballisticY = s.y + s.vy * dt;
-    if (v > 60 && ballisticY < ground(lookX) - 1 && s.x >= course.lipX - 40 && !(course.qp && s.x > course.qp.baseX)) {
+    if (v > 60 && ballisticY < ground(lookX) - 1 && s.x >= course.lipX - 40) {
       // Fly off the lip with your OWN momentum — no boost, just like the original.
-      // (NOT off the quarter-pipe: you ride that up and back down, and pump for air.)
+      // On the quarter-pipe this fires only if you reach the lip with real speed; too
+      // slow and you never crest it, so gravity just carries you back down the ramp.
       leaveGround();
       return;
     }
@@ -699,11 +699,11 @@
         // only ends once you've been up it and rolled back DOWN past the flag (to the
         // left). Stalling at the top no longer ends it; crashing ends it via a wipeout.
         if (s.x > course.qp.wentX && s.y < course.qp.wentY) s.wentUp = true;
-        if (s.wentUp && s.x < course.qp.baseX) return finishRun();   // rolled back past the flag → over
-        if (!s.wentUp) {                                             // never reached the pipe and stalled out
-          if (Math.abs(v) < 40) { s.slowTime += dt; if (s.slowTime > 1.8) return finishRun(); }
-          else s.slowTime = 0;
-        }
+        if (s.wentUp && s.x < course.qp.baseX) return finishRun();   // rolled back down past the flag → over
+        // otherwise end only once you've come to rest (rode it out, or landed up top) —
+        // the smooth arc means you never hang at the lip, so this can't fire mid-ride.
+        if (Math.abs(v) < 40) { s.slowTime += dt; if (s.slowTime > (s.wentUp ? 1.4 : 1.8)) return finishRun(); }
+        else s.slowTime = 0;
       } else {
         if (course.windStart != null && s.x > course.windStart && v <= 0) s.comingBack = true;
         if (s.comingBack) { s.endTimer += dt; if (s.endTimer > 2.6) return finishRun(); }
@@ -845,10 +845,10 @@
     let a = ((tilt % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI) - Math.PI;
     const m = Math.abs(a);
     let zone, bones;
-    if (m > 2.2) { zone = "landed on your head";  bones = ["skull", "neck", "jaw", "nose", "a vertebra", "collarbone"]; }
+    if (m > 2.2) { zone = "landed on your head";  bones = ["skull", "neck", "jaw", "nose", "vertebra", "collarbone"]; }
     else if (m > 1.2) {
       if (a > 0) { zone = "came down on your shoulder"; bones = ["collarbone", "shoulder blade", "shoulder", "upper arm", "3 ribs", "2 ribs"]; }
-      else { zone = "slammed onto your back"; bones = ["a vertebra", "tailbone", "pelvis", "3 ribs", "lower back", "a rib"]; }
+      else { zone = "slammed onto your back"; bones = ["vertebra", "tailbone", "pelvis", "3 ribs", "lower back", "rib"]; }
     }
     else if (m > 0.6) { zone = "caught an edge onto your side"; bones = ["collarbone", "hip", "2 ribs", "wrist", "forearm", "shoulder"]; }
     else { zone = "buckled your legs on impact"; bones = ["left femur", "right femur", "left tibia", "right shin", "ankle", "kneecap", "pelvis"]; }
