@@ -302,7 +302,7 @@
   // ------------------------------------------------------------------ tuning
   const G = 1650;            // gravity px/s^2
   const RUN_GRAV = 0.45;     // how much gravity accelerates you along the slope
-  const FRICTION = 3.5;      // low ground friction so you hold your speed catching hills
+  const FRICTION = 5;        // moderate friction: hold speed on hills, but settle on the flats (no endless coasting)
   const MIN_SPEED = 180, MAX_SPEED = 880;   // top speed cap (per-course overrides via course.maxSpeed)
   const POP = 660;           // launch spring off the ramp lip
   const LAND_TOL = 0.82;     // radians of upright tolerance for a clean landing (~47 deg)
