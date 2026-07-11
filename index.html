@@ -423,8 +423,8 @@
     // The landing ramp eases straight into the base of the quarter-pipe — a shallow,
     // slope-0 join, no deep dip in front of the ramp.
     // LONGER landing that drops more, so you build up more speed on the way down
-    hermiteRamp(pts, landX, landY, landX + 860, landY + 260, 0.7, 0.0, 30);
-    const flatY = landY + 260, qpBase = landX + 860;
+    hermiteRamp(pts, landX, landY, landX + 1180, landY + 360, 0.7, 0.0, 34);
+    const flatY = landY + 360, qpBase = landX + 1180;
     // QUARTER-PIPE finale: a smooth constant-radius arc up to a near-vertical lip, then
     // a flat deck and a sloped back. SHORTER now — with speed you reach the top and fly
     // off the (near-)vertical lip under your own momentum (straight up, more speed = more
@@ -443,7 +443,7 @@
     const endX = copX + 520, windStart = null, finishLine = null;
     const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - ob.rise, baseY: pitY, type: obstacleId };
     course = {
-      id: "jump", pts, wall, startX, startY, maxSpeed: 920, qp: { baseX: qpBase, wentX: qpBase + 60, wentY: flatY - 110, topX: copX },
+      id: "jump", pts, wall, startX, startY, maxSpeed: 1000, qp: { baseX: qpBase, wentX: qpBase + 60, wentY: flatY - 110, topX: copX },
       lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
