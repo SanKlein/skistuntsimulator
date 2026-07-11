@@ -682,9 +682,9 @@
     // the lip, so a well-timed pop launches you high.
     const lookX = s.x + s.vx * dt;
     const ballisticY = s.y + s.vy * dt;
-    if (v > 60 && ballisticY < ground(lookX) - 1 && s.x >= course.lipX - 40) {
+    if (v > 60 && ballisticY < ground(lookX) - 1 && s.x >= course.lipX - 40 && !(course.qp && s.x > course.qp.baseX)) {
       // Fly off the lip with your OWN momentum — no boost, just like the original.
-      // (To actually jump/pump, crouch then extend — that's the ground-jump above.)
+      // (NOT off the quarter-pipe: you ride that up and back down, and pump for air.)
       leaveGround();
       return;
     }
@@ -695,17 +695,15 @@
     // on their feet). A finish-line + settle net cover the edge cases.
     if (s.launched) {
       if (course.qp) {
-        // MEGA JUMP half-pipe finale. "Went up" = climbed the far wall (past wentX and
-        // up above wentY) so the kicker jump doesn't count. Ends when you roll back out
-        // past the flag, or settle in the pipe after being up the wall.
+        // BIG JUMP quarter-pipe finale. Ride it freely up and back down — the run
+        // only ends once you've been up it and rolled back DOWN past the flag (to the
+        // left). Stalling at the top no longer ends it; crashing ends it via a wipeout.
         if (s.x > course.qp.wentX && s.y < course.qp.wentY) s.wentUp = true;
-        if (s.wentUp) {
-          if (s.x < course.qp.baseX) return finishRun();            // rolled back out past the flag → over
-          if (Math.abs(v) < 42) { s.slowTime += dt; if (s.slowTime > 1.3) return finishRun(); }  // or settled
+        if (s.wentUp && s.x < course.qp.baseX) return finishRun();   // rolled back past the flag → over
+        if (!s.wentUp) {                                             // never reached the pipe and stalled out
+          if (Math.abs(v) < 40) { s.slowTime += dt; if (s.slowTime > 1.8) return finishRun(); }
           else s.slowTime = 0;
-        } else if (Math.abs(v) < 40) {                              // stalled before ever reaching the pipe
-          s.slowTime += dt; if (s.slowTime > 1.8) return finishRun();
-        } else s.slowTime = 0;
+        }
       } else {
         if (course.windStart != null && s.x > course.windStart && v <= 0) s.comingBack = true;
         if (s.comingBack) { s.endTimer += dt; if (s.endTimer > 2.6) return finishRun(); }
@@ -841,7 +839,8 @@
   // hard (impact speed & spin) = how they fell and which bones broke.
   function injuryReport(speed, flips, tilt) {
     const sev = Math.min(1.35, speed / 760 + flips * 0.05);   // impact severity
-    const n = sev < 0.5 ? 1 : (sev < 0.9 ? (Math.random() < 0.5 ? 2 : 1) : (Math.random() < 0.45 ? 3 : 2));
+    if (sev < 0.55) return null;                              // soft fall — you walk it off, nothing broken
+    const n = sev < 0.75 ? 1 : (sev < 0.95 ? (Math.random() < 0.5 ? 2 : 1) : (Math.random() < 0.45 ? 3 : 2));
     // tilt = orientation vs the ground, wrapped to [-PI, PI]. 0 = flat, ±PI = upside down.
     let a = ((tilt % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI) - Math.PI;
     const m = Math.abs(a);
@@ -853,7 +852,7 @@
     }
     else if (m > 0.6) { zone = "caught an edge onto your side"; bones = ["collarbone", "hip", "2 ribs", "wrist", "forearm", "shoulder"]; }
     else { zone = "buckled your legs on impact"; bones = ["left femur", "right femur", "left tibia", "right shin", "ankle", "kneecap", "pelvis"]; }
-    const verb = sev < 0.5 ? "bruised" : sev < 0.9 ? "broke" : (Math.random() < 0.5 ? "shattered" : "snapped");
+    const verb = sev < 0.95 ? "broke" : (Math.random() < 0.5 ? "shattered" : "snapped");
     const picks = [], avail = bones.slice();
     for (let i = 0; i < n && avail.length; i++) picks.push(avail.splice(Math.floor(Math.random() * avail.length), 1)[0]);
     const list = picks.length <= 1 ? (picks[0] || "everything") : picks.slice(0, -1).join(", ") + " and " + picks[picks.length - 1];
@@ -866,8 +865,8 @@
     const speed = Math.hypot(s.vx, s.vy);
     // orientation vs the surface for a ground landing, vs upright for a wall/gap hit
     const ref = title === "SPLAT!" || title === "PLUNGE!" ? 0 : slopeAt(s.x);
-    const injury = injuryReport(speed, run.flips, s.angle - ref);
-    showResult(false, title, (msg ? msg + " · " : "") + injury);
+    const injury = injuryReport(speed, run.flips, s.angle - ref);   // null if the fall wasn't hard enough to break anything
+    showResult(false, title, [msg, injury].filter(Boolean).join(" · "));
   }
   function finishRun() { // reached runout upright
     const title = course.id === "crash" ? "YOU SURVIVED!" : (run.flips ? "STOMPED IT!" : "NICE RUN");
