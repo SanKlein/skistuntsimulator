@@ -429,16 +429,16 @@
     // so it's smooth. Carry speed up it and you fly off the lip (your own momentum,
     // no boost), flip, and come back down to land it; too slow and you just ride back
     // down. Roll back past the flag (or crash) to end.
-    const R = 280, topTh = 80 * Math.PI / 180;
-    for (let i = 1; i <= 22; i++) {
-      const th = (i / 22) * topTh;
+    const R = 260;
+    for (let i = 1; i <= 24; i++) {
+      const th = (i / 24) * (Math.PI / 2);   // FULL quarter-circle → the lip is truly vertical (90°)
       pts.push({ x: qpBase + R * Math.sin(th), y: flatY - R * (1 - Math.cos(th)) });
     }
-    const copX = qpBase + R * Math.sin(topTh), copY = flatY - R * (1 - Math.cos(topTh));  // lip
-    pts.push({ x: copX + 120, y: copY });                 // flat deck on top
-    pts.push({ x: copX + 260, y: flatY - 30 });           // back of the ramp slopes down
-    pts.push({ x: copX + 580, y: flatY - 30 });           // flat runout tail
-    const endX = copX + 580, windStart = null, finishLine = null;
+    const copX = qpBase + R, copY = flatY - R;            // vertical lip: leave it and you go STRAIGHT up
+    pts.push({ x: copX + 60, y: copY });                  // short flat deck behind the lip
+    pts.push({ x: copX + 200, y: flatY - 30 });           // back of the ramp slopes down
+    pts.push({ x: copX + 520, y: flatY - 30 });           // flat runout tail
+    const endX = copX + 520, windStart = null, finishLine = null;
     const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - ob.rise, baseY: pitY, type: obstacleId };
     course = {
       id: "jump", pts, wall, startX, startY, maxSpeed: 780, qp: { baseX: qpBase, wentX: qpBase + 60, wentY: flatY - 110 },
