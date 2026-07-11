@@ -422,31 +422,28 @@
     pts.push({ x: landX, y: landY });
     // The landing ramp eases straight into the base of the quarter-pipe — a shallow,
     // slope-0 join, no deep dip in front of the ramp.
-    hermiteRamp(pts, landX, landY, landX + 700, landY + 180, 0.7, 0.0, 26);   // longer landing
-    const flatY = landY + 180, qpBase = landX + 700;
-    // QUARTER-PIPE finale: a real skate ramp — one smooth constant-radius arc that
-    // curves from flat up to a steep (~80°) lip, then a flat deck, then the ramp's
-    // BACK slopes down to a runout. NO near-vertical spike (that made slopeAt jitter),
-    // so it's smooth. Carry speed up it and you fly off the lip (your own momentum,
-    // no boost), flip, and come back down to land it; too slow and you just ride back
-    // down. Roll back past the flag (or crash) to end.
-    const R = 240;
-    for (let i = 1; i <= 22; i++) {
-      const th = (i / 22) * (Math.PI / 2);   // full quarter-circle up to vertical
+    // LONGER landing that drops more, so you build up more speed on the way down
+    hermiteRamp(pts, landX, landY, landX + 860, landY + 260, 0.7, 0.0, 30);
+    const flatY = landY + 260, qpBase = landX + 860;
+    // QUARTER-PIPE finale: a smooth constant-radius arc up to a near-vertical lip, then
+    // a flat deck and a sloped back. SHORTER now — with speed you reach the top and fly
+    // off the (near-)vertical lip under your own momentum (straight up, more speed = more
+    // air), then drop back in. Too slow and you just ride back down. No boost.
+    const R = 200;
+    for (let i = 1; i <= 20; i++) {
+      const th = (i / 20) * (Math.PI / 2);   // full quarter-circle up to vertical
       pts.push({ x: qpBase + R * Math.sin(th), y: flatY - R * (1 - Math.cos(th)) });
     }
-    // then a tall stretch of near-vertical wall — as close to 90° as a heightmap allows
-    // (~0.3px of x per 40px of rise ≈ 89.6°). The top is OUT OF REACH of your speed, so
-    // pure gravity carries you up, stops you, and slides you back down. No launch.
-    for (let i = 1; i <= 5; i++) pts.push({ x: qpBase + R + 0.3 * i, y: flatY - R - 40 * i });
-    const copX = qpBase + R + 1.5, copY = flatY - R - 200;   // top of the near-vertical wall
-    pts.push({ x: copX + 60, y: copY });                  // short flat deck behind the top
+    // near-vertical lip — as close to 90° as a heightmap allows (~0.3px of x per 40px)
+    for (let i = 1; i <= 3; i++) pts.push({ x: qpBase + R + 0.3 * i, y: flatY - R - 40 * i });
+    const copX = qpBase + R + 0.9, copY = flatY - R - 120;   // top of the near-vertical lip
+    pts.push({ x: copX + 60, y: copY });                  // short flat deck behind the lip
     pts.push({ x: copX + 200, y: flatY - 30 });           // back of the ramp slopes down
     pts.push({ x: copX + 520, y: flatY - 30 });           // flat runout tail
     const endX = copX + 520, windStart = null, finishLine = null;
     const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - ob.rise, baseY: pitY, type: obstacleId };
     course = {
-      id: "jump", pts, wall, startX, startY, maxSpeed: 780, qp: { baseX: qpBase, wentX: qpBase + 60, wentY: flatY - 110 },
+      id: "jump", pts, wall, startX, startY, maxSpeed: 850, qp: { baseX: qpBase, wentX: qpBase + 60, wentY: flatY - 110 },
       lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
@@ -683,8 +680,9 @@
     if (s.tuck > s.charge) s.charge = s.tuck;
     else s.charge = Math.max(0, s.charge - dt * 0.7);
 
-    // JUMP: crouch, then snap upward fast, to hop off the snow anywhere.
-    if (detuck > JUMP_DETUCK && s.charge > 0.15) {
+    // JUMP: crouch, then snap upward fast, to hop off the snow anywhere (but NOT on the
+    // quarter-pipe wall — there, air comes purely from your speed off the vertical lip).
+    if (detuck > JUMP_DETUCK && s.charge > 0.15 && !(course.qp && s.x > course.qp.baseX)) {
       const power = Math.min(1, detuck / (course.jumpFull || JUMP_FULL));   // lower jumpFull = easier to reach full bounce
       // ADD to any existing upward velocity (so snapping up off a ramp stacks on
       // the ramp's launch); ignore downward momentum so flat/downhill pops work.
@@ -701,11 +699,10 @@
     // the lip, so a well-timed pop launches you high.
     const lookX = s.x + s.vx * dt;
     const ballisticY = s.y + s.vy * dt;
-    if (v > 60 && ballisticY < ground(lookX) - 1 && s.x >= course.lipX - 40 && !(course.qp && s.x > course.qp.baseX)) {
+    if (v > 60 && ballisticY < ground(lookX) - 1 && s.x >= course.lipX - 40) {
       // Fly off the lip with your OWN momentum — no boost, just like the original.
-      // NOT off the quarter-pipe: that's pure gravity — you ride up the wall, slow,
-      // stop and slide back down. It's tall enough you can't reach the top, so you
-      // never launch off it or go over. (Pump if you want air.)
+      // On the quarter-pipe the lip is (near-)vertical, so your momentum there is going
+      // straight up: more speed = more air, and you drop right back in (no over).
       leaveGround();
       return;
     }
