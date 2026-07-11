@@ -423,19 +423,17 @@
     pts.push({ x: landX + 520, y: landY + 380 });
     hermiteRamp(pts, landX + 520, landY + 380, landX + 1180, landY + 600, 0.55, 0.0, 20);
     const flatY = landY + 600, qpBase = landX + 1180;
-    // HALF-PIPE finale (a U): ride down the near wall into the pipe, across the
-    // bottom, and up the near-vertical FAR wall. Vertical is what sends you straight
-    // up — pump/pop off the coping, float, and drop back into the pipe. The run ends
-    // once you've been up the far wall and settle (or roll back out past the flag).
-    hermiteRamp(pts, qpBase, flatY, qpBase + 170, flatY + 140, 0.0, 0.0, 16);              // near wall — drop into the pipe
-    pts.push({ x: qpBase + 360, y: flatY + 140 });                                          // flat bottom
-    hermiteRamp(pts, qpBase + 360, flatY + 140, qpBase + 500, flatY - 150, 0.0, -5.5, 16);  // far wall, curving to vertical
-    pts.push({ x: qpBase + 510, y: flatY - 250 });                                          // near-vertical coping
-    pts.push({ x: qpBase + 650, y: flatY - 250 });                                          // far deck
-    const endX = qpBase + 650, windStart = null, finishLine = null;
+    // VERT-WALL finale: the landing flows STRAIGHT in (no dip) and up a big concave
+    // transition that curls to truly VERTICAL at the top. Pump/pop off it for a
+    // straight-up air, drop back down onto it, and roll back past the flag to end.
+    hermiteRamp(pts, qpBase, flatY, qpBase + 250, flatY - 300, 0.0, -3.2, 22);
+    pts.push({ x: qpBase + 285, y: flatY - 460 });   // steepening
+    pts.push({ x: qpBase + 300, y: flatY - 600 });   // nearly vertical
+    pts.push({ x: qpBase + 306, y: flatY - 720 });   // vertical cap (out of reach — unclearable)
+    const endX = qpBase + 306, windStart = null, finishLine = null;
     const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - ob.rise, baseY: pitY, type: obstacleId };
     course = {
-      id: "jump", pts, wall, startX, startY, maxSpeed: 820, qp: { baseX: qpBase, wentX: qpBase + 360, wentY: flatY - 30 },
+      id: "jump", pts, wall, startX, startY, maxSpeed: 820, qp: { baseX: qpBase, wentX: qpBase + 90, wentY: flatY - 130 },
       lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
