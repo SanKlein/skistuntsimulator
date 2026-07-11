@@ -358,10 +358,9 @@
     const pts = [];
     pts.push({ x: 0, y: startY - 40 });
     pts.push({ x: startX, y: startY });
-    // compact run-up into a small, rounded takeoff lip
-    pts.push({ x: 520, y: 372 });
+    // GRADUAL roll-in: gentle at the top, steepening, easing into the run-up to the lip
     const baseX = 880, baseY = 512;
-    pts.push({ x: baseX, y: baseY });
+    hermiteRamp(pts, startX, startY, baseX, baseY, 0.1, 0.5, 24);
     const lipX = 1120, lipY = 432;                 // smaller kicker (rounder, less pop)
     hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.5, -0.5, 18);
     const ob = OBSTACLES.wall;                     // The Wall always uses the brick wall
@@ -404,10 +403,9 @@
     const pts = [];
     pts.push({ x: 0, y: startY - 40 });
     pts.push({ x: startX, y: startY });
-    // SHORT, steep roll-in that curves straight down into the base of the kicker —
-    // no flat runway, no bump — so you hit the takeoff quickly after dropping in.
-    pts.push({ x: 400, y: 520 });
-    hermiteRamp(pts, 400, 520, 820, 830, 1.35, 0.0, 16);
+    // GRADUAL roll-in: gentle at the very top, steepening through the middle, then
+    // easing back to flat at the base of the kicker — a smooth drop-in, no abrupt start.
+    hermiteRamp(pts, startX, startY, 820, 830, 0.12, 0.0, 30);
     // the kicker rises straight out of the valley to the lip — a touch steeper so
     // your momentum alone carries you over the gap now that there's no launch boost
     const lipX = 1220, lipY = 650;
