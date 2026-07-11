@@ -419,21 +419,29 @@
     pts.push({ x: landX - 12, y: pitY });
     const landY = lipY + 130;
     pts.push({ x: landX, y: landY });
-    // The landing ramp descends and curves STRAIGHT into the half-pipe — one smooth
-    // valley, no hump, no gap between the landing and the pipe.
-    hermiteRamp(pts, landX, landY, landX + 760, landY + 300, 0.7, 0.0, 24);
-    const flatY = landY + 300, qpBase = landX + 760;
-    // HALF-PIPE finale: a smooth concave transition that curves up and finishes with
-    // a section of TRULY VERTICAL (90°) coping — a ski length or two tall — then a
-    // flat deck. Carry your own speed up the vertical and fly STRAIGHT UP off the
-    // coping (no boost), flip, and drop back in. Roll back past the flag to end.
-    hermiteRamp(pts, qpBase, flatY, qpBase + 234, flatY - 250, 0.0, -12.0, 24);   // smooth curve up to ~85°
-    pts.push({ x: qpBase + 236, y: flatY - 350 });   // ~100px of truly-vertical coping (~89°)
-    pts.push({ x: qpBase + 380, y: flatY - 350 });   // flat deck on top
-    const endX = qpBase + 380, windStart = null, finishLine = null;
+    // The landing ramp eases straight into the base of the quarter-pipe — a shallow,
+    // slope-0 join, no deep dip in front of the ramp.
+    hermiteRamp(pts, landX, landY, landX + 520, landY + 180, 0.7, 0.0, 22);
+    const flatY = landY + 180, qpBase = landX + 520;
+    // QUARTER-PIPE finale: a real skate ramp. A constant-radius arc curves smoothly
+    // from flat up to vertical, a section of TRULY VERTICAL (90°) coping (~1.5 ski
+    // lengths), a short flat deck, then the ramp's BACK slopes down to a runout (so it
+    // reads as a ramp structure, not a floating rectangle). Carry your own speed up the
+    // vertical and fly STRAIGHT UP off the coping (no boost), flip, drop back in, and
+    // roll back past the flag to end.
+    const R = 210;
+    for (let i = 1; i <= 18; i++) {
+      const th = (i / 18) * (Math.PI / 2);
+      pts.push({ x: qpBase + R * Math.sin(th), y: flatY - R * (1 - Math.cos(th)) });
+    }
+    pts.push({ x: qpBase + R + 4, y: flatY - R - 80 });    // truly-vertical coping (~80px, ~1.5 ski lengths)
+    pts.push({ x: qpBase + R + 110, y: flatY - R - 80 });  // short flat deck on top
+    pts.push({ x: qpBase + R + 240, y: flatY - 30 });      // back of the ramp slopes down
+    pts.push({ x: qpBase + R + 560, y: flatY - 30 });      // flat runout tail
+    const endX = qpBase + R + 560, windStart = null, finishLine = null;
     const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - ob.rise, baseY: pitY, type: obstacleId };
     course = {
-      id: "jump", pts, wall, startX, startY, maxSpeed: 850, qp: { baseX: qpBase, wentX: qpBase + 80, wentY: flatY - 120 },
+      id: "jump", pts, wall, startX, startY, maxSpeed: 850, qp: { baseX: qpBase, wentX: qpBase + 60, wentY: flatY - 110 },
       lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
