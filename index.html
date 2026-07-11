@@ -302,8 +302,8 @@
   // ------------------------------------------------------------------ tuning
   const G = 1650;            // gravity px/s^2
   const RUN_GRAV = 0.45;     // how much gravity accelerates you along the slope
-  const FRICTION = 6;        // gentle ground friction px/s^2
-  const MIN_SPEED = 180, MAX_SPEED = 820;   // top speed capped so the run-up stays controllable
+  const FRICTION = 3.5;      // low ground friction so you hold your speed catching hills
+  const MIN_SPEED = 180, MAX_SPEED = 880;   // top speed cap (per-course overrides via course.maxSpeed)
   const POP = 660;           // launch spring off the ramp lip
   const LAND_TOL = 0.82;     // radians of upright tolerance for a clean landing (~47 deg)
   const BOUNCE_TOL = 1.5;    // land within this (~86 deg) and you bounce off the skis instead of wiping out
@@ -837,9 +837,28 @@
   }
 
   // ------------------------------------------------------------------ flow
+  // Evaluate the wipeout: what got hit + how hard = which bones broke.
+  function injuryReport(hit, speed, flips) {
+    const sev = Math.min(1.35, speed / 760 + flips * 0.05);   // impact severity
+    const n = sev < 0.5 ? 1 : (sev < 0.9 ? (Math.random() < 0.5 ? 2 : 1) : (Math.random() < 0.45 ? 3 : 2));
+    const bones = {
+      wall:   ["collarbone", "nose", "jaw", "2 ribs", "3 ribs", "left shoulder", "right shoulder", "left wrist", "right wrist", "a rib"],
+      gap:    ["left femur", "right femur", "left tibia", "right shin", "pelvis", "tailbone", "left ankle", "right ankle", "both knees"],
+      ground: ["collarbone", "left wrist", "right wrist", "left ankle", "right ankle", "nose", "tailbone", "a rib", "2 ribs", "left femur", "right shin", "kneecap"],
+    }[hit] || [];
+    const verb = sev < 0.5 ? "bruised" : sev < 0.9 ? "broke" : (Math.random() < 0.5 ? "shattered" : "snapped");
+    const picks = [], avail = bones.slice();
+    for (let i = 0; i < n && avail.length; i++) picks.push(avail.splice(Math.floor(Math.random() * avail.length), 1)[0]);
+    const list = picks.length <= 1 ? (picks[0] || "everything") : picks.slice(0, -1).join(", ") + " and " + picks[picks.length - 1];
+    return "🦴 " + verb + " your " + list;
+  }
+
   function crash(title, msg) {
     skier.dead = true;
-    showResult(false, title, msg);
+    const speed = Math.hypot(skier.vx, skier.vy);
+    const hit = title === "SPLAT!" ? "wall" : title === "PLUNGE!" ? "gap" : "ground";
+    const injury = injuryReport(hit, speed, run.flips);
+    showResult(false, title, (msg ? msg + " · " : "") + injury);
   }
   function finishRun() { // reached runout upright
     const title = course.id === "crash" ? "YOU SURVIVED!" : (run.flips ? "STOMPED IT!" : "NICE RUN");
