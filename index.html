@@ -421,24 +421,25 @@
     pts.push({ x: landX, y: landY });
     // The landing ramp eases straight into the base of the quarter-pipe — a shallow,
     // slope-0 join, no deep dip in front of the ramp.
-    hermiteRamp(pts, landX, landY, landX + 520, landY + 180, 0.7, 0.0, 22);
-    const flatY = landY + 180, qpBase = landX + 520;
+    hermiteRamp(pts, landX, landY, landX + 700, landY + 180, 0.7, 0.0, 26);   // longer landing
+    const flatY = landY + 180, qpBase = landX + 700;
     // QUARTER-PIPE finale: a real skate ramp — one smooth constant-radius arc that
     // curves from flat up to a steep (~80°) lip, then a flat deck, then the ramp's
     // BACK slopes down to a runout. NO near-vertical spike (that made slopeAt jitter),
     // so it's smooth. Carry speed up it and you fly off the lip (your own momentum,
     // no boost), flip, and come back down to land it; too slow and you just ride back
     // down. Roll back past the flag (or crash) to end.
-    const R = 230;
-    for (let i = 1; i <= 22; i++) {
-      const th = (i / 22) * (Math.PI / 2);   // full quarter-circle up to vertical
+    const R = 200;
+    for (let i = 1; i <= 20; i++) {
+      const th = (i / 20) * (Math.PI / 2);   // full quarter-circle up to vertical
       pts.push({ x: qpBase + R * Math.sin(th), y: flatY - R * (1 - Math.cos(th)) });
     }
-    // then a stretch of near-vertical wall at the top — as close to 90° as a heightmap
-    // allows (only ~0.3px of x per 45px of rise ≈ 89.6°), so almost zero forward pull.
-    pts.push({ x: qpBase + R + 0.3, y: flatY - R - 45 });
-    pts.push({ x: qpBase + R + 0.6, y: flatY - R - 90 });
-    const copX = qpBase + R + 0.6, copY = flatY - R - 90;   // top of the near-vertical lip
+    // then a TALLER stretch of near-vertical wall at the top — as close to 90° as a
+    // heightmap allows (~0.3px of x per 40px of rise ≈ 89.6°), so you go straight up.
+    pts.push({ x: qpBase + R + 0.3, y: flatY - R - 40 });
+    pts.push({ x: qpBase + R + 0.6, y: flatY - R - 80 });
+    pts.push({ x: qpBase + R + 0.9, y: flatY - R - 120 });
+    const copX = qpBase + R + 0.9, copY = flatY - R - 120;   // top of the near-vertical lip
     pts.push({ x: copX + 60, y: copY });                  // short flat deck behind the lip
     pts.push({ x: copX + 200, y: flatY - 30 });           // back of the ramp slopes down
     pts.push({ x: copX + 520, y: flatY - 30 });           // flat runout tail
@@ -704,6 +705,9 @@
       // Fly off the lip with your OWN momentum — no boost, just like the original.
       // On the quarter-pipe this fires only if you reach the lip with real speed; too
       // slow and you never crest it, so gravity just carries you back down the ramp.
+      // Give the QP lip a small BACK-LEFT kick (like a >90° overhang) so you drop back
+      // into the pipe and never sail over the top.
+      if (course.qp && s.x > course.qp.baseX) s.vx = Math.min(s.vx, 0) - 22;
       leaveGround();
       return;
     }
