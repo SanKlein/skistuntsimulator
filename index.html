@@ -384,7 +384,8 @@
     pts.push({ x: A + 390, y: Ay - 430 });
     pts.push({ x: A + 480, y: Ay - 650 });    // keeps climbing (unreachable top)
     const endX = A + 480, windStart = A + 55, finishLine = landX + 90;
-    const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - (ob.rise + wallExtra), baseY: pitY, type: "wall" };
+    // taller wall — you only just clear it with a well-charged pop
+    const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - (ob.rise + 40 + wallExtra), baseY: pitY, type: "wall" };
     course = {
       id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
       markers: [
