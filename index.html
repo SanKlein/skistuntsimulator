@@ -358,14 +358,16 @@
     const wallExtra = ((run.drops * 37) % 46);        // subtle per-drop wall height
     const startX = 120, startY = 190;
     const pts = [];
-    pts.push({ x: 0, y: startY - 40 });
+    // Lead-in arrives at a GENTLE slope (~6 deg); the roll-in hermite starts at that same
+    // slope (m0 = 0.10) so there's no kink at the top — the whole start reads as one curve.
+    pts.push({ x: 0, y: startY - 12 });
     pts.push({ x: startX, y: startY });
-    // GRADUAL roll-in: flat and smooth at the top, steepening into a clean descent,
+    // GRADUAL roll-in: gentle and smooth at the top, steepening into a clean descent,
     // then easing into the run-up to the lip. High resolution so it reads smooth.
     const baseX = 900, baseY = 520;
-    hermiteRamp(pts, startX, startY, baseX, baseY, 0.0, 0.55, 46);
+    hermiteRamp(pts, startX, startY, baseX, baseY, 0.10, 0.5, 48);
     const lipX = 1130, lipY = 432;                 // smaller kicker (rounder, less pop)
-    hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.55, -0.5, 30);
+    hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.5, -0.5, 30);
     const ob = OBSTACLES.wall;                     // The Wall always uses the brick wall
     const gap = 300, pitY = lipY + 660;
     pts.push({ x: lipX + 12, y: pitY });
