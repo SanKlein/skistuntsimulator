@@ -348,6 +348,7 @@
 
   function buildCourse() {
     if (courseId === "jump") return buildMegaJumpCourse();
+    if (courseId === "kicker") return buildKickerCourse();
     if (courseId === "crash") return buildCrashCourse();
     return buildWallCourse();
   }
@@ -452,6 +453,40 @@
         { x: lipX, y: lipY, color: "#ff5a3c" },
         { x: landX, y: landY, color: "#3ca0ff" },
         { x: qpBase, y: flatY, color: "#2ecc71" },
+      ],
+    };
+  }
+
+  // THE KICKER — classic Ski Stunt Simulator: a smooth mountain roll-in, a dip, then a
+  // sharp triangular kicker peak you launch off with pure momentum for big flips, landing
+  // on a long smooth downhill and coasting out. No wall, no gap — just a natural jump.
+  function buildKickerCourse() {
+    const startX = 120, startY = 140;
+    const pts = [];
+    // Gentle lead-in matched to the roll-in's start slope (no kink at the top).
+    pts.push({ x: 0, y: startY - 12 });
+    pts.push({ x: startX, y: startY });
+    // Smooth mountain roll-in down into a dip.
+    hermiteRamp(pts, startX, startY, 900, 560, 0.10, 0.5, 46);
+    hermiteRamp(pts, 900, 560, 1180, 600, 0.5, -0.35, 18);   // bottom out, start rising
+    // Steep up-ramp to a SHARP kicker peak (rising ~43°, then the far side drops away ~29° —
+    // a pointed lip you fly off with your own speed).
+    const lipX = 1460, lipY = 452;
+    hermiteRamp(pts, 1180, 600, lipX, lipY, -0.35, -0.95, 22);
+    // Long, smooth landing hill descending away from the peak, then flattening to a runout.
+    hermiteRamp(pts, lipX, lipY, 2380, 980, 0.55, 0.5, 46);
+    hermiteRamp(pts, 2380, 980, 3050, 1150, 0.5, 0.12, 34);
+    hermiteRamp(pts, 3050, 1150, 3700, 1180, 0.12, 0.0, 24);
+    pts.push({ x: 4300, y: 1188 });
+    const landX = lipX, landY = 799, endX = 4000;   // landX = lipX ⇒ no plunge/gap zone
+    course = {
+      id: "kicker", pts, wall: null, startX, startY,
+      lipX, lipY, landX, landY, pitY: landY + 2000, endX,
+      windStart: null, finishLine: null, maxSpeed: 860,
+      markers: [
+        { x: lipX, y: lipY, color: "#ff5a3c" },
+        { x: 2050, y: 799, color: "#3ca0ff" },
+        { x: 3700, y: 1180, color: "#2ecc71" },
       ],
     };
   }
@@ -1911,6 +1946,7 @@
     const el = document.getElementById("courseTabs");
     const courses = [
       { id: "wall",  label: "The Wall",  desc: "Flip the wall" },
+      { id: "kicker", label: "The Kicker", desc: "Launch & flip" },
       { id: "jump",  label: "The Big Jump",  desc: "Gap + quarter-pipe" },
       { id: "crash", label: "The Crash", desc: "Survive the hill" },
     ];
