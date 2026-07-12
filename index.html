@@ -396,6 +396,8 @@
     course = {
       id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
       maxSpeed: 800, jumpPop: 560, jumpFull: 6.5,
+      landMaxSpeed: 520, landFriction: 14,   // shed speed fast on the landing + the ride back down
+
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
         { x: landX + 8, y: landY, color: "#3ca0ff" },
@@ -474,25 +476,25 @@
     pts.push({ x: startX, y: startY });
     // Smooth mountain roll-in down into a dip.
     hermiteRamp(pts, startX, startY, 1170, 728, 0.10, 0.5, 54);
-    hermiteRamp(pts, 1170, 728, 1534, 780, 0.5, -0.35, 22);   // bottom out, start rising
-    // Steep up-ramp to a SHARP kicker peak (rising ~43°, then the far side drops away ~29° —
-    // a pointed lip you fly off with your own speed).
-    const lipX = 1898, lipY = 588;
-    hermiteRamp(pts, 1534, 780, lipX, lipY, -0.35, -0.95, 26);
+    hermiteRamp(pts, 1170, 728, 1540, 776, 0.5, -0.4, 20);   // bottom out, start rising
+    // SHORT, SHARP kicker peak like the original — a compact ~220px takeoff face rising steeply
+    // (~47°) to a pointed lip, then the far side drops away ~28°. A tight spike, not a long ramp.
+    const lipX = 1760, lipY = 556;
+    hermiteRamp(pts, 1540, 776, lipX, lipY, -0.4, -1.05, 18);
     // Long, smooth landing hill descending away from the peak, then flattening to a runout.
-    hermiteRamp(pts, lipX, lipY, 3094, 1274, 0.55, 0.5, 54);
-    hermiteRamp(pts, 3094, 1274, 3965, 1495, 0.5, 0.12, 40);
-    hermiteRamp(pts, 3965, 1495, 4810, 1534, 0.12, 0.0, 30);
-    pts.push({ x: 5590, y: 1544 });
-    const landX = lipX, landY = 1039, endX = 5200;   // landX = lipX ⇒ no plunge/gap zone
+    hermiteRamp(pts, lipX, lipY, 2960, 1250, 0.52, 0.5, 56);
+    hermiteRamp(pts, 2960, 1250, 3830, 1470, 0.5, 0.12, 40);
+    hermiteRamp(pts, 3830, 1470, 4680, 1508, 0.12, 0.0, 30);
+    pts.push({ x: 5460, y: 1518 });
+    const landX = lipX, landY = 1010, endX = 5060;   // landX = lipX ⇒ no plunge/gap zone
     course = {
       id: "kicker", pts, wall: null, startX, startY,
       lipX, lipY, landX, landY, pitY: landY + 2000, endX,
       windStart: null, finishLine: null, maxSpeed: 1000,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
-        { x: 2665, y: 1039, color: "#3ca0ff" },
-        { x: 4810, y: 1534, color: "#2ecc71" },
+        { x: 2500, y: 991, color: "#3ca0ff" },
+        { x: 4680, y: 1508, color: "#2ecc71" },
       ],
     };
   }
@@ -708,8 +710,12 @@
     // downhill, so on an up-slope the skier slows, stops and slides back down.
     let v = s.vx * cos + s.vy * sin;
     v += G * RUN_GRAV * sin * dt;             // gravity along the slope
-    v -= Math.sign(v) * FRICTION * dt;         // friction opposes motion
-    const vmax = course.maxSpeed || MAX_SPEED;   // some courses (the mega ramp) run faster
+    // AFTER the lip (landing + ride back down the finishing bank) a course may ask for extra
+    // friction and a lower speed cap so it sheds speed quickly — the roll-in/launch, which
+    // happen at or before the lip, stay untouched.
+    const postLip = s.x > course.lipX;
+    v -= Math.sign(v) * ((postLip && course.landFriction) || FRICTION) * dt;   // friction opposes motion
+    const vmax = (postLip && course.landMaxSpeed) || course.maxSpeed || MAX_SPEED;   // some courses run faster
     v = Math.max(-vmax, Math.min(vmax, v));
     s.vx = cos * v;
     s.vy = sin * v;
