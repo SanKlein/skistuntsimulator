@@ -354,48 +354,51 @@
   }
 
   // THE WALL — like the original: a small, rounded takeoff, a wall to flip over,
-  // and a big smooth rounded landing bowl that scoops you down and back up.
+  // and a big smooth rounded landing bowl that scoops you down and back up. Like the
+  // ORIGINAL: the obstacle is a tall, sharp natural SNOW SPIKE that towers over the rider —
+  // scaled up for an epic look, but tuned (via arc-sim) so a good pump still just clears it
+  // and a passive ride-off clips it (same feel as before, bigger stage).
   function buildWallCourse() {
-    const wallExtra = ((run.drops * 37) % 46);        // subtle per-drop wall height
-    const startX = 120, startY = 190;
+    const wallExtra = ((run.drops * 37) % 52);        // subtle per-drop spike height
+    const startX = 140, startY = 210;
     const pts = [];
     // Lead-in arrives at a GENTLE slope (~6 deg); the roll-in hermite starts at that same
     // slope (m0 = 0.10) so there's no kink at the top — the whole start reads as one curve.
-    pts.push({ x: 0, y: startY - 12 });
+    pts.push({ x: 0, y: startY - 13 });
     pts.push({ x: startX, y: startY });
-    // GRADUAL roll-in: gentle and smooth at the top, steepening into a clean descent,
-    // then easing into the run-up to the lip. High resolution so it reads smooth.
-    const baseX = 900, baseY = 520;
-    hermiteRamp(pts, startX, startY, baseX, baseY, 0.10, 0.5, 48);
-    const lipX = 1130, lipY = 432;                 // smaller kicker (rounder, less pop)
-    hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.5, -0.5, 30);
-    const ob = OBSTACLES.wall;                     // The Wall always uses the brick wall
-    const gap = 300, pitY = lipY + 660;
-    pts.push({ x: lipX + 12, y: pitY });
+    // GRADUAL roll-in: gentle and smooth at the top, steepening into a clean descent (same
+    // slope angles as before, just a bigger stage), then easing into the run-up to the lip.
+    const baseX = 1120, baseY = 720;
+    hermiteRamp(pts, startX, startY, baseX, baseY, 0.10, 0.5, 54);
+    const lipX = 1420, lipY = 600;                 // rounded kicker lip
+    hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.5, -0.5, 34);
+    const gap = 420, pitY = lipY + 900;
+    pts.push({ x: lipX + 14, y: pitY });
     const landX = lipX + gap;
-    pts.push({ x: landX - 12, y: pitY });
-    const landY = lipY + 58;                        // landing hump, just below the lip
+    pts.push({ x: landX - 14, y: pitY });
+    const landY = lipY + 80;                        // landing hump, just below the lip
     pts.push({ x: landX, y: landY });
     // gentle, SHALLOW rounded landing — a mellow scoop, nothing deep (chill course).
-    hermiteRamp(pts, landX, landY, landX + 340, landY + 190, 0.0, 0.6, 30);
-    hermiteRamp(pts, landX + 340, landY + 190, landX + 900, landY + 240, 0.6, -0.18, 34);
-    // finishing bank: a MELLOW rounded roll-up (much less steep than a wall). You coast
-    // up, slow, stop, and slide back down to end. Eases in gently, then steepens beyond
-    // (top unreachable) so the run always settles back to the left.
-    const A = landX + 900, Ay = landY + 240;
-    hermiteRamp(pts, A, Ay, A + 620, Ay - 210, -0.18, -0.6, 34);
-    pts.push({ x: A + 780, y: Ay - 360 });    // steepens beyond (unreachable top)
-    pts.push({ x: A + 900, y: Ay - 560 });
-    const endX = A + 900, windStart = A + 45, finishLine = landX + 90;
-    // moderate wall — a good pump just clears it; ride off without pumping and you hit it
-    const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - (70 + wallExtra * 0.4), baseY: pitY, type: "wall" };
+    hermiteRamp(pts, landX, landY, landX + 480, landY + 260, 0.0, 0.6, 36);
+    hermiteRamp(pts, landX + 480, landY + 260, landX + 1260, landY + 330, 0.6, -0.18, 40);
+    // finishing bank: a MELLOW rounded roll-up. You coast up, slow, stop, and slide back
+    // down to end. Eases in gently, then steepens beyond (top unreachable) so the run
+    // always settles back to the left.
+    const A = landX + 1260, Ay = landY + 330;
+    hermiteRamp(pts, A, Ay, A + 860, Ay - 300, -0.18, -0.6, 40);
+    pts.push({ x: A + 1080, y: Ay - 500 });    // steepens beyond (unreachable top)
+    pts.push({ x: A + 1240, y: Ay - 780 });
+    const endX = A + 1240, windStart = A + 60, finishLine = landX + 120;
+    // tall SNOW SPIKE — a thin needle that towers ~180px (≈2.6 rider-heights) above the lip.
+    // A good pump just clears it; ride off without pumping and you hit it (arc-sim verified).
+    const wall = { x: lipX + gap * 0.5, halfW: 20, topY: lipY - (180 + wallExtra * 0.5), baseY: pitY, type: "spike" };
     course = {
       id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
-      maxSpeed: 710, jumpPop: 580, jumpFull: 6.5,
+      maxSpeed: 900, jumpPop: 820, jumpFull: 6.5,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
         { x: landX + 8, y: landY, color: "#3ca0ff" },
-        { x: A + 780, y: Ay - 360, color: "#2ecc71" },
+        { x: A + 1080, y: Ay - 500, color: "#2ecc71" },
       ],
     };
   }
@@ -461,32 +464,34 @@
   // sharp triangular kicker peak you launch off with pure momentum for big flips, landing
   // on a long smooth downhill and coasting out. No wall, no gap — just a natural jump.
   function buildKickerCourse() {
-    const startX = 120, startY = 140;
+    // Scaled up ~1.3× vs. a normal course (slopes preserved) so the peak and hills TOWER
+    // over the rider like the original — big, imposing terrain.
+    const startX = 156, startY = 182;
     const pts = [];
     // Gentle lead-in matched to the roll-in's start slope (no kink at the top).
-    pts.push({ x: 0, y: startY - 12 });
+    pts.push({ x: 0, y: startY - 16 });
     pts.push({ x: startX, y: startY });
     // Smooth mountain roll-in down into a dip.
-    hermiteRamp(pts, startX, startY, 900, 560, 0.10, 0.5, 46);
-    hermiteRamp(pts, 900, 560, 1180, 600, 0.5, -0.35, 18);   // bottom out, start rising
+    hermiteRamp(pts, startX, startY, 1170, 728, 0.10, 0.5, 54);
+    hermiteRamp(pts, 1170, 728, 1534, 780, 0.5, -0.35, 22);   // bottom out, start rising
     // Steep up-ramp to a SHARP kicker peak (rising ~43°, then the far side drops away ~29° —
     // a pointed lip you fly off with your own speed).
-    const lipX = 1460, lipY = 452;
-    hermiteRamp(pts, 1180, 600, lipX, lipY, -0.35, -0.95, 22);
+    const lipX = 1898, lipY = 588;
+    hermiteRamp(pts, 1534, 780, lipX, lipY, -0.35, -0.95, 26);
     // Long, smooth landing hill descending away from the peak, then flattening to a runout.
-    hermiteRamp(pts, lipX, lipY, 2380, 980, 0.55, 0.5, 46);
-    hermiteRamp(pts, 2380, 980, 3050, 1150, 0.5, 0.12, 34);
-    hermiteRamp(pts, 3050, 1150, 3700, 1180, 0.12, 0.0, 24);
-    pts.push({ x: 4300, y: 1188 });
-    const landX = lipX, landY = 799, endX = 4000;   // landX = lipX ⇒ no plunge/gap zone
+    hermiteRamp(pts, lipX, lipY, 3094, 1274, 0.55, 0.5, 54);
+    hermiteRamp(pts, 3094, 1274, 3965, 1495, 0.5, 0.12, 40);
+    hermiteRamp(pts, 3965, 1495, 4810, 1534, 0.12, 0.0, 30);
+    pts.push({ x: 5590, y: 1544 });
+    const landX = lipX, landY = 1039, endX = 5200;   // landX = lipX ⇒ no plunge/gap zone
     course = {
       id: "kicker", pts, wall: null, startX, startY,
       lipX, lipY, landX, landY, pitY: landY + 2000, endX,
-      windStart: null, finishLine: null, maxSpeed: 860,
+      windStart: null, finishLine: null, maxSpeed: 1000,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
-        { x: 2050, y: 799, color: "#3ca0ff" },
-        { x: 3700, y: 1180, color: "#2ecc71" },
+        { x: 2665, y: 1039, color: "#3ca0ff" },
+        { x: 4810, y: 1534, color: "#2ecc71" },
       ],
     };
   }
@@ -1448,7 +1453,8 @@
     if (!wl) return;                        // crash course has no obstacle
     ctx.save();
     const t = wl.type || "wall";
-    if (t === "temple") drawTemple(wl.x, wl.topY, wl.baseY, wl.halfW);
+    if (t === "spike") drawSnowSpike(wl.x, wl.topY, wl.baseY, wl.halfW);
+    else if (t === "temple") drawTemple(wl.x, wl.topY, wl.baseY, wl.halfW);
     else if (t === "mountain") drawMountain(wl.x, wl.topY, wl.baseY, wl.halfW);
     else if (t === "fire") drawFire(wl.x, wl.topY, wl.baseY, wl.halfW);
     else if (t === "truck") drawTruck(wl.x, wl.topY, wl.baseY, wl.halfW);
@@ -1469,6 +1475,42 @@
     }
     ctx.fillStyle = "#fff";
     ctx.beginPath(); ctx.ellipse(cx, top, hw + 3, 6, 0, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // A tall, sharp natural SNOW SPIKE / needle rising out of the gap — like the original
+  // "The Wall". Slightly tapered sides, a lit left face, a shaded right face, and a bright tip.
+  function drawSnowSpike(cx, top, base, hw) {
+    const w = hw * 2.4, h = base - top, mid = top + h * 0.5;
+    // lit snow face (bright top → cool base)
+    const grad = ctx.createLinearGradient(0, top, 0, base);
+    grad.addColorStop(0, "#ffffff");
+    grad.addColorStop(1, "#dceaf6");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(cx, top);
+    ctx.quadraticCurveTo(cx - w * 0.72, mid, cx - w, base);
+    ctx.lineTo(cx + w, base);
+    ctx.quadraticCurveTo(cx + w * 0.72, mid, cx, top);
+    ctx.closePath();
+    ctx.fill();
+    // shaded right side for depth
+    ctx.fillStyle = "rgba(150,172,198,0.34)";
+    ctx.beginPath();
+    ctx.moveTo(cx, top);
+    ctx.quadraticCurveTo(cx + w * 0.30, mid, cx + w * 0.5, base);
+    ctx.lineTo(cx + w, base);
+    ctx.quadraticCurveTo(cx + w * 0.72, mid, cx, top);
+    ctx.closePath();
+    ctx.fill();
+    // soft outline
+    ctx.strokeStyle = "rgba(120,142,168,0.5)"; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx, top); ctx.quadraticCurveTo(cx - w * 0.72, mid, cx - w, base);
+    ctx.moveTo(cx, top); ctx.quadraticCurveTo(cx + w * 0.72, mid, cx + w, base);
+    ctx.stroke();
+    // bright tip
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath(); ctx.arc(cx, top + 3, 2.6, 0, Math.PI * 2); ctx.fill();
   }
 
   // A tiered Chinese pagoda / temple, tower-tall to fill the gap.
