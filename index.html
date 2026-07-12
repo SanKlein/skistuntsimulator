@@ -392,7 +392,7 @@
     // tall SNOW SPIKE — a thin needle towering ~130px (≈1.9 rider-heights) above the lip,
     // rising out of the deep gap. A good pump just clears it (~55px margin, ~190px jump apex);
     // ride off without pumping and you clip it (arc-sim verified — not a floaty moon-jump).
-    const wall = { x: lipX + gap * 0.5, halfW: 20, topY: lipY - (130 + wallExtra * 0.5), baseY: pitY, type: "spike" };
+    const wall = { x: lipX + gap * 0.5, halfW: 32, topY: lipY - (130 + wallExtra * 0.5), baseY: pitY, type: "spike" };
     course = {
       id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
       maxSpeed: 800, jumpPop: 560, jumpFull: 6.5,
@@ -1488,37 +1488,41 @@
   // A tall, sharp natural SNOW SPIKE / needle rising out of the gap — like the original
   // "The Wall". Slightly tapered sides, a lit left face, a shaded right face, and a bright tip.
   function drawSnowSpike(cx, top, base, hw) {
-    const w = hw * 2.4, h = base - top, mid = top + h * 0.5;
-    // lit snow face (bright top → cool base)
+    const w = hw * 2.4, h = base - top, mid = top + h * 0.46;
+    // main lit snow body — a fuller, chunky spike with a gently tapered base
     const grad = ctx.createLinearGradient(0, top, 0, base);
     grad.addColorStop(0, "#ffffff");
-    grad.addColorStop(1, "#dceaf6");
+    grad.addColorStop(0.6, "#f1f7fe");
+    grad.addColorStop(1, "#d4e4f3");
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.moveTo(cx, top);
-    ctx.quadraticCurveTo(cx - w * 0.72, mid, cx - w, base);
+    ctx.quadraticCurveTo(cx - w * 0.60, mid, cx - w, base);
     ctx.lineTo(cx + w, base);
-    ctx.quadraticCurveTo(cx + w * 0.72, mid, cx, top);
+    ctx.quadraticCurveTo(cx + w * 0.60, mid, cx, top);
     ctx.closePath();
     ctx.fill();
-    // shaded right side for depth
-    ctx.fillStyle = "rgba(150,172,198,0.34)";
+    // shaded right face for volume
+    ctx.fillStyle = "rgba(150,172,198,0.30)";
     ctx.beginPath();
     ctx.moveTo(cx, top);
-    ctx.quadraticCurveTo(cx + w * 0.30, mid, cx + w * 0.5, base);
+    ctx.quadraticCurveTo(cx + w * 0.24, mid, cx + w * 0.42, base);
     ctx.lineTo(cx + w, base);
-    ctx.quadraticCurveTo(cx + w * 0.72, mid, cx, top);
+    ctx.quadraticCurveTo(cx + w * 0.60, mid, cx, top);
     ctx.closePath();
     ctx.fill();
+    // bright central ridge for a 3D snow look
+    ctx.strokeStyle = "rgba(255,255,255,0.8)"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(cx, top + 4); ctx.lineTo(cx - w * 0.06, base); ctx.stroke();
     // soft outline
-    ctx.strokeStyle = "rgba(120,142,168,0.5)"; ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(120,142,168,0.45)"; ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(cx, top); ctx.quadraticCurveTo(cx - w * 0.72, mid, cx - w, base);
-    ctx.moveTo(cx, top); ctx.quadraticCurveTo(cx + w * 0.72, mid, cx + w, base);
+    ctx.moveTo(cx, top); ctx.quadraticCurveTo(cx - w * 0.60, mid, cx - w, base);
+    ctx.moveTo(cx, top); ctx.quadraticCurveTo(cx + w * 0.60, mid, cx + w, base);
     ctx.stroke();
-    // bright tip
+    // bright rounded tip
     ctx.fillStyle = "#ffffff";
-    ctx.beginPath(); ctx.arc(cx, top + 3, 2.6, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, top + 3, 3, 0, Math.PI * 2); ctx.fill();
   }
 
   // A tiered Chinese pagoda / temple, tower-tall to fill the gap.
