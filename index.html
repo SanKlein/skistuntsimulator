@@ -360,11 +360,12 @@
     const pts = [];
     pts.push({ x: 0, y: startY - 40 });
     pts.push({ x: startX, y: startY });
-    // GRADUAL roll-in: gentle at the top, steepening, easing into the run-up to the lip
-    const baseX = 880, baseY = 512;
-    hermiteRamp(pts, startX, startY, baseX, baseY, 0.1, 0.5, 24);
-    const lipX = 1120, lipY = 432;                 // smaller kicker (rounder, less pop)
-    hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.5, -0.5, 18);
+    // GRADUAL roll-in: flat and smooth at the top, steepening into a clean descent,
+    // then easing into the run-up to the lip. High resolution so it reads smooth.
+    const baseX = 900, baseY = 520;
+    hermiteRamp(pts, startX, startY, baseX, baseY, 0.0, 0.55, 46);
+    const lipX = 1130, lipY = 432;                 // smaller kicker (rounder, less pop)
+    hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.55, -0.5, 30);
     const ob = OBSTACLES.wall;                     // The Wall always uses the brick wall
     const gap = 300, pitY = lipY + 660;
     pts.push({ x: lipX + 12, y: pitY });
@@ -373,25 +374,25 @@
     const landY = lipY + 58;                        // landing hump, just below the lip
     pts.push({ x: landX, y: landY });
     // gentle, SHALLOW rounded landing — a mellow scoop, nothing deep (chill course).
-    // Shorter now: less landing run and a tighter finishing ramp.
-    hermiteRamp(pts, landX, landY, landX + 320, landY + 180, 0.0, 0.7, 18);
-    hermiteRamp(pts, landX + 320, landY + 180, landX + 860, landY + 230, 0.7, -0.28, 22);
-    // finishing wall: keeps rising, so you ride up, stop, and slide back down to end.
-    const A = landX + 860, Ay = landY + 230;
-    pts.push({ x: A + 110, y: Ay - 90 });
-    pts.push({ x: A + 210, y: Ay - 240 });
-    pts.push({ x: A + 300, y: Ay - 430 });
-    pts.push({ x: A + 380, y: Ay - 650 });    // keeps climbing (unreachable top)
-    const endX = A + 380, windStart = A + 45, finishLine = landX + 90;
+    hermiteRamp(pts, landX, landY, landX + 340, landY + 190, 0.0, 0.6, 30);
+    hermiteRamp(pts, landX + 340, landY + 190, landX + 900, landY + 240, 0.6, -0.18, 34);
+    // finishing bank: a MELLOW rounded roll-up (much less steep than a wall). You coast
+    // up, slow, stop, and slide back down to end. Eases in gently, then steepens beyond
+    // (top unreachable) so the run always settles back to the left.
+    const A = landX + 900, Ay = landY + 240;
+    hermiteRamp(pts, A, Ay, A + 620, Ay - 210, -0.18, -0.6, 34);
+    pts.push({ x: A + 780, y: Ay - 360 });    // steepens beyond (unreachable top)
+    pts.push({ x: A + 900, y: Ay - 560 });
+    const endX = A + 900, windStart = A + 45, finishLine = landX + 90;
     // moderate wall — a good pump just clears it; ride off without pumping and you hit it
     const wall = { x: lipX + gap * 0.5, halfW: ob.halfW, topY: lipY - (70 + wallExtra * 0.4), baseY: pitY, type: "wall" };
     course = {
       id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
-      maxSpeed: 640, jumpPop: 580, jumpFull: 6.5,
+      maxSpeed: 710, jumpPop: 580, jumpFull: 6.5,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
         { x: landX + 8, y: landY, color: "#3ca0ff" },
-        { x: A + 380, y: Ay - 650, color: "#2ecc71" },
+        { x: A + 780, y: Ay - 360, color: "#2ecc71" },
       ],
     };
   }
