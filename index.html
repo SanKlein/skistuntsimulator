@@ -474,27 +474,28 @@
     // Gentle lead-in matched to the roll-in's start slope (no kink at the top).
     pts.push({ x: 0, y: startY - 16 });
     pts.push({ x: startX, y: startY });
-    // Smooth mountain roll-in down into a dip.
-    hermiteRamp(pts, startX, startY, 1170, 728, 0.10, 0.5, 54);
-    hermiteRamp(pts, 1170, 728, 1540, 776, 0.5, -0.4, 20);   // bottom out, start rising
-    // SHORT, SHARP kicker peak like the original — a compact ~220px takeoff face rising steeply
-    // (~47°) to a pointed lip, then the far side drops away ~28°. A tight spike, not a long ramp.
-    const lipX = 1760, lipY = 556;
-    hermiteRamp(pts, 1540, 776, lipX, lipY, -0.4, -1.05, 18);
-    // Long, smooth landing hill descending away from the peak, then flattening to a runout.
-    hermiteRamp(pts, lipX, lipY, 2960, 1250, 0.52, 0.5, 56);
-    hermiteRamp(pts, 2960, 1250, 3830, 1470, 0.5, 0.12, 40);
-    hermiteRamp(pts, 3830, 1470, 4680, 1508, 0.12, 0.0, 30);
-    pts.push({ x: 5460, y: 1518 });
-    const landX = lipX, landY = 1010, endX = 5060;   // landX = lipX ⇒ no plunge/gap zone
+    // Smooth mountain roll-in down into a dip / approach.
+    hermiteRamp(pts, startX, startY, 1200, 780, 0.10, 0.5, 54);
+    hermiteRamp(pts, 1200, 780, 1560, 812, 0.5, -0.2, 20);   // dip into the approach
+    // SHORT, compact kicker like the original — a small sharp launch ramp, only ~160px wide and
+    // ~120px tall (≈1.8 rider-heights). You POP off it (rising ~44°, far side drops ~27°); it's a
+    // kicker, not a tall spike.
+    const lipX = 1720, lipY = 692;
+    hermiteRamp(pts, 1560, 812, lipX, lipY, -0.2, -0.95, 14);
+    // Long, smooth landing hill descending away from the kicker, then flattening to a runout.
+    hermiteRamp(pts, lipX, lipY, 2860, 1260, 0.5, 0.5, 54);
+    hermiteRamp(pts, 2860, 1260, 3730, 1480, 0.5, 0.12, 40);
+    hermiteRamp(pts, 3730, 1480, 4580, 1518, 0.12, 0.0, 30);
+    pts.push({ x: 5360, y: 1528 });
+    const landX = lipX, landY = 1010, endX = 4900;   // landX = lipX ⇒ no plunge/gap zone
     course = {
       id: "kicker", pts, wall: null, startX, startY,
       lipX, lipY, landX, landY, pitY: landY + 2000, endX,
       windStart: null, finishLine: null, maxSpeed: 1000,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
-        { x: 2500, y: 991, color: "#3ca0ff" },
-        { x: 4680, y: 1508, color: "#2ecc71" },
+        { x: 2450, y: 1056, color: "#3ca0ff" },
+        { x: 4580, y: 1518, color: "#2ecc71" },
       ],
     };
   }
