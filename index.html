@@ -389,12 +389,13 @@
     pts.push({ x: A + 1080, y: Ay - 500 });    // steepens beyond (unreachable top)
     pts.push({ x: A + 1240, y: Ay - 780 });
     const endX = A + 1240, windStart = A + 60, finishLine = landX + 120;
-    // tall SNOW SPIKE — a thin needle that towers ~180px (≈2.6 rider-heights) above the lip.
-    // A good pump just clears it; ride off without pumping and you hit it (arc-sim verified).
-    const wall = { x: lipX + gap * 0.5, halfW: 20, topY: lipY - (180 + wallExtra * 0.5), baseY: pitY, type: "spike" };
+    // tall SNOW SPIKE — a thin needle towering ~130px (≈1.9 rider-heights) above the lip,
+    // rising out of the deep gap. A good pump just clears it (~55px margin, ~190px jump apex);
+    // ride off without pumping and you clip it (arc-sim verified — not a floaty moon-jump).
+    const wall = { x: lipX + gap * 0.5, halfW: 20, topY: lipY - (130 + wallExtra * 0.5), baseY: pitY, type: "spike" };
     course = {
       id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
-      maxSpeed: 900, jumpPop: 820, jumpFull: 6.5,
+      maxSpeed: 800, jumpPop: 560, jumpFull: 6.5,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
         { x: landX + 8, y: landY, color: "#3ca0ff" },
