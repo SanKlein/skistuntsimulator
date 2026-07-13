@@ -263,11 +263,11 @@
   <!-- Mobile gate -->
   <div id="mobileGate" class="hidden">
     <div class="card">
-      <h1><span class="sub">Heads up</span>Best on a computer 🖥️</h1>
-      <p>Ski Stunt Simulator is controlled with <b>mouse movement</b> (move up/down to crouch,
-      left/right to lean), so it needs a desktop or laptop with a mouse or trackpad. A touch
-      version for phones is on the way — check back soon!</p>
-      <button class="btn" id="mobileTry">Try anyway ▸</button>
+      <h1><span class="sub">Heads up</span>Now playable on phones 📱</h1>
+      <p>Use the <b>joystick</b> in the bottom-right: push <b>down</b> to tuck (go faster),
+      <b>up</b> to stand tall, and <b>left/right</b> to lean and flip. Crouch then flick up to
+      pop off jumps. (It still plays great on a computer with mouse movement, too.)</p>
+      <button class="btn" id="mobileTry">Let's ski ▸</button>
     </div>
   </div>
 
@@ -574,14 +574,31 @@
   function release() { input.down = false; }
   function setXY(e) { input.x = e.clientX; input.y = e.clientY; }
 
+  // On-screen JOYSTICK for touch devices — a fixed pad in the bottom-right. The thumb's
+  // offset from centre drives the same pose signal as the cursor: up = extend, down = tuck,
+  // left/right = lean. dx/dy are normalised to [-1, 1]; `id` is the touch holding it.
+  const joy = { enabled: false, id: null, R: 56, margin: 26, dx: 0, dy: 0 };
+  function joyCenter() { return { x: W - joy.margin - joy.R, y: H - joy.margin - joy.R }; }
+  function inJoyZone(px, py) { const c = joyCenter(); return Math.hypot(px - c.x, py - c.y) < joy.R * 1.9; }
+  function updateJoy(px, py) {
+    const c = joyCenter(); let dx = px - c.x, dy = py - c.y; const len = Math.hypot(dx, dy);
+    if (len > joy.R) { dx = dx / len * joy.R; dy = dy / len * joy.R; }
+    joy.dx = dx / joy.R; joy.dy = dy / joy.R;
+  }
+  function releaseJoy() { joy.id = null; joy.dx = 0; joy.dy = 0; }
+
   canvas.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     if (state === "replay") { if (!(replay && (replay.recording || replay.gifCapture))) endReplay(); return; }  // tap stops replay (not while capturing)
+    if (joy.enabled && inJoyZone(e.clientX, e.clientY)) { joy.id = e.pointerId; updateJoy(e.clientX, e.clientY); return; }
     setXY(e); press();
   });
-  window.addEventListener("pointermove", setXY, { passive: true });
-  window.addEventListener("pointerup", () => release());
-  window.addEventListener("pointercancel", () => release());
+  window.addEventListener("pointermove", (e) => {
+    if (joy.id === e.pointerId) { updateJoy(e.clientX, e.clientY); return; }
+    setXY(e);
+  }, { passive: true });
+  window.addEventListener("pointerup", (e) => { if (joy.id === e.pointerId) return releaseJoy(); release(); });
+  window.addEventListener("pointercancel", (e) => { if (joy.id === e.pointerId) return releaseJoy(); release(); });
   window.addEventListener("keydown", (e) => {
     if (state === "replay") { e.preventDefault(); if (!(replay && (replay.recording || replay.gifCapture))) endReplay(); return; }  // any key stops replay (not while capturing)
     if (e.code === "Space") { e.preventDefault(); press(); }
@@ -592,6 +609,8 @@
   // How tucked the skier should be right now, 0 (extended) .. 1 (fully tucked),
   // driven by where the cursor sits vertically on screen.
   function tuckTarget() {
+    // On touch, drive purely from the joystick (down = tuck, up = extend); neutral = mid-crouch.
+    if (joy.enabled) return Math.max(0, Math.min(1, 0.5 + joy.dy * 0.5));
     // relative to screen-centre: move up = extend (hands up), down = crouch/tuck.
     // Neutral (at centre) sits mid-crouch so there's room both ways.
     let t = 0.5 + (input.y - H / 2) / (H * 0.32);
@@ -604,6 +623,12 @@
   // from how far the cursor has moved left/right of screen-centre. A dead-zone
   // around centre keeps you neutral (no flip) unless you deliberately lean.
   function leanTarget() {
+    if (joy.enabled) {                        // touch: lean from the joystick's x-throw
+      const dz = 0.18; let d = joy.dx;
+      if (Math.abs(d) < dz) return 0;
+      d = d > 0 ? d - dz : d + dz;
+      return Math.max(-1, Math.min(1, d / 0.6));
+    }
     const dz = W * 0.05;                      // neutral dead-zone
     let d = input.x - W / 2;
     if (Math.abs(d) < dz) return 0;
@@ -1367,7 +1392,7 @@
 
     ctx.restore();
 
-    if (state === "play") drawControlPad();
+    if (state === "play") { if (joy.enabled) drawJoystick(); else drawControlPad(); }
   }
 
   // Control gauge drawn right at the cursor: a labelled crosshair pinned to your
@@ -1402,6 +1427,35 @@
     ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(cxp, cyp); ctx.stroke();
     ctx.strokeStyle = "#ffcf33"; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(cxp, cyp, 6, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  // Bottom-right virtual joystick (touch devices). Push the thumb up/down to extend/tuck
+  // and left/right to lean; crouch then flick up to pop off jumps.
+  function drawJoystick() {
+    const c = joyCenter(), R = joy.R;
+    ctx.save();
+    ctx.lineCap = "round";
+    // base
+    ctx.fillStyle = "rgba(20,28,40,0.26)";
+    ctx.beginPath(); ctx.arc(c.x, c.y, R, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.38)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(c.x, c.y, R, 0, Math.PI * 2); ctx.stroke();
+    // faint cross + labels
+    ctx.strokeStyle = "rgba(255,255,255,0.16)"; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(c.x - R + 6, c.y); ctx.lineTo(c.x + R - 6, c.y);
+    ctx.moveTo(c.x, c.y - R + 6); ctx.lineTo(c.x, c.y + R - 6); ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.55)"; ctx.font = "8px system-ui,-apple-system,sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("EXTEND", c.x, c.y - R + 9);
+    ctx.fillText("TUCK", c.x, c.y + R - 9);
+    // thumb
+    const tx = c.x + joy.dx * R, ty = c.y + joy.dy * R, tr = R * 0.44;
+    ctx.fillStyle = joy.id !== null ? "#ffcf33" : "rgba(255,255,255,0.9)";
+    ctx.beginPath(); ctx.arc(tx, ty, tr, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,0.18)"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(tx, ty, tr, 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
   }
 
@@ -2203,6 +2257,7 @@
   const isTouchDevice =
     /Mobi|Android|iPhone|iPad|iPod|Windows Phone|BlackBerry/i.test(navigator.userAgent || "") ||
     (navigator.maxTouchPoints > 1 && window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+  joy.enabled = isTouchDevice;              // show + use the on-screen joystick on phones/tablets
   if (isTouchDevice) document.getElementById("mobileGate").classList.remove("hidden");
   document.getElementById("mobileTry").addEventListener("click", () => {
     document.getElementById("mobileGate").classList.add("hidden");
