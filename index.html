@@ -378,30 +378,26 @@
     pts.push({ x: landX - 14, y: pitY });
     const landY = lipY + 80;                        // landing hump, just below the lip
     pts.push({ x: landX, y: landY });
-    // gentle, SHALLOW rounded landing — a mellow scoop, nothing deep (chill course).
-    hermiteRamp(pts, landX, landY, landX + 480, landY + 260, 0.0, 0.6, 36);
-    hermiteRamp(pts, landX + 480, landY + 260, landX + 1260, landY + 330, 0.6, -0.18, 40);
-    // finishing bank: a MELLOW rounded roll-up. You coast up, slow, stop, and slide back
-    // down to end. Eases in gently, then steepens beyond (top unreachable) so the run
-    // always settles back to the left.
-    const A = landX + 1260, Ay = landY + 330;
-    hermiteRamp(pts, A, Ay, A + 860, Ay - 300, -0.18, -0.6, 40);
-    pts.push({ x: A + 1080, y: Ay - 500 });    // steepens beyond (unreachable top)
-    pts.push({ x: A + 1240, y: Ay - 780 });
-    const endX = A + 1240, windStart = A + 60, finishLine = landX + 120;
+    // gentle, SHALLOW rounded landing that bottoms out, then a LONG gently-uphill runout.
+    hermiteRamp(pts, landX, landY, landX + 480, landY + 280, 0.0, 0.55, 36);
+    hermiteRamp(pts, landX + 480, landY + 280, landX + 1160, landY + 320, 0.55, -0.15, 32);   // bottom out
+    // Outrun: you glide out and slow NATURALLY on a gentle uphill (no molasses drag), ski past
+    // the finish flag, and the run ends a few seconds later — a realistic finish.
+    hermiteRamp(pts, landX + 1160, landY + 320, landX + 3360, landY + 180, -0.15, -0.08, 54);
+    pts.push({ x: landX + 5160, y: landY + 120 });   // very gentle rise out to the end
+    const endX = landX + 4960, finishFlagX = landX + 2400, windStart = null, finishLine = null;
     // tall SNOW SPIKE — a thin needle towering ~130px (≈1.9 rider-heights) above the lip,
     // rising out of the deep gap. A good pump just clears it (~55px margin, ~190px jump apex);
     // ride off without pumping and you clip it (arc-sim verified — not a floaty moon-jump).
     const wall = { x: lipX + gap * 0.5, halfW: 32, topY: lipY - (130 + wallExtra * 0.5), baseY: pitY, type: "spike" };
     course = {
-      id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY, endX, windStart, finishLine,
+      id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY, endX, windStart, finishLine, finishFlagX,
       maxSpeed: 800, jumpPop: 560, jumpFull: 6.5,
-      landMaxSpeed: 520, landFriction: 14,   // shed speed fast on the landing + the ride back down
-
+      landMaxSpeed: 660,   // a gentle cap so the landing isn't blazing — but NO harsh friction drag
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
         { x: landX + 8, y: landY, color: "#3ca0ff" },
-        { x: A + 1080, y: Ay - 500, color: "#2ecc71" },
+        { x: landX + 2400, y: 906, color: "#2ecc71" },   // FINISH flag — ski past it to end the run
       ],
     };
   }
@@ -707,6 +703,7 @@
       dead: false,
       skisOff: false,         // skis detached in a wipeout
       wipeAV: 0,              // body tumble spin during a wipeout
+      pastFlag: false,        // skied past the finish flag (runout courses)
     };
     cam = { x: 0, y: 0 };
     particles = [];
@@ -807,6 +804,13 @@
         // otherwise end only once you've come to rest (rode it out, or landed up top) —
         // the smooth arc means you never hang at the lip, so this can't fire mid-ride.
         if (Math.abs(v) < 40) { s.slowTime += dt; if (s.slowTime > (s.wentUp ? 1.4 : 1.8)) return finishRun(); }
+        else s.slowTime = 0;
+      } else if (course.finishFlagX != null) {
+        // Realistic finish: ski PAST the flag, glide out on the runout, and the run ends ~5s
+        // later (or once you settle to a stop). No sliding back up a bank.
+        if (s.x > course.finishFlagX) s.pastFlag = true;
+        if (s.pastFlag) { s.endTimer += dt; if (s.endTimer > 5) return finishRun(); }
+        if (Math.abs(v) < 40) { s.slowTime += dt; if (s.slowTime > 1.6) return finishRun(); }
         else s.slowTime = 0;
       } else {
         if (course.windStart != null && s.x > course.windStart && v <= 0) s.comingBack = true;
