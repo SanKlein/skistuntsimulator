@@ -703,9 +703,12 @@
       swing: 0, swingV: 0,    // springy sway of dangling accessories (cape/flag/purse)
       flagDir: -1,            // which way the flag flies (downwind): -1 left, +1 right
       dead: false,
+      skisOff: false,         // skis detached in a wipeout
+      wipeAV: 0,              // body tumble spin during a wipeout
     };
     cam = { x: 0, y: 0 };
     particles = [];
+    debris = [];
     trail = [];
     trailT = 0;
   }
@@ -962,14 +965,89 @@
     return zone + " — 🦴 " + verb + " your " + list;
   }
 
+  // Detached debris (skis that pop off in a hard wipeout) + the pending result card.
+  let debris = [], wipeoutT = 0, pendingResult = null;
+
   function crash(title, msg) {
-    skier.dead = true;
     const s = skier;
+    s.dead = true;
     const speed = Math.hypot(s.vx, s.vy);
     // orientation vs the surface for a ground landing, vs upright for a wall/gap hit
     const ref = title === "SPLAT!" || title === "PLUNGE!" ? 0 : slopeAt(s.x);
-    const injury = injuryReport(speed, run.flips, s.angle - ref);   // null if the fall wasn't hard enough to break anything
-    showResult(false, title, [msg, injury].filter(Boolean).join(" · "));
+    let off = s.angle - ref; off = off - Math.round(off / (2 * Math.PI)) * (2 * Math.PI);
+    const injury = injuryReport(speed, run.flips, off);   // null if the fall wasn't hard enough to break anything
+    pendingResult = { title, msg: [msg, injury].filter(Boolean).join(" · ") };
+    // FORCE-BASED SKI DETACHMENT: a hard, off-axis impact pops the skis off (they cartwheel
+    // away on their own). Clean-ish or slow hits keep them on. Then play out the tumble before
+    // the result card shows.
+    const detach = speed / 760 + Math.abs(off) * 0.16 > 0.62;
+    startWipeout(s, speed, off, detach, title === "PLUNGE!");
+  }
+
+  // Kick off the ~1.5s wipeout aftermath: the body ragdolls and (if the hit was hard) the skis
+  // detach and tumble off. No control; pure ballistics + ground bounce, then the card.
+  function startWipeout(s, speed, off, detach, plunge) {
+    wipeoutT = 0; state = "wipeout";
+    s.skisOff = detach;
+    s.wipeAV = (off > 0 ? 1 : -1) * (3 + Math.min(6, speed / 150)) + (Math.random() - 0.5) * 2;  // tumble spin
+    if (!plunge) s.vy = Math.min(s.vy, -70 - Math.min(190, speed * 0.2));   // pop off the impact
+    s.vx *= 0.7;
+    debris = [];
+    if (detach) {
+      for (let i = 0; i < 2; i++) {
+        const dir = i ? 1 : -1;
+        debris.push({
+          x: s.x + dir * 5, y: ground(s.x) - 3,
+          vx: s.vx * 0.9 + dir * (50 + Math.random() * 90) + (Math.random() - 0.5) * 40,
+          vy: -(150 + Math.random() * 150 + speed * 0.15),
+          angle: s.angle, av: dir * (9 + Math.random() * 11) + (Math.random() - 0.5) * 6,
+          len: 46, col: character.skis,
+        });
+      }
+    }
+  }
+
+  function stepWipeout(dt) {
+    wipeoutT += dt;
+    const s = skier;
+    // body ragdoll — tumble under gravity with a damped ground bounce
+    s.vy += G * dt;
+    s.x += s.vx * dt; s.y += s.vy * dt; s.angle += s.wipeAV * dt;
+    const gy = ground(s.x);
+    if (s.y >= gy) {
+      s.y = gy;
+      if (s.vy > 45) { s.vy *= -0.34; s.vx *= 0.6; s.wipeAV *= 0.55; }   // bounce
+      else { s.vy = 0; s.vx *= (1 - 4 * dt); s.wipeAV *= (1 - 5 * dt); }  // settle
+    }
+    s.vx *= (1 - 0.8 * dt);
+    // detached skis — same, but bouncier and lighter
+    for (const d of debris) {
+      d.vy += G * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.angle += d.av * dt;
+      const dgy = ground(d.x);
+      if (d.y >= dgy) {
+        d.y = dgy;
+        if (d.vy > 30) { d.vy *= -0.42; d.vx *= 0.7; d.av *= 0.7; }
+        else { d.vy = 0; d.vx *= (1 - 5 * dt); d.av *= (1 - 6 * dt); }
+      }
+      d.vx *= (1 - 0.7 * dt);
+    }
+    stepParticles(dt); updateSway(dt); updateCamera(dt);
+    if (wipeoutT > 1.5) showResult(false, pendingResult.title, pendingResult.msg);
+  }
+
+  // The tumbling skis (drawn inside the world transform, on top of the body).
+  function drawDebris() {
+    if (state === "replay") return;                 // the replay re-runs the clean trail
+    for (const d of debris) {
+      ctx.save();
+      ctx.translate(d.x, d.y); ctx.rotate(d.angle);
+      ctx.strokeStyle = d.col; ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(-d.len * 0.5, 0); ctx.lineTo(d.len * 0.5, 0);
+      ctx.moveTo(d.len * 0.5, 0); ctx.quadraticCurveTo(d.len * 0.5 + 9, 0, d.len * 0.5 + 9, -7);
+      ctx.stroke();
+      ctx.restore();
+    }
   }
   function finishRun() { // reached runout upright
     const title = course.id === "crash" ? "YOU SURVIVED!" : (run.flips ? "STOMPED IT!" : "NICE RUN");
@@ -1389,6 +1467,7 @@
     drawWall();
     drawParticles();
     drawSkier();
+    drawDebris();
 
     ctx.restore();
 
@@ -1688,7 +1767,7 @@
   // Joints interpolate between an EXTENDED and a deep TUCK pose by `tuck`; the
   // upper body leans by `lean`; the whole body rotates by `angle` about the hip.
   // Colours/build/features come from the character config `C`.
-  function paintSkierBody(pctx, C, tuck, lean, angle, sway, flagDir) {
+  function paintSkierBody(pctx, C, tuck, lean, angle, sway, flagDir, noSkis) {
     const t = Math.max(0, Math.min(1, tuck));
     const B = C.build || 1, thin = C.thin ? 0.84 : 1;
 
@@ -1703,13 +1782,15 @@
     pctx.lineCap = "round"; pctx.lineJoin = "round";
     pctx.translate(hip.x, hip.y); pctx.rotate(angle); pctx.translate(-hip.x, -hip.y);
 
-    // skis + upturned tips
-    pctx.strokeStyle = C.skis; pctx.lineWidth = 4;
-    pctx.beginPath();
-    pctx.moveTo(-22, 3); pctx.lineTo(24, 3);
-    pctx.moveTo(24, 3); pctx.quadraticCurveTo(33, 3, 33, -4);
-    pctx.moveTo(-22, 3); pctx.quadraticCurveTo(-29, 3, -29, -3);
-    pctx.stroke();
+    // skis + upturned tips (skipped once they've detached in a wipeout)
+    if (!noSkis) {
+      pctx.strokeStyle = C.skis; pctx.lineWidth = 4;
+      pctx.beginPath();
+      pctx.moveTo(-22, 3); pctx.lineTo(24, 3);
+      pctx.moveTo(24, 3); pctx.quadraticCurveTo(33, 3, 33, -4);
+      pctx.moveTo(-22, 3); pctx.quadraticCurveTo(-29, 3, -29, -3);
+      pctx.stroke();
+    }
 
     // legs: thigh (hip->knee) is the bottom colour; shin (knee->foot) is skin
     // for shorts, bottom colour for pants
@@ -2023,7 +2104,8 @@
     const s = skier;
     ctx.save();
     ctx.translate(s.x, s.y);
-    paintSkierBody(ctx, character, s.tuck, s.lean, s.angle, s.swing || 0, s.flagDir || -1);
+    const noSkis = s.skisOff && (state === "wipeout" || state === "result");   // replay shows skis on
+    paintSkierBody(ctx, character, s.tuck, s.lean, s.angle, s.swing || 0, s.flagDir || -1, noSkis);
     ctx.restore();
   }
 
@@ -2044,6 +2126,7 @@
     last = now;
     dt = Math.min(dt, 1 / 30);   // clamp big pauses
     if (state === "play" || state === "replay") update(dt);
+    else if (state === "wipeout") stepWipeout(dt);
     render();
     if (state === "replay" && replay && replay.gifCapture) captureGifFrame();
     requestAnimationFrame(frame);
