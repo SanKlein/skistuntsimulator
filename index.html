@@ -708,6 +708,7 @@
     cam = { x: 0, y: 0 };
     particles = [];
     debris = [];
+    ragdoll = null;
     trail = [];
     trailT = 0;
   }
@@ -973,6 +974,120 @@
 
   // Detached debris (skis that pop off in a hard wipeout) + the pending result card.
   let debris = [], wipeoutT = 0, pendingResult = null;
+  // The wipeout RAGDOLL: real position-based dynamics (Verlet particles + distance
+  // constraints), so the body genuinely folds and flails on impact instead of tumbling as
+  // one rigid plank. Indices: 0 head · 1 shoulder · 2 elbow · 3 hand · 4 hip · 5 knee · 6 foot.
+  let ragdoll = null;
+
+  // Seed the ragdoll from the skier's CURRENT pose, reusing the exact same joint offsets
+  // `paintSkierBody` draws from, and give every particle the rigid-body velocity it had at the
+  // moment of the crash (linear velocity + spin about the hip).
+  function buildRagdoll(s, w) {
+    const C = character, B = C.build || 1, t = Math.max(0, Math.min(1, s.tuck));
+    const foot = { x: 0, y: 0 };
+    const knee = jl({ x: 2, y: -17 }, { x: 15, y: -12 }, t);
+    const hip  = jl({ x: 0, y: -34 }, { x: -6, y: -18 }, t);
+    const sho  = jl({ x: 0, y: -55 }, { x: 8,  y: -25 }, t);
+    const head = jl({ x: 0, y: -68 }, { x: 15, y: -30 }, t);
+    for (const j of [knee, hip, sho, head]) j.y *= B;
+    const aA = 112 * Math.PI / 180, uL = 11 * B, fL = 10 * B;          // relaxed arm
+    const elbow = { x: sho.x + Math.sin(aA) * uL, y: sho.y - Math.cos(aA) * uL };
+    const a2 = aA - 0.4;
+    const hand = { x: elbow.x + Math.sin(a2) * fL, y: elbow.y - Math.cos(a2) * fL };
+    // rotate about the hip by the body angle, then into world space
+    const ca = Math.cos(s.angle), sn = Math.sin(s.angle);
+    const toWorld = (p) => {
+      const dx = p.x - hip.x, dy = p.y - hip.y;
+      return { x: s.x + hip.x + dx * ca - dy * sn, y: s.y + hip.y + dx * sn + dy * ca };
+    };
+    const world = [head, sho, elbow, hand, hip, knee, foot].map(toWorld);
+    const hipW = world[4], dt0 = 1 / 60;
+    const pts = world.map((p) => {
+      const vx = s.vx - w * (p.y - hipW.y);      // rigid-body velocity field (v = V + ω × r)
+      const vy = s.vy + w * (p.x - hipW.x);
+      return { x: p.x, y: p.y, px: p.x - vx * dt0, py: p.y - vy * dt0 };
+    });
+    const L = (i, j) => Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y);
+    ragdoll = {
+      pts,
+      bones: [
+        { a: 0, b: 1, len: L(0, 1), k: 1 },      // neck
+        { a: 1, b: 4, len: L(1, 4), k: 1 },      // torso
+        { a: 4, b: 5, len: L(4, 5), k: 1 },      // thigh
+        { a: 5, b: 6, len: L(5, 6), k: 1 },      // shin
+        { a: 1, b: 2, len: L(1, 2), k: 0.9 },    // upper arm
+        { a: 2, b: 3, len: L(2, 3), k: 0.9 },    // forearm
+        { a: 0, b: 4, len: L(0, 4), k: 0.55 },   // head↔hip stiffener: torso can't fold in half
+      ],
+    };
+  }
+
+  // One PBD step: Verlet integrate → satisfy bone constraints → collide with the snow.
+  function stepRagdoll(dt) {
+    const R = ragdoll; if (!R) return;
+    const g = G * dt * dt;
+    for (const p of R.pts) {
+      const vx = (p.x - p.px) * 0.99, vy = (p.y - p.py) * 0.99;   // prev-position IS the velocity
+      p.px = p.x; p.py = p.y;
+      p.x += vx; p.y += vy + g;
+    }
+    for (let it = 0; it < 6; it++) {
+      for (const b of R.bones) {
+        const a = R.pts[b.a], c = R.pts[b.b];
+        const dx = c.x - a.x, dy = c.y - a.y;
+        const d = Math.hypot(dx, dy) || 1e-6;
+        const f = ((d - b.len) / d) * 0.5 * b.k;
+        a.x += dx * f; a.y += dy * f; c.x -= dx * f; c.y -= dy * f;
+      }
+    }
+    for (const p of R.pts) {                       // snow collision: clamp + friction + damped bounce
+      const gy = ground(p.x);
+      if (p.y > gy) {
+        const vx = p.x - p.px, vy = p.y - p.py;
+        p.y = gy;
+        p.px = p.x - vx * 0.7;                     // tangential friction
+        p.py = p.y + vy * 0.3;                     // 30% restitution
+      }
+    }
+  }
+
+  // Draw the ragdoll from its particles, reusing the character's colours and the existing
+  // drawHead() so it stays visually consistent with the normal sprite.
+  function drawRagdoll() {
+    const R = ragdoll, C = character; if (!R) return;
+    const [head, sho, elbow, hand, hip, knee, foot] = R.pts;
+    const thin = C.thin ? 0.84 : 1;
+    ctx.save();
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    if (!skier.skisOff) {                          // skis still on — ride them down, square to the shin
+      const a = Math.atan2(foot.y - knee.y, foot.x - knee.x) - Math.PI / 2;
+      ctx.save(); ctx.translate(foot.x, foot.y); ctx.rotate(a);
+      ctx.strokeStyle = C.skis; ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(-22, 3); ctx.lineTo(24, 3);
+      ctx.moveTo(24, 3); ctx.quadraticCurveTo(33, 3, 33, -4);
+      ctx.moveTo(-22, 3); ctx.quadraticCurveTo(-29, 3, -29, -3);
+      ctx.stroke(); ctx.restore();
+    }
+    ctx.lineWidth = 7 * thin;                      // legs
+    ctx.strokeStyle = C.bottom;
+    ctx.beginPath(); ctx.moveTo(hip.x, hip.y); ctx.lineTo(knee.x, knee.y); ctx.stroke();
+    ctx.strokeStyle = C.bottomType === "shorts" ? C.skin : C.bottom;
+    ctx.beginPath(); ctx.moveTo(knee.x, knee.y); ctx.lineTo(foot.x, foot.y); ctx.stroke();
+    ctx.fillStyle = C.boots;                       // boot
+    ctx.beginPath(); ctx.arc(foot.x, foot.y, 4.5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = C.top; ctx.lineWidth = 10 * thin;   // torso
+    ctx.beginPath(); ctx.moveTo(hip.x, hip.y); ctx.lineTo(sho.x, sho.y); ctx.stroke();
+    ctx.strokeStyle = C.top; ctx.lineWidth = 5 * thin;    // arm
+    ctx.beginPath(); ctx.moveTo(sho.x, sho.y); ctx.lineTo(elbow.x, elbow.y); ctx.lineTo(hand.x, hand.y); ctx.stroke();
+    ctx.fillStyle = C.skin;
+    ctx.beginPath(); ctx.arc(hand.x, hand.y, 3, 0, Math.PI * 2); ctx.fill();
+    const ang = Math.atan2(head.y - sho.y, head.x - sho.x);               // head, aligned to the neck
+    ctx.save(); ctx.translate(head.x, head.y); ctx.rotate(ang + Math.PI / 2);
+    drawHead(ctx, C);
+    ctx.restore();
+    ctx.restore();
+  }
 
   function crash(title, msg) {
     const s = skier;
@@ -983,10 +1098,18 @@
     let off = s.angle - ref; off = off - Math.round(off / (2 * Math.PI)) * (2 * Math.PI);
     const injury = injuryReport(speed, run.flips, off);   // null if the fall wasn't hard enough to break anything
     pendingResult = { title, msg: [msg, injury].filter(Boolean).join(" · ") };
-    // FORCE-BASED SKI DETACHMENT: a hard, off-axis impact pops the skis off (they cartwheel
-    // away on their own). Clean-ish or slow hits keep them on. Then play out the tumble before
-    // the result card shows.
-    const detach = speed / 760 + Math.abs(off) * 0.16 > 0.62;
+    // FORCE-BASED SKI DETACHMENT (like a real binding's release load). Three real contributors:
+    //   · overall impact energy (speed),
+    //   · `vImpact` — the speed slammed straight INTO the snow (surface normal = (sin sa, -cos sa)).
+    //     A fast but tangential slide-out barely loads the binding; a big drop loads it hard.
+    //     A wall/pit hit has no meaningful surface, so the whole speed counts.
+    //   · `twist` — how far past a survivable landing angle you are.
+    // Only a violent or genuinely awkward crash releases (~45% of wipeouts); a moderate or
+    // glancing spill keeps the skis on. Then play out the tumble before the result card shows.
+    const sa = slopeAt(s.x), hardHit = title === "SPLAT!" || title === "PLUNGE!";
+    const vImpact = hardHit ? speed : Math.max(0, -s.vx * Math.sin(sa) + s.vy * Math.cos(sa));
+    const twist = Math.max(0, Math.abs(off) - BOUNCE_TOL);
+    const detach = speed / 620 + vImpact / 700 + twist * 0.45 > 1.35;
     startWipeout(s, speed, off, detach, title === "PLUNGE!");
   }
 
@@ -995,9 +1118,11 @@
   function startWipeout(s, speed, off, detach, plunge) {
     wipeoutT = 0; state = "wipeout";
     s.skisOff = detach;
-    s.wipeAV = (off > 0 ? 1 : -1) * (3 + Math.min(6, speed / 150)) + (Math.random() - 0.5) * 2;  // tumble spin
+    const w = (off > 0 ? 1 : -1) * (3 + Math.min(6, speed / 150)) + (Math.random() - 0.5) * 2;  // tumble spin
+    s.wipeAV = w;
     if (!plunge) s.vy = Math.min(s.vy, -70 - Math.min(190, speed * 0.2));   // pop off the impact
     s.vx *= 0.7;
+    buildRagdoll(s, w);        // seed the ragdoll from the crash pose + momentum (after the pop)
     debris = [];
     if (detach) {
       for (let i = 0; i < 2; i++) {
@@ -1016,16 +1141,9 @@
   function stepWipeout(dt) {
     wipeoutT += dt;
     const s = skier;
-    // body ragdoll — tumble under gravity with a damped ground bounce
-    s.vy += G * dt;
-    s.x += s.vx * dt; s.y += s.vy * dt; s.angle += s.wipeAV * dt;
-    const gy = ground(s.x);
-    if (s.y >= gy) {
-      s.y = gy;
-      if (s.vy > 45) { s.vy *= -0.34; s.vx *= 0.6; s.wipeAV *= 0.55; }   // bounce
-      else { s.vy = 0; s.vx *= (1 - 4 * dt); s.wipeAV *= (1 - 5 * dt); }  // settle
-    }
-    s.vx *= (1 - 0.8 * dt);
+    // body: real ragdoll (Verlet + constraints + snow collision)
+    stepRagdoll(dt);
+    if (ragdoll) { s.x = ragdoll.pts[4].x; s.y = ragdoll.pts[4].y; }   // camera tracks the hip
     // detached skis — same, but bouncier and lighter
     for (const d of debris) {
       d.vy += G * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.angle += d.av * dt;
@@ -1773,7 +1891,7 @@
   // Joints interpolate between an EXTENDED and a deep TUCK pose by `tuck`; the
   // upper body leans by `lean`; the whole body rotates by `angle` about the hip.
   // Colours/build/features come from the character config `C`.
-  function paintSkierBody(pctx, C, tuck, lean, angle, sway, flagDir, noSkis) {
+  function paintSkierBody(pctx, C, tuck, lean, angle, sway, flagDir) {
     const t = Math.max(0, Math.min(1, tuck));
     const B = C.build || 1, thin = C.thin ? 0.84 : 1;
 
@@ -1788,15 +1906,13 @@
     pctx.lineCap = "round"; pctx.lineJoin = "round";
     pctx.translate(hip.x, hip.y); pctx.rotate(angle); pctx.translate(-hip.x, -hip.y);
 
-    // skis + upturned tips (skipped once they've detached in a wipeout)
-    if (!noSkis) {
-      pctx.strokeStyle = C.skis; pctx.lineWidth = 4;
-      pctx.beginPath();
-      pctx.moveTo(-22, 3); pctx.lineTo(24, 3);
-      pctx.moveTo(24, 3); pctx.quadraticCurveTo(33, 3, 33, -4);
-      pctx.moveTo(-22, 3); pctx.quadraticCurveTo(-29, 3, -29, -3);
-      pctx.stroke();
-    }
+    // skis + upturned tips
+    pctx.strokeStyle = C.skis; pctx.lineWidth = 4;
+    pctx.beginPath();
+    pctx.moveTo(-22, 3); pctx.lineTo(24, 3);
+    pctx.moveTo(24, 3); pctx.quadraticCurveTo(33, 3, 33, -4);
+    pctx.moveTo(-22, 3); pctx.quadraticCurveTo(-29, 3, -29, -3);
+    pctx.stroke();
 
     // legs: thigh (hip->knee) is the bottom colour; shin (knee->foot) is skin
     // for shorts, bottom colour for pants
@@ -2108,10 +2224,12 @@
 
   function drawSkier() {
     const s = skier;
+    // A wipeout is drawn from the ragdoll's particles (the replay re-runs the clean trail, so
+    // it keeps using the normal sprite).
+    if (ragdoll && (state === "wipeout" || state === "result")) return drawRagdoll();
     ctx.save();
     ctx.translate(s.x, s.y);
-    const noSkis = s.skisOff && (state === "wipeout" || state === "result");   // replay shows skis on
-    paintSkierBody(ctx, character, s.tuck, s.lean, s.angle, s.swing || 0, s.flagDir || -1, noSkis);
+    paintSkierBody(ctx, character, s.tuck, s.lean, s.angle, s.swing || 0, s.flagDir || -1);
     ctx.restore();
   }
 
