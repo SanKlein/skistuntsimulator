@@ -897,11 +897,15 @@
   function evalLanding() {
     const s = skier;
     const sa = slopeAt(s.x);
-    // On the half-pipe you drop back into a steep transition — judge the landing
-    // against UPRIGHT (not the near-vertical wall) and be extra forgiving.
-    const ref = course.qp ? 0 : sa;
-    const landTol = course.qp ? 1.15 : LAND_TOL;
-    const bounceTol = course.qp ? 2.0 : BOUNCE_TOL;
+    // ON THE QUARTER-PIPE ITSELF you drop back into a steep transition — judge the landing
+    // against UPRIGHT (not the near-vertical wall) and be extra forgiving. This must be scoped
+    // to the pipe: `course.qp` is truthy for the WHOLE Big Jump, so applying it everywhere had
+    // the landing hill judged vs upright (a correct slope-aligned landing read as ~0.5rad of
+    // error) and popped you back up mid-landing.
+    const onQP = !!course.qp && s.x > course.qp.baseX;
+    const ref = onQP ? 0 : sa;
+    const landTol = onQP ? 1.15 : LAND_TOL;
+    const bounceTol = onQP ? 2.0 : BOUNCE_TOL;
     // error from nearest upright, measured relative to the reference angle
     let err = s.angle - ref;
     err = err - Math.round(err / (Math.PI * 2)) * (Math.PI * 2); // -> [-pi,pi]
@@ -910,6 +914,10 @@
     if (ae <= landTol) return landClean(s, sa);          // stuck it
 
     if (ae <= bounceTol) {
+      // On the quarter-pipe, NEVER pop back up — the bounce below is an artificial upward
+      // impulse, which on the pipe reads as a boost and wrecks the landing. Just settle onto
+      // the transition and ride it out under your own momentum.
+      if (onQP) return landClean(s, sa);
       // Landed on the nose or tail of the skis — bounce instead of wiping out.
       // Keep going with a little less speed and reduced spin, so you can
       // straighten up and land it on the next touch. Out of bounce energy = you
