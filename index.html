@@ -382,7 +382,7 @@
     hermiteRamp(pts, landX, landY, landX + 420, landY + 250, 0.0, 0.55, 32);
     hermiteRamp(pts, landX + 420, landY + 250, landX + 860, landY + 280, 0.55, -0.12, 24);   // bottom out
     // Outrun: pure momentum on a gentle uphill (no artificial drag). The flag comes up quickly
-    // and the run wraps ~2.2s later — land it, cruise through, done.
+    // and the run wraps ~1s later — land it, cruise through, done.
     hermiteRamp(pts, landX + 860, landY + 280, landX + 1900, landY + 215, -0.12, -0.06, 32);
     pts.push({ x: landX + 3200, y: landY + 185 });   // very gentle rise out to the end
     const endX = landX + 3050, finishFlagX = landX + 1050, windStart = null, finishLine = null;
@@ -805,7 +805,7 @@
         // Realistic finish: ski PAST the flag, glide out on the runout, and the run wraps up
         // shortly after (or once you settle to a stop). No sliding back up a bank.
         if (s.x > course.finishFlagX) s.pastFlag = true;
-        if (s.pastFlag) { s.endTimer += dt; if (s.endTimer > 2.2) return finishRun(); }
+        if (s.pastFlag) { s.endTimer += dt; if (s.endTimer > 1) return finishRun(); }
         if (Math.abs(v) < 40) { s.slowTime += dt; if (s.slowTime > 1.6) return finishRun(); }
         else s.slowTime = 0;
       } else {
