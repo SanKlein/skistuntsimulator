@@ -378,14 +378,14 @@
     pts.push({ x: landX - 14, y: pitY });
     const landY = lipY + 80;                        // landing hump, just below the lip
     pts.push({ x: landX, y: landY });
-    // gentle, SHALLOW rounded landing that bottoms out, then a LONG gently-uphill runout.
-    hermiteRamp(pts, landX, landY, landX + 480, landY + 280, 0.0, 0.55, 36);
-    hermiteRamp(pts, landX + 480, landY + 280, landX + 1160, landY + 320, 0.55, -0.15, 32);   // bottom out
-    // Outrun: you glide out and slow NATURALLY on a gentle uphill (no molasses drag), ski past
-    // the finish flag, and the run ends a few seconds later — a realistic finish.
-    hermiteRamp(pts, landX + 1160, landY + 320, landX + 3360, landY + 180, -0.15, -0.08, 54);
-    pts.push({ x: landX + 5160, y: landY + 120 });   // very gentle rise out to the end
-    const endX = landX + 4960, finishFlagX = landX + 2400, windStart = null, finishLine = null;
+    // gentle, SHALLOW rounded landing that bottoms out, then a SHORT gently-uphill runout.
+    hermiteRamp(pts, landX, landY, landX + 420, landY + 250, 0.0, 0.55, 32);
+    hermiteRamp(pts, landX + 420, landY + 250, landX + 860, landY + 280, 0.55, -0.12, 24);   // bottom out
+    // Outrun: pure momentum on a gentle uphill (no artificial drag). The flag comes up quickly
+    // and the run wraps ~2.2s later — land it, cruise through, done.
+    hermiteRamp(pts, landX + 860, landY + 280, landX + 1900, landY + 215, -0.12, -0.06, 32);
+    pts.push({ x: landX + 3200, y: landY + 185 });   // very gentle rise out to the end
+    const endX = landX + 3050, finishFlagX = landX + 1050, windStart = null, finishLine = null;
     // tall SNOW SPIKE — a thin needle towering ~130px (≈1.9 rider-heights) above the lip,
     // rising out of the deep gap. A good pump just clears it (~55px margin, ~190px jump apex);
     // ride off without pumping and you clip it (arc-sim verified — not a floaty moon-jump).
@@ -396,7 +396,7 @@
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
         { x: landX + 8, y: landY, color: "#3ca0ff" },
-        { x: landX + 2400, y: 906, color: "#2ecc71" },   // FINISH flag — ski past it to end the run
+        { x: landX + 1050, y: 941, color: "#2ecc71" },   // FINISH flag — ski past it to end the run
       ],
     };
   }
@@ -802,10 +802,10 @@
         if (Math.abs(v) < 40) { s.slowTime += dt; if (s.slowTime > (s.wentUp ? 1.4 : 1.8)) return finishRun(); }
         else s.slowTime = 0;
       } else if (course.finishFlagX != null) {
-        // Realistic finish: ski PAST the flag, glide out on the runout, and the run ends ~5s
-        // later (or once you settle to a stop). No sliding back up a bank.
+        // Realistic finish: ski PAST the flag, glide out on the runout, and the run wraps up
+        // shortly after (or once you settle to a stop). No sliding back up a bank.
         if (s.x > course.finishFlagX) s.pastFlag = true;
-        if (s.pastFlag) { s.endTimer += dt; if (s.endTimer > 5) return finishRun(); }
+        if (s.pastFlag) { s.endTimer += dt; if (s.endTimer > 2.2) return finishRun(); }
         if (Math.abs(v) < 40) { s.slowTime += dt; if (s.slowTime > 1.6) return finishRun(); }
         else s.slowTime = 0;
       } else {
