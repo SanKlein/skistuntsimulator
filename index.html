@@ -480,17 +480,18 @@
     // Long, smooth landing hill descending away from the kicker, then flattening to a runout.
     hermiteRamp(pts, lipX, lipY, 2860, 1260, 0.5, 0.5, 54);
     hermiteRamp(pts, 2860, 1260, 3730, 1480, 0.5, 0.12, 40);
-    hermiteRamp(pts, 3730, 1480, 4580, 1518, 0.12, 0.0, 30);
-    pts.push({ x: 5360, y: 1528 });
-    const landX = lipX, landY = 1010, endX = 4900;   // landX = lipX ⇒ no plunge/gap zone
+    hermiteRamp(pts, 3730, 1480, 5100, 1546, 0.12, 0.02, 46);
+    pts.push({ x: 6300, y: 1560 });
+    // Same finish as the Wall: ski past the flag and the run wraps ~1s later (no forced stop).
+    const landX = lipX, landY = 1010, endX = 6000, finishFlagX = 3900;   // landX = lipX ⇒ no plunge/gap zone
     course = {
       id: "kicker", pts, wall: null, startX, startY,
-      lipX, lipY, landX, landY, pitY: landY + 2000, endX,
+      lipX, lipY, landX, landY, pitY: landY + 2000, endX, finishFlagX,
       windStart: null, finishLine: null, maxSpeed: 1000,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
         { x: 2450, y: 1056, color: "#3ca0ff" },
-        { x: 4580, y: 1518, color: "#2ecc71" },
+        { x: 3900, y: 1498, color: "#2ecc71" },   // FINISH flag — ski past it to end the run
       ],
     };
   }
