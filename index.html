@@ -388,9 +388,9 @@
     // stops you, and slides you back down — no artificial braking.
     hermiteRamp(pts, landX, landY, landX + 420, landY + 250, 0.0, 0.55, 32);
     hermiteRamp(pts, landX + 420, landY + 250, landX + 980, landY + 275, 0.55, -0.05, 28);   // bottom out
-    hermiteRamp(pts, landX + 980, landY + 275, landX + 1300, landY + 165, -0.05, -1.15, 24); // curved transition
-    straightRamp(pts, landX + 1300, landY + 165, -1.15, 130, 8);                             // straight ~49° ramp
-    const endX = landX + 2200, finishFlagX = landX + 1060, windStart = null, finishLine = null;
+    hermiteRamp(pts, landX + 980, landY + 275, landX + 1320, landY + 210, -0.05, -0.73, 24); // curved transition
+    straightRamp(pts, landX + 1320, landY + 210, -0.73, 130, 9);                             // straight ~36° ramp
+    const endX = landX + 2350, finishFlagX = landX + 1060, windStart = null, finishLine = null;
     // tall SNOW SPIKE — a thin needle towering ~130px (≈1.9 rider-heights) above the lip,
     // rising out of the deep gap. A good pump just clears it (~55px margin, ~190px jump apex);
     // ride off without pumping and you clip it (arc-sim verified — not a floaty moon-jump).
@@ -487,9 +487,9 @@
     // and back down under pure gravity.
     hermiteRamp(pts, lipX, lipY, 2860, 1260, 0.5, 0.5, 54);
     hermiteRamp(pts, 2860, 1260, 3960, 1512, 0.5, -0.05, 44);   // bottom out at the flag
-    hermiteRamp(pts, 3960, 1512, 4300, 1397, -0.05, -1.15, 26); // curved transition
-    straightRamp(pts, 4300, 1397, -1.15, 140, 10);              // straight ~49° ramp
-    const landX = lipX, landY = 1010, endX = 5500, finishFlagX = 3900;   // landX = lipX ⇒ no plunge/gap zone
+    hermiteRamp(pts, 3960, 1512, 4340, 1430, -0.05, -0.73, 28); // curved transition
+    straightRamp(pts, 4340, 1430, -0.73, 140, 12);              // straight ~36° ramp
+    const landX = lipX, landY = 1010, endX = 5800, finishFlagX = 3900;   // landX = lipX ⇒ no plunge/gap zone
     course = {
       id: "kicker", pts, wall: null, startX, startY,
       lipX, lipY, landX, landY, pitY: landY + 2000, endX, finishFlagX,
