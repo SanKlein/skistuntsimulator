@@ -392,7 +392,7 @@
     const wall = { x: lipX + gap * 0.5, halfW: 32, topY: lipY - (130 + wallExtra * 0.5), baseY: pitY, type: "spike" };
     course = {
       id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY, endX, windStart, finishLine, finishFlagX,
-      maxSpeed: 800, jumpPop: 560, jumpFull: 6.5,
+      maxSpeed: 800, jumpPop: 560, jumpFull: 6.5, brake: 175,   // gentle outrun-to-rest past the flag
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
         { x: landX + 8, y: landY, color: "#3ca0ff" },
@@ -487,7 +487,7 @@
     course = {
       id: "kicker", pts, wall: null, startX, startY,
       lipX, lipY, landX, landY, pitY: landY + 2000, endX, finishFlagX,
-      windStart: null, finishLine: null, maxSpeed: 1000,
+      windStart: null, finishLine: null, maxSpeed: 1000, brake: 310,   // gentle outrun-to-rest past the flag
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
         { x: 2450, y: 1056, color: "#3ca0ff" },
@@ -740,6 +740,9 @@
     let v = s.vx * cos + s.vy * sin;
     v += G * RUN_GRAV * sin * dt;             // gravity along the slope
     v -= Math.sign(v) * FRICTION * dt;         // friction opposes motion
+    // Once past the finish flag, a course may brake — a gentle outrun that slows you to a
+    // rest over the next few seconds. Everything up to the flag stays pure momentum.
+    if (s.pastFlag && course.brake && v > 0) v = Math.max(0, v - course.brake * dt);
     const vmax = course.maxSpeed || MAX_SPEED;   // some courses run faster
     v = Math.max(-vmax, Math.min(vmax, v));
     s.vx = cos * v;
@@ -803,12 +806,16 @@
         if (Math.abs(v) < 40) { s.slowTime += dt; if (s.slowTime > (s.wentUp ? 1.4 : 1.8)) return finishRun(); }
         else s.slowTime = 0;
       } else if (course.finishFlagX != null) {
-        // Realistic finish: ski PAST the flag, glide out on the runout, and the run wraps up
-        // shortly after (or once you settle to a stop). No sliding back up a bank.
+        // Realistic finish: ski PAST the flag, gently brake to a rest over the next few seconds,
+        // and the run ends when you settle (or a 5s cap). Before the flag it's pure momentum.
         if (s.x > course.finishFlagX) s.pastFlag = true;
-        if (s.pastFlag) { s.endTimer += dt; if (s.endTimer > 1) return finishRun(); }
-        if (Math.abs(v) < 40) { s.slowTime += dt; if (s.slowTime > 1.6) return finishRun(); }
-        else s.slowTime = 0;
+        if (s.pastFlag) {
+          s.endTimer += dt;
+          if (s.endTimer > 5) return finishRun();                              // hard cap
+          if (Math.abs(v) < 30 && s.endTimer > 0.8) return finishRun();        // came to rest
+        } else if (Math.abs(v) < 40) {                                          // stalled before the flag
+          s.slowTime += dt; if (s.slowTime > 1.6) return finishRun();
+        } else s.slowTime = 0;
       } else {
         if (course.windStart != null && s.x > course.windStart && v <= 0) s.comingBack = true;
         if (s.comingBack) { s.endTimer += dt; if (s.endTimer > 2.6) return finishRun(); }
