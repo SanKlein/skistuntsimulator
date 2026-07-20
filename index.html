@@ -345,6 +345,11 @@
       pts.push({ x: x0 + dx*t, y });
     }
   }
+  // A dead-straight segment (constant slope) — the flat part of the finishing ramp.
+  function straightRamp(pts, x0, y0, slope, dx, steps) {
+    let x = x0, y = y0;
+    for (let i = 0; i < steps; i++) { x += dx; y += dx * slope; pts.push({ x, y }); }
+  }
 
   function buildCourse() {
     if (courseId === "jump") return buildMegaJumpCourse();
@@ -378,15 +383,14 @@
     pts.push({ x: landX - 14, y: pitY });
     const landY = lipY + 80;                        // landing hump, just below the lip
     pts.push({ x: landX, y: landY });
-    // gentle rounded landing that bottoms out (flag sits here), then the runout TURNS UP into a
-    // ramp: pure gravity climbs you, stops you, and rolls you back down. No artificial braking.
+    // gentle rounded landing that bottoms out (flag sits here), then a quarter-pipe-style finish:
+    // a CURVED transition eases into a dead-STRAIGHT ~49° ramp. Pure gravity slides you up it,
+    // stops you, and slides you back down — no artificial braking.
     hermiteRamp(pts, landX, landY, landX + 420, landY + 250, 0.0, 0.55, 32);
-    hermiteRamp(pts, landX + 420, landY + 250, landX + 920, landY + 285, 0.55, -0.05, 26);   // bottom out
-    hermiteRamp(pts, landX + 920, landY + 285, landX + 1500, landY + 180, -0.05, -0.5, 28);  // start rising
-    hermiteRamp(pts, landX + 1500, landY + 180, landX + 2120, landY - 140, -0.5, -1.0, 30);  // steep ramp
-    pts.push({ x: landX + 2520, y: landY - 480 });   // keeps steepening (unreachable top)
-    pts.push({ x: landX + 2840, y: landY - 940 });
-    const endX = landX + 2760, finishFlagX = landX + 1060, windStart = null, finishLine = null;
+    hermiteRamp(pts, landX + 420, landY + 250, landX + 980, landY + 275, 0.55, -0.05, 28);   // bottom out
+    hermiteRamp(pts, landX + 980, landY + 275, landX + 1300, landY + 165, -0.05, -1.15, 24); // curved transition
+    straightRamp(pts, landX + 1300, landY + 165, -1.15, 130, 8);                             // straight ~49° ramp
+    const endX = landX + 2200, finishFlagX = landX + 1060, windStart = null, finishLine = null;
     // tall SNOW SPIKE — a thin needle towering ~130px (≈1.9 rider-heights) above the lip,
     // rising out of the deep gap. A good pump just clears it (~55px margin, ~190px jump apex);
     // ride off without pumping and you clip it (arc-sim verified — not a floaty moon-jump).
@@ -397,7 +401,7 @@
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
         { x: landX + 8, y: landY, color: "#3ca0ff" },
-        { x: landX + 1060, y: landY + 278, color: "#2ecc71" },   // FINISH flag at the foot of the ramp
+        { x: landX + 1060, y: landY + 273, color: "#2ecc71" },   // FINISH flag at the foot of the ramp
       ],
     };
   }
@@ -478,15 +482,14 @@
     // kicker, not a tall spike.
     const lipX = 1720, lipY = 692;
     hermiteRamp(pts, 1560, 812, lipX, lipY, -0.2, -0.95, 14);
-    // Long, smooth landing hill descending away from the kicker, bottoming out at the flag, then
-    // the runout TURNS UP into a ramp — gravity climbs you, stops you, and rolls you back down.
+    // Long, smooth landing hill descending away from the kicker, bottoming out at the flag, then a
+    // quarter-pipe-style finish: a CURVED transition into a dead-STRAIGHT ~49° ramp you slide up
+    // and back down under pure gravity.
     hermiteRamp(pts, lipX, lipY, 2860, 1260, 0.5, 0.5, 54);
-    hermiteRamp(pts, 2860, 1260, 3900, 1520, 0.5, -0.05, 44);   // bottom out at the flag
-    hermiteRamp(pts, 3900, 1520, 4600, 1180, -0.05, -0.6, 32);  // start rising
-    hermiteRamp(pts, 4600, 1180, 5300, 700, -0.6, -1.05, 32);   // steep ramp
-    pts.push({ x: 5760, y: 180 });   // keeps steepening (unreachable top)
-    pts.push({ x: 6100, y: -360 });
-    const landX = lipX, landY = 1010, endX = 5760, finishFlagX = 3900;   // landX = lipX ⇒ no plunge/gap zone
+    hermiteRamp(pts, 2860, 1260, 3960, 1512, 0.5, -0.05, 44);   // bottom out at the flag
+    hermiteRamp(pts, 3960, 1512, 4300, 1397, -0.05, -1.15, 26); // curved transition
+    straightRamp(pts, 4300, 1397, -1.15, 140, 10);              // straight ~49° ramp
+    const landX = lipX, landY = 1010, endX = 5500, finishFlagX = 3900;   // landX = lipX ⇒ no plunge/gap zone
     course = {
       id: "kicker", pts, wall: null, startX, startY,
       lipX, lipY, landX, landY, pitY: landY + 2000, endX, finishFlagX,
@@ -494,7 +497,7 @@
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
         { x: 2450, y: 1056, color: "#3ca0ff" },
-        { x: 3900, y: 1520, color: "#2ecc71" },   // FINISH flag at the foot of the ramp
+        { x: 3900, y: 1512, color: "#2ecc71" },   // FINISH flag at the foot of the ramp
       ],
     };
   }
