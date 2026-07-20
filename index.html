@@ -378,25 +378,26 @@
     pts.push({ x: landX - 14, y: pitY });
     const landY = lipY + 80;                        // landing hump, just below the lip
     pts.push({ x: landX, y: landY });
-    // gentle, SHALLOW rounded landing that bottoms out, then a SHORT gently-uphill runout.
+    // gentle rounded landing that bottoms out (flag sits here), then the runout TURNS UP into a
+    // ramp: pure gravity climbs you, stops you, and rolls you back down. No artificial braking.
     hermiteRamp(pts, landX, landY, landX + 420, landY + 250, 0.0, 0.55, 32);
-    hermiteRamp(pts, landX + 420, landY + 250, landX + 860, landY + 280, 0.55, -0.12, 24);   // bottom out
-    // Outrun: pure momentum on a gentle uphill (no artificial drag). The flag comes up quickly
-    // and the run wraps ~1s later — land it, cruise through, done.
-    hermiteRamp(pts, landX + 860, landY + 280, landX + 1900, landY + 215, -0.12, -0.06, 32);
-    pts.push({ x: landX + 3200, y: landY + 185 });   // very gentle rise out to the end
-    const endX = landX + 3050, finishFlagX = landX + 1050, windStart = null, finishLine = null;
+    hermiteRamp(pts, landX + 420, landY + 250, landX + 920, landY + 285, 0.55, -0.05, 26);   // bottom out
+    hermiteRamp(pts, landX + 920, landY + 285, landX + 1500, landY + 180, -0.05, -0.5, 28);  // start rising
+    hermiteRamp(pts, landX + 1500, landY + 180, landX + 2120, landY - 140, -0.5, -1.0, 30);  // steep ramp
+    pts.push({ x: landX + 2520, y: landY - 480 });   // keeps steepening (unreachable top)
+    pts.push({ x: landX + 2840, y: landY - 940 });
+    const endX = landX + 2760, finishFlagX = landX + 1060, windStart = null, finishLine = null;
     // tall SNOW SPIKE — a thin needle towering ~130px (≈1.9 rider-heights) above the lip,
     // rising out of the deep gap. A good pump just clears it (~55px margin, ~190px jump apex);
     // ride off without pumping and you clip it (arc-sim verified — not a floaty moon-jump).
     const wall = { x: lipX + gap * 0.5, halfW: 32, topY: lipY - (130 + wallExtra * 0.5), baseY: pitY, type: "spike" };
     course = {
       id: "wall", pts, wall, startX, startY, lipX, lipY, landX, landY, pitY, endX, windStart, finishLine, finishFlagX,
-      maxSpeed: 800, jumpPop: 560, jumpFull: 6.5, brake: 175,   // gentle outrun-to-rest past the flag
+      maxSpeed: 800, jumpPop: 560, jumpFull: 6.5,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
         { x: landX + 8, y: landY, color: "#3ca0ff" },
-        { x: landX + 1050, y: 941, color: "#2ecc71" },   // FINISH flag — ski past it to end the run
+        { x: landX + 1060, y: landY + 278, color: "#2ecc71" },   // FINISH flag at the foot of the ramp
       ],
     };
   }
@@ -477,21 +478,23 @@
     // kicker, not a tall spike.
     const lipX = 1720, lipY = 692;
     hermiteRamp(pts, 1560, 812, lipX, lipY, -0.2, -0.95, 14);
-    // Long, smooth landing hill descending away from the kicker, then flattening to a runout.
+    // Long, smooth landing hill descending away from the kicker, bottoming out at the flag, then
+    // the runout TURNS UP into a ramp — gravity climbs you, stops you, and rolls you back down.
     hermiteRamp(pts, lipX, lipY, 2860, 1260, 0.5, 0.5, 54);
-    hermiteRamp(pts, 2860, 1260, 3730, 1480, 0.5, 0.12, 40);
-    hermiteRamp(pts, 3730, 1480, 5100, 1546, 0.12, 0.02, 46);
-    pts.push({ x: 6300, y: 1560 });
-    // Same finish as the Wall: ski past the flag and the run wraps ~1s later (no forced stop).
-    const landX = lipX, landY = 1010, endX = 6000, finishFlagX = 3900;   // landX = lipX ⇒ no plunge/gap zone
+    hermiteRamp(pts, 2860, 1260, 3900, 1520, 0.5, -0.05, 44);   // bottom out at the flag
+    hermiteRamp(pts, 3900, 1520, 4600, 1180, -0.05, -0.6, 32);  // start rising
+    hermiteRamp(pts, 4600, 1180, 5300, 700, -0.6, -1.05, 32);   // steep ramp
+    pts.push({ x: 5760, y: 180 });   // keeps steepening (unreachable top)
+    pts.push({ x: 6100, y: -360 });
+    const landX = lipX, landY = 1010, endX = 5760, finishFlagX = 3900;   // landX = lipX ⇒ no plunge/gap zone
     course = {
       id: "kicker", pts, wall: null, startX, startY,
       lipX, lipY, landX, landY, pitY: landY + 2000, endX, finishFlagX,
-      windStart: null, finishLine: null, maxSpeed: 1000, brake: 310,   // gentle outrun-to-rest past the flag
+      windStart: null, finishLine: null, maxSpeed: 1000,
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
         { x: 2450, y: 1056, color: "#3ca0ff" },
-        { x: 3900, y: 1498, color: "#2ecc71" },   // FINISH flag — ski past it to end the run
+        { x: 3900, y: 1520, color: "#2ecc71" },   // FINISH flag at the foot of the ramp
       ],
     };
   }
@@ -740,9 +743,6 @@
     let v = s.vx * cos + s.vy * sin;
     v += G * RUN_GRAV * sin * dt;             // gravity along the slope
     v -= Math.sign(v) * FRICTION * dt;         // friction opposes motion
-    // Once past the finish flag, a course may brake — a gentle outrun that slows you to a
-    // rest over the next few seconds. Everything up to the flag stays pure momentum.
-    if (s.pastFlag && course.brake && v > 0) v = Math.max(0, v - course.brake * dt);
     const vmax = course.maxSpeed || MAX_SPEED;   // some courses run faster
     v = Math.max(-vmax, Math.min(vmax, v));
     s.vx = cos * v;
@@ -806,14 +806,16 @@
         if (Math.abs(v) < 40) { s.slowTime += dt; if (s.slowTime > (s.wentUp ? 1.4 : 1.8)) return finishRun(); }
         else s.slowTime = 0;
       } else if (course.finishFlagX != null) {
-        // Realistic finish: ski PAST the flag, gently brake to a rest over the next few seconds,
-        // and the run ends when you settle (or a 5s cap). Before the flag it's pure momentum.
+        // Realistic finish: ski PAST the flag and up the ramp — gravity stops you and rolls you
+        // back down. Once you've turned around and are heading back down, wrap it up shortly
+        // after (5s hard cap for safety). Pure momentum the whole way — no artificial braking.
         if (s.x > course.finishFlagX) s.pastFlag = true;
         if (s.pastFlag) {
           s.endTimer += dt;
-          if (s.endTimer > 5) return finishRun();                              // hard cap
-          if (Math.abs(v) < 30 && s.endTimer > 0.8) return finishRun();        // came to rest
-        } else if (Math.abs(v) < 40) {                                          // stalled before the flag
+          if (v < -25) s.comingBack = true;                       // turned around, heading back down
+          if (s.comingBack) { s.slowTime += dt; if (s.slowTime > 1.1) return finishRun(); }
+          else if (s.endTimer > 5) return finishRun();            // safety cap (never got moving back)
+        } else if (Math.abs(v) < 40) {                            // stalled before the flag
           s.slowTime += dt; if (s.slowTime > 1.6) return finishRun();
         } else s.slowTime = 0;
       } else {
