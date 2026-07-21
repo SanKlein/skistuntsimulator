@@ -728,6 +728,7 @@
       skisOff: false,         // skis detached in a wipeout
       wipeAV: 0,              // body tumble spin during a wipeout
       pastFlag: false,        // skied past the finish flag (runout courses)
+      shootT: 0,              // basketball shot-pose timer
     };
     cam = { x: 0, y: 0 };
     particles = [];
@@ -1089,13 +1090,16 @@
 
   // Flip-milestone reward: hit 3 flips in a run and the skier pulls a basketball and drains it.
   let props = [];
+  const SHOOT_DUR = 1.6;   // seconds the shooting-motion + follow-through holds
   function shootBasketball(s) {
-    props.push({ x: s.x + 6, y: s.y - 46, vx: 150 + Math.random() * 70, vy: -430, ang: 0, spin: 9, r: 8, life: 2.4 });
+    s.shootT = SHOOT_DUR;                                          // arms do the shot + follow-through
+    props.push({ x: s.x + 8, y: s.y - 40, vx: 150 + Math.random() * 70, vy: -430, ang: 0, spin: 9, r: 8, life: 2.4, delay: 0.14 });
     showHint("🏀 SWISH! " + run.flips + " flips — nothin' but net");
   }
   function stepProps(dt) {
     for (let i = props.length - 1; i >= 0; i--) {
       const p = props[i];
+      if (p.delay > 0) { p.delay -= dt; p.x = skier.x + 8; p.y = skier.y - 40; p.ang += p.spin * dt; continue; }  // held in hand
       p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.ang += p.spin * dt; p.life -= dt;
       if (p.life <= 0) props.splice(i, 1);
     }
@@ -1700,6 +1704,7 @@
       spawnFlair(skier);
       stepParticles(dt);
       stepProps(dt);
+      if (skier.shootT > 0) skier.shootT -= dt;
       updateSway(dt);
       updateCamera(dt);
     } else if (state === "replay") {
@@ -2118,9 +2123,10 @@
   // Joints interpolate between an EXTENDED and a deep TUCK pose by `tuck`; the
   // upper body leans by `lean`; the whole body rotates by `angle` about the hip.
   // Colours/build/features come from the character config `C`.
-  function paintSkierBody(pctx, C, tuck, lean, angle, sway, flagDir) {
+  function paintSkierBody(pctx, C, tuck, lean, angle, sway, flagDir, shootPhase) {
     const t = Math.max(0, Math.min(1, tuck));
     const B = C.build || 1, thin = C.thin ? 0.84 : 1;
+    const shooting = shootPhase != null && shootPhase >= 0;   // basketball shot / follow-through
     // Special FINISHES: chrome = a metallic sheen OF the chosen colour (keeps the colour),
     // zebra = a black-on-white stripe pattern.
     const chrome = C.finish === "chrome", zebra = C.finish === "zebra";
@@ -2181,14 +2187,20 @@
     const restA = 112 * DEG;                          // relaxed neutral: low, slightly forward
     const dirA = Math.atan2(lean, -vert);             // 0 up · 90 fwd · 180 down · -90 back
     let d = dirA - restA; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
-    const nearA = restA + d * mag;
-    const farA  = nearA - 12 * DEG;
-    const reach = Math.max(0, lean);                  // extend the arms on a forward grab
+    let nearA = restA + d * mag;
+    let farA  = nearA - 12 * DEG;
+    let reach = Math.max(0, lean);                    // extend the arms on a forward grab
+    // BASKETBALL SHOT: both arms swing up-forward and hold a follow-through (gooseneck).
+    if (shooting) {
+      const rise = Math.min(1, shootPhase / 0.16);    // quick release, then hold
+      nearA = 1.15 - 0.82 * rise; farA = nearA + 0.16; reach = 0.25 + 0.75 * rise;
+    }
     const shortSleeve = C.sleeves === "short";
-    const drawArm = (a, col) => {
-      const uL = 11 * B, fL = (10 + reach * 8) * B;
+    const drawArm = (a, col, rch) => {
+      const r = rch != null ? rch : reach;
+      const uL = 11 * B, fL = (10 + r * 8) * B;
       const ex = sho.x + Math.sin(a) * uL, ey = sho.y - Math.cos(a) * uL;            // elbow
-      const a2 = a - 0.4 + reach * 0.7;                                              // curl the hands toward the tips
+      const a2 = a - 0.4 + r * 0.7 + (shooting ? 0.5 : 0);                           // curl the hands (flick on a shot)
       const hx = ex + Math.sin(a2) * fL, hy = ey - Math.cos(a2) * fL;                // hand
       pctx.lineWidth = 5 * thin;
       pctx.strokeStyle = col;                                                        // upper arm / sleeve
@@ -2549,22 +2561,47 @@
     pctx.restore();
   }
 
-  function drawSkier() {
-    const s = skier;
-    if (run.onFire) {                              // warm glow while on fire
-      ctx.save();
-      const gr = ctx.createRadialGradient(s.x, s.y - 30, 4, s.x, s.y - 30, 52);
-      gr.addColorStop(0, "rgba(255,150,40,0.42)"); gr.addColorStop(1, "rgba(255,120,20,0)");
-      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(s.x, s.y - 30, 52, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
-    }
-    // A wipeout is drawn from the ragdoll's particles (the replay re-runs the clean trail, so
-    // it keeps using the normal sprite).
-    if (ragdoll && (state === "wipeout" || state === "result")) return drawRagdoll();
+  // NBA-Jam "on fire": layered, flickering cartoon flames engulfing the rider (rotated with
+  // the body so they wrap around it during flips). `layer` = "back" (behind) or "front".
+  function drawFlames(s, layer) {
     ctx.save();
     ctx.translate(s.x, s.y);
-    paintSkierBody(ctx, character, s.tuck, s.lean, s.angle, s.swing || 0, s.flagDir || -1);
+    ctx.rotate((s.angle || 0) * 0.6);              // lean the flames with the body a bit
+    const F = 0.78 + Math.random() * 0.5;          // global flicker
+    const tongue = (bx, by, h, w, col) => {
+      const j = () => (Math.random() - 0.5) * 3;
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.moveTo(bx - w, by);
+      ctx.quadraticCurveTo(bx - w * 0.7, by - h * 0.5, bx - w * 0.22 + j(), by - h * (0.62 + Math.random() * 0.3));
+      ctx.quadraticCurveTo(bx + j(), by - h * 1.06, bx + w * 0.22 + j(), by - h * (0.62 + Math.random() * 0.3));
+      ctx.quadraticCurveTo(bx + w * 0.7, by - h * 0.5, bx + w, by);
+      ctx.closePath(); ctx.fill();
+    };
+    if (layer === "back") {                        // big red/orange flames behind
+      for (const [bx, by, h, w] of [[-13, -6, 32, 13], [13, -12, 34, 13], [-6, -46, 26, 11], [9, -54, 24, 10], [0, -70, 22, 10]])
+        tongue(bx, by, h * F, w, "#e8451f");
+      for (const [bx, by, h, w] of [[-11, -8, 26, 10], [12, -14, 27, 10], [2, -52, 22, 9], [-1, -66, 18, 8]])
+        tongue(bx, by, h * F, w, "#ff7a1e");
+    } else {                                        // small yellow flames in front (over the body)
+      for (const [bx, by, h, w] of [[-8, -18, 20, 8], [9, -30, 22, 8], [-1, -56, 17, 7], [5, -42, 18, 7]])
+        tongue(bx, by, h * (0.7 + Math.random() * 0.5), w, "#ffd23c");
+    }
     ctx.restore();
+  }
+
+  function drawSkier() {
+    const s = skier;
+    const sp = s.shootT > 0 ? 1 - s.shootT / SHOOT_DUR : -1;   // basketball shot phase
+    if (run.onFire) drawFlames(s, "back");
+    // A wipeout is drawn from the ragdoll's particles (the replay re-runs the clean trail, so
+    // it keeps using the normal sprite).
+    if (ragdoll && (state === "wipeout" || state === "result")) { drawRagdoll(); if (run.onFire) drawFlames(s, "front"); return; }
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    paintSkierBody(ctx, character, s.tuck, s.lean, s.angle, s.swing || 0, s.flagDir || -1, sp);
+    ctx.restore();
+    if (run.onFire) drawFlames(s, "front");
   }
 
   // Standing avatar for the character-select previews.
