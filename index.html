@@ -2031,14 +2031,18 @@
       return A.h - B.h;                       // colours by hue
     });
   }
-  // A zebra stripe pattern (bold diagonal black-on-white) for the body — cached per context.
-  function zebraPattern(pctx) {
-    if (pctx._zebra) return pctx._zebra;
+  // A zebra stripe pattern built on a base colour (bold diagonal stripes; stripe colour
+  // auto-contrasts light/dark so it always reads). Cached per context + colour.
+  function zebraPattern(pctx, base) {
+    base = base || "#f4f4f2";
+    pctx._zebra = pctx._zebra || {};
+    if (pctx._zebra[base]) return pctx._zebra[base];
+    const stripe = hexHSL(base).l < 0.5 ? "#f4f4f2" : "#141414";
     const c = document.createElement("canvas"); c.width = c.height = 9; const g = c.getContext("2d");
-    g.fillStyle = "#f4f4f2"; g.fillRect(0, 0, 9, 9);
-    g.strokeStyle = "#141414"; g.lineWidth = 3;
+    g.fillStyle = base; g.fillRect(0, 0, 9, 9);
+    g.strokeStyle = stripe; g.lineWidth = 3;
     g.beginPath(); g.moveTo(-3, 9); g.lineTo(9, -3); g.moveTo(1.5, 9); g.lineTo(13.5, -3); g.stroke();
-    return (pctx._zebra = pctx.createPattern(c, "repeat"));
+    return (pctx._zebra[base] = pctx.createPattern(c, "repeat"));
   }
   // Tattoo band — a run of small ink ticks across a limb segment (for bare skin).
   function inkBand(pctx, x0, y0, x1, y1, n) {
@@ -2059,10 +2063,10 @@
     const B = C.build || 1, thin = C.thin ? 0.84 : 1;
     // Special FINISHES: chrome = a metallic sheen OF the chosen colour (keeps the colour),
     // zebra = a black-on-white stripe pattern.
-    const chrome = C.finish === "chrome", zpat = C.finish === "zebra" ? zebraPattern(pctx) : null;
-    const topCol = chrome ? metalGrad(pctx, C.top) : (zpat || C.top);
-    const botCol = chrome ? metalGrad(pctx, C.bottom) : (zpat || C.bottom);
-    const farArmCol = chrome ? metalGrad(pctx, shade(C.top, 0.78)) : (zpat || shade(C.top, 0.72));
+    const chrome = C.finish === "chrome", zebra = C.finish === "zebra";
+    const topCol = chrome ? metalGrad(pctx, C.top) : zebra ? zebraPattern(pctx, C.top) : C.top;
+    const botCol = chrome ? metalGrad(pctx, C.bottom) : zebra ? zebraPattern(pctx, C.bottom) : C.bottom;
+    const farArmCol = chrome ? metalGrad(pctx, shade(C.top, 0.78)) : zebra ? zebraPattern(pctx, C.top) : shade(C.top, 0.72);
 
     const foot = { x: 0, y: 0 };
     const knee = jl({ x: 2, y: -17 }, { x: 15, y: -12 }, t);
