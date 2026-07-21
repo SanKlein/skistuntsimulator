@@ -2001,6 +2001,18 @@
     const b = Math.min(255, Math.round((n & 255) * f));
     return "#" + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
   }
+  // A metallic (chrome) gradient built FROM a base colour — a shiny version of that colour,
+  // with a bright specular band and a dark band, rather than a fixed silver.
+  function metalGrad(pctx, base) {
+    const g = pctx.createLinearGradient(0, -62, 0, 6);
+    g.addColorStop(0, shade(base, 1.5));
+    g.addColorStop(0.32, base);
+    g.addColorStop(0.5, shade(base, 1.95));   // bright specular highlight
+    g.addColorStop(0.66, shade(base, 0.48));  // dark reflection band
+    g.addColorStop(1, shade(base, 1.15));
+    return g;
+  }
+
   // Colour ordering: chromatic swatches by hue (rainbow), near-greys sorted light→dark and
   // pushed to the end. Used to keep every palette tidy.
   function hexHSL(hex) {
@@ -2045,14 +2057,12 @@
   function paintSkierBody(pctx, C, tuck, lean, angle, sway, flagDir) {
     const t = Math.max(0, Math.min(1, tuck));
     const B = C.build || 1, thin = C.thin ? 0.84 : 1;
-    // Special FINISHES stand in for the top/bottom colours: chrome = metallic gradient,
+    // Special FINISHES: chrome = a metallic sheen OF the chosen colour (keeps the colour),
     // zebra = a black-on-white stripe pattern.
-    const cg = C.finish === "chrome" ? (() => {
-      const g = pctx.createLinearGradient(0, -62 * B, 0, 4);
-      g.addColorStop(0, "#eef3f9"); g.addColorStop(0.34, "#93a1b3"); g.addColorStop(0.5, "#f8fbff");
-      g.addColorStop(0.68, "#69758a"); g.addColorStop(1, "#b7c2cf"); return g;
-    })() : C.finish === "zebra" ? zebraPattern(pctx) : null;
-    const topCol = cg || C.top, botCol = cg || C.bottom;
+    const chrome = C.finish === "chrome", zpat = C.finish === "zebra" ? zebraPattern(pctx) : null;
+    const topCol = chrome ? metalGrad(pctx, C.top) : (zpat || C.top);
+    const botCol = chrome ? metalGrad(pctx, C.bottom) : (zpat || C.bottom);
+    const farArmCol = chrome ? metalGrad(pctx, shade(C.top, 0.78)) : (zpat || shade(C.top, 0.72));
 
     const foot = { x: 0, y: 0 };
     const knee = jl({ x: 2, y: -17 }, { x: 15, y: -12 }, t);
@@ -2128,7 +2138,7 @@
 
     const dyn = { bodyRot: angle + lean * LEAN_TILT, sway: sway || 0, flagDir: flagDir || 1 };
     drawAccessoryBack(pctx, C, hip, sho, dyn);       // backpack / jetpack / cape / flag (behind)
-    drawArm(farA, cg || shade(C.top, 0.72));         // far arm behind the torso
+    drawArm(farA, farArmCol);                        // far arm behind the torso
     pctx.strokeStyle = topCol; pctx.lineWidth = 10 * thin;   // torso
     pctx.beginPath(); pctx.moveTo(hip.x, hip.y); pctx.lineTo(sho.x, sho.y); pctx.stroke();
     drawArm(nearA, topCol);                          // near arm in front
@@ -2140,6 +2150,17 @@
     pctx.translate(head.x, head.y); pctx.rotate(ang + Math.PI / 2);
     drawHead(pctx, C);
     pctx.restore();
+
+    // GLITTER finish: a scatter of tiny coloured sparkles over the whole rider. Re-randomised
+    // each frame so it shimmers live; also visible in the editor/tile previews.
+    if (C.finish === "glitter") {
+      const cols = ["#ff4fa3", "#ffd23c", "#00fff0", "#b026ff", "#39ff88", "#ffffff", "#ff7b1e"];
+      for (let i = 0; i < 16; i++) {
+        pctx.fillStyle = cols[(Math.random() * cols.length) | 0];
+        const gx = (Math.random() - 0.5) * 22, gy = 3 - Math.random() * 70 * B;
+        pctx.beginPath(); pctx.arc(gx, gy, 0.7 + Math.random() * 1.3, 0, Math.PI * 2); pctx.fill();
+      }
+    }
 
     pctx.restore();  // end lean
     pctx.restore();  // end body
