@@ -82,6 +82,12 @@
   #left { display: flex; gap: 22px; }
   #right { text-align: right; }
   #liveflip { font-size: 15px; font-weight: 700; opacity: 0; transition: opacity .12s; }
+  .soundbtn {
+    pointer-events: auto; cursor: pointer; margin-top: 8px; width: 34px; height: 34px;
+    font-size: 16px; line-height: 1; border-radius: 10px; border: 1px solid rgba(255,255,255,.18);
+    background: rgba(9,20,32,.55); backdrop-filter: blur(4px); color: #fff;
+  }
+  .soundbtn:active { transform: translateY(1px); }
 
   /* ---- Center overlays (start / result) ---- */
   #overlay {
@@ -211,6 +217,7 @@
     <div id="right">
       <div class="stat"><div class="k">Best</div><div class="v" id="best">0</div></div>
       <div id="liveflip">0.0 flips</div>
+      <button id="soundBtn" class="soundbtn" title="Sound on/off" aria-label="Sound on/off">🔊</button>
     </div>
   </div>
 
@@ -994,10 +1001,12 @@
     }
   }
 
-  // ---- flip hype sound ----------------------------------------------------
-  // We can't bundle a copyrighted track, so a flip fires a synthesized DJ AIR-HORN blast.
-  // If you drop a clip you're licensed to use at ./flip.mp3 (or .ogg), it plays that instead.
+  // ---- sound ---------------------------------------------------------------
+  // A landed flip speaks a hype callout ("Nice!/Sick!/Yay!"); a bail says "Ow!". Uses the
+  // browser's built-in speech synthesis (no audio files). A licensed clip at ./flip.mp3 still
+  // overrides the flip callout if present. All gated by the on-screen sound toggle.
   let audioCtx = null, flipClip = null, flipClipOk = false;
+  let soundOn = localStorage.getItem("skistunt_sound") !== "off";
   (function () {
     try {
       flipClip = new Audio();
@@ -1012,8 +1021,16 @@
     if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { audioCtx = null; } }
     if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
   }
-  function playFlipSound() {
-    if (flipClipOk && flipClip) { try { flipClip.currentTime = 0; flipClip.play().catch(() => {}); return; } catch (e) {} }
+  function speak(text, pitch, rate) {                        // browser TTS callout
+    if (!soundOn || !window.speechSynthesis) return false;
+    try {
+      const u = new SpeechSynthesisUtterance(text);
+      u.pitch = pitch; u.rate = rate; u.volume = 1;
+      window.speechSynthesis.cancel();                       // don't queue up
+      window.speechSynthesis.speak(u); return true;
+    } catch (e) { return false; }
+  }
+  function playHorn() {                                       // fallback if no speech synthesis
     if (!audioCtx) return;
     const t0 = audioCtx.currentTime, master = audioCtx.createGain();
     master.gain.setValueAtTime(0.0001, t0);
@@ -1021,12 +1038,33 @@
     master.gain.setValueAtTime(0.3, t0 + 0.3);
     master.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.6);
     master.connect(audioCtx.destination);
-    for (const f of [415.3, 622.3, 830.6]) {                 // a bright air-horn chord
+    for (const f of [415.3, 622.3, 830.6]) {
       const o = audioCtx.createOscillator(); o.type = "sawtooth";
       o.frequency.setValueAtTime(f * 0.97, t0); o.frequency.linearRampToValueAtTime(f, t0 + 0.06);
       const g = audioCtx.createGain(); g.gain.value = 0.5; o.connect(g); g.connect(master);
       o.start(t0); o.stop(t0 + 0.62);
     }
+  }
+  const FLIP_CALLS = ["Yay!", "Nice!", "Sick!", "Woo!", "Yeah!", "Let's go!"];
+  function playFlipSound() {
+    if (!soundOn) return;
+    if (flipClipOk && flipClip) { try { flipClip.currentTime = 0; flipClip.play().catch(() => {}); return; } catch (e) {} }
+    if (speak(FLIP_CALLS[(Math.random() * FLIP_CALLS.length) | 0], 1.45, 1.08)) return;
+    playHorn();
+  }
+  function playBailSound() {                                  // hurt "Ow!" on a wipeout
+    if (!soundOn) return;
+    if (speak(Math.random() < 0.5 ? "Ow!" : "Ouch!", 0.8, 0.95)) return;
+    if (!audioCtx) return;                                    // fallback: a short descending groan
+    const t0 = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = "sawtooth"; o.frequency.setValueAtTime(320, t0); o.frequency.exponentialRampToValueAtTime(110, t0 + 0.3);
+    g.gain.setValueAtTime(0.22, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.34);
+    o.connect(g); g.connect(audioCtx.destination); o.start(t0); o.stop(t0 + 0.35);
+  }
+  function toggleSound() {
+    soundOn = !soundOn; localStorage.setItem("skistunt_sound", soundOn ? "on" : "off");
+    const b = document.getElementById("soundBtn"); if (b) b.textContent = soundOn ? "🔊" : "🔇";
+    if (!soundOn && window.speechSynthesis) window.speechSynthesis.cancel();
   }
 
   // Flip-milestone reward: hit 3 flips in a run and the skier pulls a basketball and drains it.
@@ -1199,6 +1237,7 @@
   function crash(title, msg) {
     const s = skier;
     s.dead = true;
+    playBailSound();                          // "Ow!"
     const speed = Math.hypot(s.vx, s.vy);
     // orientation vs the surface for a ground landing, vs upright for a wall/gap hit
     const ref = title === "SPLAT!" || title === "PLUNGE!" ? 0 : slopeAt(s.x);
@@ -2755,6 +2794,11 @@
   buildObstacleTabs();
     updateObstacleRow();
   buildCharacterUI();
+  (function () {
+    const b = document.getElementById("soundBtn");
+    b.textContent = soundOn ? "🔊" : "🔇";
+    b.addEventListener("click", (e) => { e.stopPropagation(); unlockAudio(); toggleSound(); });
+  })();
   document.getElementById("startBtn").addEventListener("click", startGame);
   document.getElementById("againBtn").addEventListener("click", () => {
     if (state === "result") dropInAgain();
