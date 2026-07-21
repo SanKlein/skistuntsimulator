@@ -591,6 +591,7 @@
 
   canvas.addEventListener("pointerdown", (e) => {
     e.preventDefault();
+    unlockAudio();   // browsers require a user gesture before sound can play
     if (state === "replay") { if (!(replay && (replay.recording || replay.gifCapture))) endReplay(); return; }  // tap stops replay (not while capturing)
     if (joy.enabled && inJoyZone(e.clientX, e.clientY)) { joy.id = e.pointerId; updateJoy(e.clientX, e.clientY); return; }
     setXY(e); press();
@@ -602,6 +603,7 @@
   window.addEventListener("pointerup", (e) => { if (joy.id === e.pointerId) return releaseJoy(); release(); });
   window.addEventListener("pointercancel", (e) => { if (joy.id === e.pointerId) return releaseJoy(); release(); });
   window.addEventListener("keydown", (e) => {
+    unlockAudio();
     if (state === "replay") { e.preventDefault(); if (!(replay && (replay.recording || replay.gifCapture))) endReplay(); return; }  // any key stops replay (not while capturing)
     if (e.code === "Space") { e.preventDefault(); press(); }
     if (e.key === "r" || e.key === "R") startReplay();
@@ -904,6 +906,7 @@
       run.score += gained;
       run.flips += flips;                        // flips this run — accumulates across airs (kicker + quarter-pipe)
       setFlipTotal();
+      playFlipSound();                           // hype horn on every landed flip
       if (run.flips >= 3 && !run.didTrick) { run.didTrick = true; shootBasketball(s); }   // milestone celebration
       s.pendingLandMsg = { flips, gained };
       document.getElementById("score").textContent = run.score;
@@ -986,6 +989,41 @@
     if (C.joint && Math.random() < 0.4) {
       particles.push({ x: s.x + 9, y: s.y - 58, vx: (Math.random() - 0.2) * 26, vy: -26 - Math.random() * 26,
         grav: -12, life: 0.8 + Math.random() * 0.6, r: 2 + Math.random() * 2.5, col: "rgba(206,208,212,0.85)" });
+    }
+  }
+
+  // ---- flip hype sound ----------------------------------------------------
+  // We can't bundle a copyrighted track, so a flip fires a synthesized DJ AIR-HORN blast.
+  // If you drop a clip you're licensed to use at ./flip.mp3 (or .ogg), it plays that instead.
+  let audioCtx = null, flipClip = null, flipClipOk = false;
+  (function () {
+    try {
+      flipClip = new Audio();
+      flipClip.preload = "auto";
+      flipClip.src = "flip.mp3";
+      flipClip.addEventListener("canplaythrough", () => { flipClipOk = true; }, { once: true });
+      flipClip.addEventListener("error", () => { flipClipOk = false; });
+      flipClip.load();
+    } catch (e) { flipClip = null; }
+  })();
+  function unlockAudio() {
+    if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { audioCtx = null; } }
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+  }
+  function playFlipSound() {
+    if (flipClipOk && flipClip) { try { flipClip.currentTime = 0; flipClip.play().catch(() => {}); return; } catch (e) {} }
+    if (!audioCtx) return;
+    const t0 = audioCtx.currentTime, master = audioCtx.createGain();
+    master.gain.setValueAtTime(0.0001, t0);
+    master.gain.exponentialRampToValueAtTime(0.3, t0 + 0.03);
+    master.gain.setValueAtTime(0.3, t0 + 0.3);
+    master.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.6);
+    master.connect(audioCtx.destination);
+    for (const f of [415.3, 622.3, 830.6]) {                 // a bright air-horn chord
+      const o = audioCtx.createOscillator(); o.type = "sawtooth";
+      o.frequency.setValueAtTime(f * 0.97, t0); o.frequency.linearRampToValueAtTime(f, t0 + 0.06);
+      const g = audioCtx.createGain(); g.gain.value = 0.5; o.connect(g); g.connect(master);
+      o.start(t0); o.stop(t0 + 0.62);
     }
   }
 
