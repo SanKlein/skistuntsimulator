@@ -652,6 +652,13 @@
     "Popstar Benny": { name:"Popstar Benny", skin:"#5a3b28", head:{type:"hair",  color:"#141414"}, hairColor:"#141414", beard:false, glasses:true,  top:"#c9ccc9", bottomType:"pants", bottom:"#3c5c94", boots:"#20241f", skis:"#ffcf33", build:1.16, thin:true, fluff:true, fluffColor:"#ece4d2" },
     // Michiel van de Panne — creator of the original Ski Stunt Simulator. Repping Canada 🇨🇦
     "Michiel":       { name:"Michiel",       skin:"#e8b58c", head:{type:"cap",   color:"#d52b1e"}, hairColor:"#6b645c", beard:false, glasses:false, top:"#d52b1e", bottomType:"pants", bottom:"#2a2f38", boots:"#20242a", skis:"#e11f2b", build:1.04, accessory:"flag", flagCountry:"CA" },
+    // ---- the WILD ones ----
+    "Neon Nova":     { name:"Neon Nova",     skin:"#e8b58c", head:{type:"long", color:"#b026ff"}, hairColor:"#b026ff", beard:false, glasses:true, top:"#8a12ff", bottomType:"pants", bottom:"#ff1cd0", boots:"#12e6ff", skis:"#00ffa3", build:1.0 },
+    "Chrome":        { name:"Chrome",        skin:"#d9c3ad", head:{type:"helmet", color:"#c8d2de"}, hairColor:"#9aa7b6", beard:false, glasses:true, top:"#c6d2df", bottomType:"pants", bottom:"#aeb9c6", boots:"#7f8a99", skis:"#e6edf5", build:1.06, finish:"chrome" },
+    "Glitter Bomb":  { name:"Glitter Bomb",  skin:"#e8b58c", head:{type:"beanie", color:"#ff2e93"}, hairColor:"#ff2e93", beard:false, glasses:true, top:"#ff4fa3", bottomType:"pants", bottom:"#7b2ff7", boots:"#ffd23c", skis:"#00fff0", build:0.98, finish:"glitter", fluff:true, fluffColor:"#ffd23c" },
+    "Ducky":         { name:"Ducky",         skin:"#e8b58c", head:{type:"duck"}, hairColor:"#000", beard:false, glasses:false, top:"#ffd23c", bottomType:"pants", bottom:"#ffb800", boots:"#ff8a1e", skis:"#ff8a1e", build:1.12 },
+    "Panda":         { name:"Panda",         skin:"#e8b58c", head:{type:"panda"}, hairColor:"#000", beard:false, glasses:false, top:"#f4f4f2", bottomType:"pants", bottom:"#1c1f24", boots:"#111318", skis:"#111318", build:1.12 },
+    "Blaze":         { name:"Blaze",         skin:"#c99866", head:{type:"long", color:"#1a140e"}, hairColor:"#1a140e", beard:true, beardColor:"#241a12", glasses:true, top:"#2f8f5b", bottomType:"pants", bottom:"#3a2f26", boots:"#241a12", skis:"#e8451f", build:1.02, tattoos:true, joint:true },
   };
   const DEFAULT_CUSTOM = { name:"Custom", skin:"#e8b58c", head:{type:"beanie", color:"#1f2c47"}, hairColor:"#4a3527", beard:false, glasses:false, top:"#e8442c", bottomType:"pants", bottom:"#2b3a67", boots:"#2a2f38", skis:"#ffcf33", build:1.0, accessory:"none", accessoryColor:"#6b4a2e", flagCountry:"US" };
   const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -714,6 +721,7 @@
     cam = { x: 0, y: 0 };
     particles = [];
     debris = [];
+    props = [];
     ragdoll = null;
     trail = [];
     trailT = 0;
@@ -896,6 +904,7 @@
       run.score += gained;
       run.flips += flips;                        // flips this run — accumulates across airs (kicker + quarter-pipe)
       setFlipTotal();
+      if (run.flips >= 3 && !run.didTrick) { run.didTrick = true; shootBasketball(s); }   // milestone celebration
       s.pendingLandMsg = { flips, gained };
       document.getElementById("score").textContent = run.score;
       for (let i = 0; i < 18; i++) spawnSpray(s, sa, 700);
@@ -958,8 +967,50 @@
   function stepParticles(dt) {
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
-      p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt;
+      p.vy += (p.grav != null ? p.grav : 900) * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt;
       if (p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  // Cosmetic flair spawned each frame for the wild skins: sparkle trails (glitter) and
+  // rising smoke (a lit joint). Live skier only — driven from update(), not the sprite paint.
+  const GLITTER = ["#ff4fa3", "#ffd23c", "#00fff0", "#b026ff", "#39ff88", "#ff7b1e", "#ffffff"];
+  function spawnFlair(s) {
+    const C = character;
+    if (C.finish === "glitter" && Math.random() < 0.9) {
+      particles.push({ x: s.x + (Math.random() - 0.5) * 28, y: s.y - 32 + (Math.random() - 0.5) * 46,
+        vx: (Math.random() - 0.5) * 70, vy: -10 - Math.random() * 40, grav: 40,
+        life: 0.45 + Math.random() * 0.4, r: 1 + Math.random() * 2,
+        col: GLITTER[(Math.random() * GLITTER.length) | 0] });
+    }
+    if (C.joint && Math.random() < 0.4) {
+      particles.push({ x: s.x + 9, y: s.y - 58, vx: (Math.random() - 0.2) * 26, vy: -26 - Math.random() * 26,
+        grav: -12, life: 0.8 + Math.random() * 0.6, r: 2 + Math.random() * 2.5, col: "rgba(206,208,212,0.85)" });
+    }
+  }
+
+  // Flip-milestone reward: hit 3 flips in a run and the skier pulls a basketball and drains it.
+  let props = [];
+  function shootBasketball(s) {
+    props.push({ x: s.x + 6, y: s.y - 46, vx: 150 + Math.random() * 70, vy: -430, ang: 0, spin: 9, r: 8, life: 2.4 });
+    showHint("🏀 SWISH! " + run.flips + " flips — nothin' but net");
+  }
+  function stepProps(dt) {
+    for (let i = props.length - 1; i >= 0; i--) {
+      const p = props[i];
+      p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.ang += p.spin * dt; p.life -= dt;
+      if (p.life <= 0) props.splice(i, 1);
+    }
+  }
+  function drawProps() {
+    for (const p of props) {
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.ang);
+      ctx.fillStyle = "#e8792b"; ctx.beginPath(); ctx.arc(0, 0, p.r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#20140c"; ctx.lineWidth = 1.1;
+      ctx.beginPath(); ctx.arc(0, 0, p.r, 0, Math.PI * 2);
+      ctx.moveTo(-p.r, 0); ctx.lineTo(p.r, 0); ctx.moveTo(0, -p.r); ctx.lineTo(0, p.r);
+      ctx.moveTo(-p.r * 0.7, -p.r * 0.7); ctx.quadraticCurveTo(0, 0, p.r * 0.7, -p.r * 0.7);
+      ctx.stroke(); ctx.restore();
     }
   }
 
@@ -1442,6 +1493,7 @@
     run.drops++;
     run.score = 0;          // each drop-in is a fresh run — reset score & flips
     run.flips = 0;
+    run.didTrick = false;   // re-arm the flip-milestone basketball
     document.getElementById("score").textContent = 0;
     setFlipTotal();         // Flips counter starts each run at 0
     resetSkier();
@@ -1545,7 +1597,9 @@
         // reached the flat runout after a clean landing? (mega jump ends via the QP settle instead)
         if (!course.qp && skier.onGround && skier.x > course.endX - 120 && skier.launched) finishRun();
       }
+      spawnFlair(skier);
       stepParticles(dt);
+      stepProps(dt);
       updateSway(dt);
       updateCamera(dt);
     } else if (state === "replay") {
@@ -1608,6 +1662,7 @@
     drawParticles();
     drawSkier();
     drawDebris();
+    drawProps();
 
     ctx.restore();
 
@@ -1891,7 +1946,7 @@
     ctx.save();
     for (const p of particles) {
       ctx.globalAlpha = Math.max(0, Math.min(1, p.life * 2));
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = p.col || "#ffffff";
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore();
@@ -1914,6 +1969,13 @@
   function paintSkierBody(pctx, C, tuck, lean, angle, sway, flagDir) {
     const t = Math.max(0, Math.min(1, tuck));
     const B = C.build || 1, thin = C.thin ? 0.84 : 1;
+    // CHROME finish: a metallic vertical gradient stands in for the top/bottom colours.
+    const cg = C.finish === "chrome" ? (() => {
+      const g = pctx.createLinearGradient(0, -62 * B, 0, 4);
+      g.addColorStop(0, "#eef3f9"); g.addColorStop(0.34, "#93a1b3"); g.addColorStop(0.5, "#f8fbff");
+      g.addColorStop(0.68, "#69758a"); g.addColorStop(1, "#b7c2cf"); return g;
+    })() : null;
+    const topCol = cg || C.top, botCol = cg || C.bottom;
 
     const foot = { x: 0, y: 0 };
     const knee = jl({ x: 2, y: -17 }, { x: 15, y: -12 }, t);
@@ -1937,9 +1999,9 @@
     // legs: thigh (hip->knee) is the bottom colour; shin (knee->foot) is skin
     // for shorts, bottom colour for pants
     pctx.lineWidth = 7 * thin;
-    pctx.strokeStyle = C.bottom;
+    pctx.strokeStyle = botCol;
     pctx.beginPath(); pctx.moveTo(hip.x, hip.y); pctx.lineTo(knee.x, knee.y); pctx.stroke();
-    pctx.strokeStyle = C.bottomType === "shorts" ? C.skin : C.bottom;
+    pctx.strokeStyle = C.bottomType === "shorts" ? C.skin : botCol;
     pctx.beginPath(); pctx.moveTo(knee.x, knee.y); pctx.lineTo(foot.x, foot.y); pctx.stroke();
     // boots
     pctx.fillStyle = C.boots;
@@ -1982,10 +2044,15 @@
 
     const dyn = { bodyRot: angle + lean * LEAN_TILT, sway: sway || 0, flagDir: flagDir || 1 };
     drawAccessoryBack(pctx, C, hip, sho, dyn);       // backpack / jetpack / cape / flag (behind)
-    drawArm(farA, shade(C.top, 0.72));               // far arm behind the torso
-    pctx.strokeStyle = C.top; pctx.lineWidth = 10 * thin;   // torso
+    drawArm(farA, cg || shade(C.top, 0.72));         // far arm behind the torso
+    pctx.strokeStyle = topCol; pctx.lineWidth = 10 * thin;   // torso
     pctx.beginPath(); pctx.moveTo(hip.x, hip.y); pctx.lineTo(sho.x, sho.y); pctx.stroke();
-    drawArm(nearA, C.top);                            // near arm in front
+    drawArm(nearA, topCol);                          // near arm in front
+    if (C.tattoos) {                                 // ink on the near forearm
+      pctx.strokeStyle = "rgba(35,45,70,0.6)"; pctx.lineWidth = 1.1;
+      const mx = sho.x + Math.sin(nearA) * 11 * B, my = sho.y - Math.cos(nearA) * 11 * B;
+      pctx.beginPath(); pctx.arc(mx, my + 4, 2.4, 0.2, 2.6); pctx.arc(mx + 1, my + 8, 2, 0.2, 2.6); pctx.stroke();
+    }
     drawAccessoryFront(pctx, C, hip, sho, dyn);      // purse / backpack strap (in front)
 
     // head, aligned to the torso lean
@@ -2061,6 +2128,40 @@
       pctx.quadraticCurveTo(14, -3.2, 16.5, -0.2);
       pctx.quadraticCurveTo(12, -0.8, 3, 0.6);
       pctx.closePath(); pctx.fill();
+    } else if (type === "duck") {
+      // a PERSON in a duck costume: yellow hood, orange bill, face peeking out
+      pctx.fillStyle = "#ffd23c";
+      pctx.beginPath(); pctx.arc(0, -1.5, 10.6, 0, Math.PI * 2); pctx.fill();          // hood
+      pctx.fillStyle = "#e0a81f";                                                       // hood shade
+      pctx.beginPath(); pctx.arc(0, -8, 3.2, 0, Math.PI * 2); pctx.fill();              // little topknot
+      pctx.fillStyle = C.skin;
+      pctx.beginPath(); pctx.arc(1.5, 1.8, 6, 0, Math.PI * 2); pctx.fill();             // face opening
+      pctx.fillStyle = "#ff8a1e";                                                       // bill (points +x)
+      pctx.beginPath(); pctx.ellipse(8.5, 3, 5.6, 2.7, 0, 0, Math.PI * 2); pctx.fill();
+      pctx.fillStyle = "#1a1a1a"; pctx.beginPath(); pctx.arc(3, -4.5, 1.3, 0, Math.PI * 2); pctx.fill();
+    } else if (type === "panda") {
+      // a PERSON in a panda costume: white hood, black ears + eye patches, face peeking out
+      pctx.fillStyle = "#f4f4f2";
+      pctx.beginPath(); pctx.arc(0, -1.5, 10.6, 0, Math.PI * 2); pctx.fill();           // hood
+      pctx.fillStyle = "#1c1f24";
+      pctx.beginPath(); pctx.arc(-7.6, -9, 3.6, 0, Math.PI * 2); pctx.fill();           // ears
+      pctx.beginPath(); pctx.arc(7.6, -9, 3.6, 0, Math.PI * 2); pctx.fill();
+      pctx.fillStyle = C.skin;
+      pctx.beginPath(); pctx.arc(1.5, 1.8, 6, 0, Math.PI * 2); pctx.fill();             // face opening
+      pctx.fillStyle = "#1c1f24";                                                       // eye patches
+      pctx.beginPath(); pctx.ellipse(-1.2, 0, 2.1, 2.9, 0.35, 0, Math.PI * 2); pctx.fill();
+      pctx.beginPath(); pctx.ellipse(4.4, 0, 2.1, 2.9, -0.35, 0, Math.PI * 2); pctx.fill();
+    }
+    if (C.tattoos) {   // teardrop + cheek line
+      pctx.fillStyle = "rgba(35,45,70,0.7)";
+      pctx.beginPath(); pctx.arc(-3.4, 2.6, 0.9, 0, Math.PI * 2); pctx.fill();
+      pctx.strokeStyle = "rgba(35,45,70,0.65)"; pctx.lineWidth = 0.8;
+      pctx.beginPath(); pctx.moveTo(4.4, -2); pctx.lineTo(6, 0.6); pctx.stroke();
+    }
+    if (C.joint) {     // lit joint at the mouth + glowing ember
+      pctx.strokeStyle = "#f2efe6"; pctx.lineWidth = 1.7; pctx.lineCap = "butt";
+      pctx.beginPath(); pctx.moveTo(4, 3.2); pctx.lineTo(11.5, 5.2); pctx.stroke();
+      pctx.fillStyle = "#ff5a2a"; pctx.beginPath(); pctx.arc(11.8, 5.3, 1.2, 0, Math.PI * 2); pctx.fill();
     }
     if (C.glasses) {
       pctx.fillStyle = "rgba(32,38,46,.82)";
