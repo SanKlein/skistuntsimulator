@@ -1001,18 +1001,18 @@
       particles.push({ x: s.x + 9, y: s.y - 58, vx: (Math.random() - 0.2) * 26, vy: -26 - Math.random() * 26,
         grav: -12, life: 0.8 + Math.random() * 0.6, r: 2 + Math.random() * 2.5, col: "rgba(206,208,212,0.85)" });
     }
-    // ON FIRE (5-flip streak): flames licking up the body + a smoke plume trailing off.
+    // ON FIRE (5-flip streak): embers stream off the SKIS and trail behind; smoke plumes up.
     if (run.onFire) {
-      for (let i = 0; i < 3; i++) {
-        particles.push({ x: s.x + (Math.random() - 0.5) * 24, y: s.y - Math.random() * 62,
-          vx: (Math.random() - 0.5) * 44, vy: -60 - Math.random() * 90, grav: -140,
-          life: 0.28 + Math.random() * 0.32, r: 2 + Math.random() * 3.2,
+      for (let i = 0; i < 4; i++) {
+        particles.push({ x: s.x + (Math.random() - 0.5) * 34, y: s.y - Math.random() * 8,
+          vx: -s.vx * 0.12 + (Math.random() - 0.5) * 40, vy: -50 - Math.random() * 80, grav: -130,
+          life: 0.28 + Math.random() * 0.34, r: 1.8 + Math.random() * 3,
           col: FIRE_COLS[(Math.random() * FIRE_COLS.length) | 0] });
       }
       if (Math.random() < 0.6) {
-        particles.push({ x: s.x + (Math.random() - 0.5) * 18, y: s.y - 60,
-          vx: (Math.random() - 0.3) * 34, vy: -42 - Math.random() * 34, grav: -22,
-          life: 0.7 + Math.random() * 0.6, r: 3 + Math.random() * 3.5, col: "rgba(84,84,90,0.6)" });
+        particles.push({ x: s.x + (Math.random() - 0.5) * 22, y: s.y - 24,
+          vx: -s.vx * 0.06 + (Math.random() - 0.3) * 30, vy: -44 - Math.random() * 34, grav: -22,
+          life: 0.7 + Math.random() * 0.6, r: 3 + Math.random() * 3.5, col: "rgba(84,84,90,0.55)" });
       }
     }
   }
@@ -2561,13 +2561,11 @@
     pctx.restore();
   }
 
-  // NBA-Jam "on fire": layered, flickering cartoon flames engulfing the rider (rotated with
-  // the body so they wrap around it during flips). `layer` = "back" (behind) or "front".
+  // NBA-Jam "on fire": flickering cartoon flames — mostly the SKIS (locked to the ski line so
+  // they stay on the boards through flips), plus lighter flames rising off the body.
+  // `layer` = "back" (behind the rider) or "front" (over it).
   function drawFlames(s, layer) {
-    ctx.save();
-    ctx.translate(s.x, s.y);
-    ctx.rotate((s.angle || 0) * 0.6);              // lean the flames with the body a bit
-    const F = 0.78 + Math.random() * 0.5;          // global flicker
+    const ang = s.angle || 0, F = 0.78 + Math.random() * 0.5;
     const tongue = (bx, by, h, w, col) => {
       const j = () => (Math.random() - 0.5) * 3;
       ctx.fillStyle = col;
@@ -2578,14 +2576,26 @@
       ctx.quadraticCurveTo(bx + w * 0.7, by - h * 0.5, bx + w, by);
       ctx.closePath(); ctx.fill();
     };
-    if (layer === "back") {                        // big red/orange flames behind
-      for (const [bx, by, h, w] of [[-13, -6, 32, 13], [13, -12, 34, 13], [-6, -46, 26, 11], [9, -54, 24, 10], [0, -70, 22, 10]])
-        tongue(bx, by, h * F, w, "#e8451f");
-      for (const [bx, by, h, w] of [[-11, -8, 26, 10], [12, -14, 27, 10], [2, -52, 22, 9], [-1, -66, 18, 8]])
+    // ---- SKIS on fire (rotate with the full body so flames hug the ski line) ----
+    ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(ang);
+    if (layer === "back") {
+      for (const [bx, w, h] of [[-26, 11, 30], [-15, 12, 38], [-3, 12, 40], [9, 12, 38], [21, 11, 33], [30, 9, 26]])
+        tongue(bx, 2, h * F, w, "#e8451f");
+      for (const [bx, w, h] of [[-20, 9, 28], [-8, 10, 33], [6, 10, 33], [18, 9, 28]])
+        tongue(bx, 1, h * F, w, "#ff8a1e");
+    } else {
+      for (const [bx, w, h] of [[-17, 7, 20], [-4, 8, 25], [8, 8, 25], [20, 7, 20]])
+        tongue(bx, 0, h * (0.7 + Math.random() * 0.5), w, "#ffe14d");
+    }
+    ctx.restore();
+    // ---- lighter body flames (loosely follow the lean) ----
+    ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(ang * 0.5);
+    if (layer === "back") {
+      for (const [bx, by, h, w] of [[-9, -40, 20, 9], [10, -48, 20, 9], [0, -64, 17, 8]])
         tongue(bx, by, h * F, w, "#ff7a1e");
-    } else {                                        // small yellow flames in front (over the body)
-      for (const [bx, by, h, w] of [[-8, -18, 20, 8], [9, -30, 22, 8], [-1, -56, 17, 7], [5, -42, 18, 7]])
-        tongue(bx, by, h * (0.7 + Math.random() * 0.5), w, "#ffd23c");
+    } else {
+      for (const [bx, by, h, w] of [[-6, -46, 13, 6], [6, -54, 13, 6]])
+        tongue(bx, by, h, w, "#ffd23c");
     }
     ctx.restore();
   }
