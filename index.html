@@ -111,6 +111,8 @@
     box-shadow: 0 8px 22px rgba(74,169,232,.4);
   }
   .btn:active { transform: translateY(1px); }
+  /* keep the primary Drop In button pinned to the bottom of the (scrolling) card */
+  .btn.sticky-cta { position: sticky; bottom: 10px; z-index: 3; box-shadow: 0 8px 22px rgba(74,169,232,.4), 0 0 0 12px rgba(9,20,32,.82); }
   .linkbtn {
     display:block; margin: 10px auto 0; cursor:pointer; background:none; border:none;
     color:#8fd3ff; font-size:13px; font-weight:700; opacity:.85;
@@ -235,7 +237,7 @@
         (backflip). Crouch then snap up fast to <b>jump off the snow anywhere</b>. Tuck to spin faster, extend
         and center to land upright. Press <b>R</b> to replay.</p>
       </details>
-      <button class="btn" id="startBtn">Drop In ▸</button>
+      <button class="btn sticky-cta" id="startBtn">Drop In ▸</button>
       <p class="credit">A tribute to the original <a href="https://www.cs.ubc.ca/~van/sssjava/javademo.html" target="_blank" rel="noopener noreferrer">Ski Stunt Simulator</a> by Michiel van de Panne (UBC).</p>
       <p class="credit">Made with <span class="heart">♥</span> by <a href="https://www.writethingsdown.com" target="_blank" rel="noopener noreferrer">Twos</a>.</p>
     </div>
@@ -250,7 +252,7 @@
         <span class="keycap"><b>tap</b> / any key — stop replay</span>
         <span class="keycap"><b>tap</b> / Space — drop back in</span>
       </div>
-      <button class="btn" id="againBtn">Drop In Again ▸</button>
+      <button class="btn sticky-cta" id="againBtn">Drop In Again ▸</button>
       <div class="linkrow">
         <button class="linkbtn" id="replayBtn">▶ Watch replay</button>
         <button class="linkbtn" id="saveVidBtn">🎥 Share video</button>
@@ -2202,10 +2204,19 @@
       pctx.fillStyle = "#ff5a2a"; pctx.beginPath(); pctx.arc(11.8, 5.3, 1.2, 0, Math.PI * 2); pctx.fill();
     }
     if (C.glasses) {
-      pctx.fillStyle = "rgba(32,38,46,.82)";
-      pctx.beginPath(); pctx.arc(-3, -0.3, 2.5, 0, Math.PI * 2); pctx.arc(3, -0.3, 2.5, 0, Math.PI * 2); pctx.fill();
-      pctx.strokeStyle = "#20242a"; pctx.lineWidth = 1.2;
-      pctx.beginPath(); pctx.moveTo(-0.6, -0.6); pctx.lineTo(0.6, -0.6); pctx.stroke();
+      // sleek shades: two wide tinted lenses + bridge + temple arm + a glint (not googly eyes)
+      pctx.fillStyle = "rgba(18,22,28,0.92)";
+      rrect(pctx, -5.7, -1.9, 4.7, 3.0, 1.2); pctx.fill();       // left lens
+      rrect(pctx, 1.0, -1.9, 4.7, 3.0, 1.2); pctx.fill();        // right lens
+      pctx.strokeStyle = "#12151a"; pctx.lineWidth = 1.2; pctx.lineCap = "round";
+      pctx.beginPath(); pctx.moveTo(-1.0, -1.3); pctx.lineTo(1.0, -1.3); pctx.stroke();   // bridge
+      pctx.lineWidth = 1;
+      pctx.beginPath(); pctx.moveTo(-5.7, -1.4); pctx.lineTo(-7.7, -0.8); pctx.stroke();  // temple arm to the ear
+      pctx.strokeStyle = "rgba(255,255,255,0.5)"; pctx.lineWidth = 0.7;                    // glints
+      pctx.beginPath();
+      pctx.moveTo(-4.9, -1.0); pctx.lineTo(-2.5, -1.5);
+      pctx.moveTo(1.8, -1.5); pctx.lineTo(4.2, -1.0);
+      pctx.stroke();
     }
   }
 
