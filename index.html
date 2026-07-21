@@ -2656,6 +2656,10 @@
     rows.push(swatchRow("Hair/Hat", PAL.hair, () => customChar.head.color, (v) => { customChar.head.color = v; customChar.hairColor = v; }));
     rows.push(swatchRow("Skin", PAL.skin, () => customChar.skin, (v) => (customChar.skin = v)));
     rows.push(swatchRow("Top", PAL.top, () => customChar.top, (v) => (customChar.top = v)));
+    rows.push(chipRow("Sleeves", [
+      { text: "Long", active: () => (customChar.sleeves || "long") === "long", onClick: () => (customChar.sleeves = "long") },
+      { text: "Short", active: () => customChar.sleeves === "short", onClick: () => (customChar.sleeves = "short") },
+    ]));
     rows.push(chipRow("Bottom", [
       { text: "Pants", active: () => customChar.bottomType === "pants", onClick: () => (customChar.bottomType = "pants") },
       { text: "Shorts", active: () => customChar.bottomType === "shorts", onClick: () => (customChar.bottomType = "shorts") },
@@ -2675,10 +2679,6 @@
       { text: "✨ Glitter", active: () => customChar.finish === "glitter", onClick: () => (customChar.finish = "glitter") },
       { text: "🪞 Chrome", active: () => customChar.finish === "chrome", onClick: () => (customChar.finish = "chrome") },
       { text: "🦓 Zebra", active: () => customChar.finish === "zebra", onClick: () => (customChar.finish = "zebra") },
-    ]));
-    rows.push(chipRow("Sleeves", [
-      { text: "Long", active: () => (customChar.sleeves || "long") === "long", onClick: () => (customChar.sleeves = "long") },
-      { text: "Short", active: () => customChar.sleeves === "short", onClick: () => (customChar.sleeves = "short") },
     ]));
     const accLabels = { none: "None", purse: "Purse", backpack: "Backpack", jetpack: "Jetpack", cape: "Cape", flag: "Flag" };
     rows.push(chipRow("Accessory", Object.keys(accLabels).map((tp) => ({
