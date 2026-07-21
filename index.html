@@ -916,7 +916,8 @@
       run.flips += flips;                        // flips this run — accumulates across airs (kicker + quarter-pipe)
       setFlipTotal();
       playFlipSound();                           // hype horn on every landed flip
-      if (run.flips >= 3 && !run.didTrick) { run.didTrick = true; shootBasketball(s); }   // milestone celebration
+      if (run.flips >= 3 && !run.didTrick) { run.didTrick = true; shootBasketball(s); }   // 3 flips: basketball
+      if (run.flips >= 5 && !run.onFire) { run.onFire = true; igniteFire(); }             // 5 flips: ON FIRE
       s.pendingLandMsg = { flips, gained };
       document.getElementById("score").textContent = run.score;
       for (let i = 0; i < 18; i++) spawnSpray(s, sa, 700);
@@ -999,6 +1000,25 @@
       particles.push({ x: s.x + 9, y: s.y - 58, vx: (Math.random() - 0.2) * 26, vy: -26 - Math.random() * 26,
         grav: -12, life: 0.8 + Math.random() * 0.6, r: 2 + Math.random() * 2.5, col: "rgba(206,208,212,0.85)" });
     }
+    // ON FIRE (5-flip streak): flames licking up the body + a smoke plume trailing off.
+    if (run.onFire) {
+      for (let i = 0; i < 3; i++) {
+        particles.push({ x: s.x + (Math.random() - 0.5) * 24, y: s.y - Math.random() * 62,
+          vx: (Math.random() - 0.5) * 44, vy: -60 - Math.random() * 90, grav: -140,
+          life: 0.28 + Math.random() * 0.32, r: 2 + Math.random() * 3.2,
+          col: FIRE_COLS[(Math.random() * FIRE_COLS.length) | 0] });
+      }
+      if (Math.random() < 0.6) {
+        particles.push({ x: s.x + (Math.random() - 0.5) * 18, y: s.y - 60,
+          vx: (Math.random() - 0.3) * 34, vy: -42 - Math.random() * 34, grav: -22,
+          life: 0.7 + Math.random() * 0.6, r: 3 + Math.random() * 3.5, col: "rgba(84,84,90,0.6)" });
+      }
+    }
+  }
+  const FIRE_COLS = ["#ffe14d", "#ffd23c", "#ff8a1e", "#ff5a2a", "#e8451f"];
+  function igniteFire() {
+    showHint("🔥 ON FIRE! " + run.flips + " flips — he's heating up! 🔥");
+    speak("You're on fire!", 1.2, 1.05);
   }
 
   // ---- sound ---------------------------------------------------------------
@@ -1573,6 +1593,7 @@
     run.score = 0;          // each drop-in is a fresh run — reset score & flips
     run.flips = 0;
     run.didTrick = false;   // re-arm the flip-milestone basketball
+    run.onFire = false;     // douse the on-fire streak
     document.getElementById("score").textContent = 0;
     setFlipTotal();         // Flips counter starts each run at 0
     resetSkier();
@@ -2530,6 +2551,13 @@
 
   function drawSkier() {
     const s = skier;
+    if (run.onFire) {                              // warm glow while on fire
+      ctx.save();
+      const gr = ctx.createRadialGradient(s.x, s.y - 30, 4, s.x, s.y - 30, 52);
+      gr.addColorStop(0, "rgba(255,150,40,0.42)"); gr.addColorStop(1, "rgba(255,120,20,0)");
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(s.x, s.y - 30, 52, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
     // A wipeout is drawn from the ragdoll's particles (the replay re-runs the clean trail, so
     // it keeps using the normal sprite).
     if (ragdoll && (state === "wipeout" || state === "result")) return drawRagdoll();
