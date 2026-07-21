@@ -2494,7 +2494,7 @@
   // Accessories that sit IN FRONT (drawn after the near arm).
   function drawAccessoryFront(pctx, C, hip, sho, dyn) {
     const a = C.accessory;
-    if (a !== "backpack" && a !== "purse") return;
+    if (a !== "backpack" && a !== "purse" && a !== "lightsaber") return;
     const rot = dyn || { bodyRot: 0, sway: 0 };
     pctx.save();
     const { L, tilt } = torsoFrame(pctx, hip, sho);
@@ -2522,6 +2522,26 @@
       pctx.beginPath(); pctx.arc(bx + 3.5, by + 7, 0.9, 0, Math.PI * 2); pctx.fill();
       pctx.beginPath(); pctx.arc(bx + 12.5, by + 7, 0.9, 0, Math.PI * 2); pctx.fill();
       pctx.restore();
+    } else if (a === "lightsaber") {
+      // held out and up: chrome hilt + a glowing colour-picked blade (layered glow → core)
+      const blade = C.accessoryColor || "#39ff88";
+      const gx = 6, gy = -L * 0.58;                          // grip near the forward hand
+      const dl = Math.hypot(0.55, -1), ux = 0.55 / dl, uy = -1 / dl;   // blade points up-forward
+      const bx0 = gx + ux * 6, by0 = gy + uy * 6;            // emitter (blade start)
+      const bx1 = gx + ux * 42, by1 = gy + uy * 42;          // blade tip
+      pctx.lineCap = "round";
+      pctx.strokeStyle = "#3a3f48"; pctx.lineWidth = 4;      // pommel
+      pctx.beginPath(); pctx.moveTo(gx - ux * 5, gy - uy * 5); pctx.lineTo(gx, gy); pctx.stroke();
+      pctx.strokeStyle = "#c9ccd2"; pctx.lineWidth = 4;      // metal grip
+      pctx.beginPath(); pctx.moveTo(gx, gy); pctx.lineTo(bx0, by0); pctx.stroke();
+      pctx.strokeStyle = "#7f868f"; pctx.lineWidth = 4.6;    // emitter ring
+      pctx.beginPath(); pctx.moveTo(bx0 - ux * 1.5, by0 - uy * 1.5); pctx.lineTo(bx0, by0); pctx.stroke();
+      pctx.strokeStyle = blade; pctx.globalAlpha = 0.32; pctx.lineWidth = 8;   // outer glow
+      pctx.beginPath(); pctx.moveTo(bx0, by0); pctx.lineTo(bx1, by1); pctx.stroke();
+      pctx.globalAlpha = 1; pctx.lineWidth = 4;              // coloured blade
+      pctx.beginPath(); pctx.moveTo(bx0, by0); pctx.lineTo(bx1, by1); pctx.stroke();
+      pctx.strokeStyle = "rgba(255,255,255,0.92)"; pctx.lineWidth = 1.5;       // white-hot core
+      pctx.beginPath(); pctx.moveTo(bx0, by0); pctx.lineTo(bx1, by1); pctx.stroke();
     }
     pctx.restore();
   }
@@ -2820,7 +2840,7 @@
       { text: "🪞 Chrome", active: () => customChar.finish === "chrome", onClick: () => (customChar.finish = "chrome") },
       { text: "🦓 Zebra", active: () => customChar.finish === "zebra", onClick: () => (customChar.finish = "zebra") },
     ]));
-    const accLabels = { none: "None", purse: "Purse", backpack: "Backpack", jetpack: "Jetpack", cape: "Cape", flag: "Flag" };
+    const accLabels = { none: "None", purse: "Purse", backpack: "Backpack", jetpack: "Jetpack", cape: "Cape", flag: "Flag", lightsaber: "⚔️ Saber" };
     rows.push(chipRow("Accessory", Object.keys(accLabels).map((tp) => ({
       text: accLabels[tp], active: () => (customChar.accessory || "none") === tp, onClick: () => { customChar.accessory = tp; },
     }))));
