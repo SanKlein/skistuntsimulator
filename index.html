@@ -662,9 +662,9 @@
     "Glitter Bomb":  { name:"Glitter Bomb",  skin:"#e8b58c", head:{type:"beanie", color:"#ff2e93"}, hairColor:"#ff2e93", beard:false, glasses:true, top:"#ff4fa3", bottomType:"pants", bottom:"#7b2ff7", boots:"#ffd23c", skis:"#00fff0", build:0.98, finish:"glitter", fluff:true, fluffColor:"#ffd23c" },
     "Ducky":         { name:"Ducky",         skin:"#e8b58c", head:{type:"duck"}, hairColor:"#000", beard:false, glasses:false, top:"#ffd23c", bottomType:"pants", bottom:"#ffb800", boots:"#ff8a1e", skis:"#ff8a1e", build:1.12 },
     "Panda":         { name:"Panda",         skin:"#e8b58c", head:{type:"panda"}, hairColor:"#000", beard:false, glasses:false, top:"#f4f4f2", bottomType:"pants", bottom:"#1c1f24", boots:"#111318", skis:"#111318", build:1.12 },
-    "Blaze":         { name:"Blaze",         skin:"#c99866", head:{type:"long", color:"#1a140e"}, hairColor:"#1a140e", beard:true, beardColor:"#241a12", glasses:true, top:"#2f8f5b", bottomType:"pants", bottom:"#3a2f26", boots:"#241a12", skis:"#e8451f", build:1.02, tattoos:true, joint:true },
+    "Blaze":         { name:"Blaze",         skin:"#c99866", head:{type:"long", color:"#1a140e"}, hairColor:"#1a140e", beard:true, beardColor:"#241a12", glasses:true, top:"#2f8f5b", bottomType:"shorts", bottom:"#3a2f26", boots:"#241a12", skis:"#e8451f", build:1.02, tattoos:true, joint:true, sleeves:"short" },
   };
-  const DEFAULT_CUSTOM = { name:"Custom", skin:"#e8b58c", head:{type:"beanie", color:"#1f2c47"}, hairColor:"#4a3527", beard:false, glasses:false, top:"#e8442c", bottomType:"pants", bottom:"#2b3a67", boots:"#2a2f38", skis:"#ffcf33", build:1.0, accessory:"none", accessoryColor:"#6b4a2e", flagCountry:"US" };
+  const DEFAULT_CUSTOM = { name:"Custom", skin:"#e8b58c", head:{type:"beanie", color:"#1f2c47"}, hairColor:"#4a3527", beard:false, glasses:false, top:"#e8442c", bottomType:"pants", bottom:"#2b3a67", boots:"#2a2f38", skis:"#ffcf33", build:1.0, accessory:"none", accessoryColor:"#6b4a2e", flagCountry:"US", sleeves:"long", finish:null, tattoos:false, joint:false };
   const clone = (o) => JSON.parse(JSON.stringify(o));
 
   let customChar;
@@ -2001,6 +2001,42 @@
     const b = Math.min(255, Math.round((n & 255) * f));
     return "#" + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
   }
+  // Colour ordering: chromatic swatches by hue (rainbow), near-greys sorted light→dark and
+  // pushed to the end. Used to keep every palette tidy.
+  function hexHSL(hex) {
+    let h2 = hex.replace("#", ""); if (h2.length === 3) h2 = h2.split("").map((c) => c + c).join("");
+    const r = parseInt(h2.slice(0, 2), 16) / 255, g = parseInt(h2.slice(2, 4), 16) / 255, b = parseInt(h2.slice(4, 6), 16) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let h = 0, s = 0;
+    if (mx !== mn) { const d = mx - mn; s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+      if (mx === r) h = (g - b) / d + (g < b ? 6 : 0); else if (mx === g) h = (b - r) / d + 2; else h = (r - g) / d + 4; h *= 60; }
+    return { h, s, l };
+  }
+  function byHue(cols) {
+    return [...new Set(cols.map((c) => c.toLowerCase()))].sort((a, b) => {
+      const A = hexHSL(a), B = hexHSL(b), ga = A.s < 0.12, gb = B.s < 0.12;
+      if (ga !== gb) return ga ? 1 : -1;      // greys last
+      if (ga && gb) return B.l - A.l;         // greys light→dark
+      return A.h - B.h;                       // colours by hue
+    });
+  }
+  // A zebra stripe pattern (bold diagonal black-on-white) for the body — cached per context.
+  function zebraPattern(pctx) {
+    if (pctx._zebra) return pctx._zebra;
+    const c = document.createElement("canvas"); c.width = c.height = 9; const g = c.getContext("2d");
+    g.fillStyle = "#f4f4f2"; g.fillRect(0, 0, 9, 9);
+    g.strokeStyle = "#141414"; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(-3, 9); g.lineTo(9, -3); g.moveTo(1.5, 9); g.lineTo(13.5, -3); g.stroke();
+    return (pctx._zebra = pctx.createPattern(c, "repeat"));
+  }
+  // Tattoo band — a run of small ink ticks across a limb segment (for bare skin).
+  function inkBand(pctx, x0, y0, x1, y1, n) {
+    const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
+    pctx.strokeStyle = "rgba(28,36,58,0.72)"; pctx.lineWidth = 1.1; pctx.lineCap = "round";
+    for (let i = 1; i <= n; i++) {
+      const tt = i / (n + 1), cx = x0 + dx * tt, cy = y0 + dy * tt, w = 2.5;
+      pctx.beginPath(); pctx.moveTo(cx - nx * w, cy - ny * w); pctx.lineTo(cx + nx * w, cy + ny * w); pctx.stroke();
+    }
+  }
 
   // Paint the skier in the current canvas transform, feet at the origin.
   // Joints interpolate between an EXTENDED and a deep TUCK pose by `tuck`; the
@@ -2009,12 +2045,13 @@
   function paintSkierBody(pctx, C, tuck, lean, angle, sway, flagDir) {
     const t = Math.max(0, Math.min(1, tuck));
     const B = C.build || 1, thin = C.thin ? 0.84 : 1;
-    // CHROME finish: a metallic vertical gradient stands in for the top/bottom colours.
+    // Special FINISHES stand in for the top/bottom colours: chrome = metallic gradient,
+    // zebra = a black-on-white stripe pattern.
     const cg = C.finish === "chrome" ? (() => {
       const g = pctx.createLinearGradient(0, -62 * B, 0, 4);
       g.addColorStop(0, "#eef3f9"); g.addColorStop(0.34, "#93a1b3"); g.addColorStop(0.5, "#f8fbff");
       g.addColorStop(0.68, "#69758a"); g.addColorStop(1, "#b7c2cf"); return g;
-    })() : null;
+    })() : C.finish === "zebra" ? zebraPattern(pctx) : null;
     const topCol = cg || C.top, botCol = cg || C.bottom;
 
     const foot = { x: 0, y: 0 };
@@ -2041,8 +2078,10 @@
     pctx.lineWidth = 7 * thin;
     pctx.strokeStyle = botCol;
     pctx.beginPath(); pctx.moveTo(hip.x, hip.y); pctx.lineTo(knee.x, knee.y); pctx.stroke();
-    pctx.strokeStyle = C.bottomType === "shorts" ? C.skin : botCol;
+    const shinBare = C.bottomType === "shorts";
+    pctx.strokeStyle = shinBare ? C.skin : botCol;
     pctx.beginPath(); pctx.moveTo(knee.x, knee.y); pctx.lineTo(foot.x, foot.y); pctx.stroke();
+    if (C.tattoos && shinBare) inkBand(pctx, knee.x, knee.y, foot.x, foot.y, 3);   // leg ink
     // boots
     pctx.fillStyle = C.boots;
     pctx.beginPath(); pctx.ellipse(1, -2, 5, 4, 0, 0, Math.PI * 2); pctx.fill();
@@ -2071,13 +2110,18 @@
     const nearA = restA + d * mag;
     const farA  = nearA - 12 * DEG;
     const reach = Math.max(0, lean);                  // extend the arms on a forward grab
+    const shortSleeve = C.sleeves === "short";
     const drawArm = (a, col) => {
       const uL = 11 * B, fL = (10 + reach * 8) * B;
       const ex = sho.x + Math.sin(a) * uL, ey = sho.y - Math.cos(a) * uL;            // elbow
       const a2 = a - 0.4 + reach * 0.7;                                              // curl the hands toward the tips
       const hx = ex + Math.sin(a2) * fL, hy = ey - Math.cos(a2) * fL;                // hand
-      pctx.strokeStyle = col; pctx.lineWidth = 5 * thin;
-      pctx.beginPath(); pctx.moveTo(sho.x, sho.y); pctx.lineTo(ex, ey); pctx.lineTo(hx, hy); pctx.stroke();
+      pctx.lineWidth = 5 * thin;
+      pctx.strokeStyle = col;                                                        // upper arm / sleeve
+      pctx.beginPath(); pctx.moveTo(sho.x, sho.y); pctx.lineTo(ex, ey); pctx.stroke();
+      pctx.strokeStyle = shortSleeve ? C.skin : col;                                 // forearm: bare if short sleeves
+      pctx.beginPath(); pctx.moveTo(ex, ey); pctx.lineTo(hx, hy); pctx.stroke();
+      if (C.tattoos && shortSleeve) inkBand(pctx, ex, ey, hx, hy, 3);                // full forearm ink
       pctx.fillStyle = C.skin;                                                       // bare hand
       pctx.beginPath(); pctx.arc(hx, hy, 3, 0, Math.PI * 2); pctx.fill();
     };
@@ -2088,11 +2132,6 @@
     pctx.strokeStyle = topCol; pctx.lineWidth = 10 * thin;   // torso
     pctx.beginPath(); pctx.moveTo(hip.x, hip.y); pctx.lineTo(sho.x, sho.y); pctx.stroke();
     drawArm(nearA, topCol);                          // near arm in front
-    if (C.tattoos) {                                 // ink on the near forearm
-      pctx.strokeStyle = "rgba(35,45,70,0.6)"; pctx.lineWidth = 1.1;
-      const mx = sho.x + Math.sin(nearA) * 11 * B, my = sho.y - Math.cos(nearA) * 11 * B;
-      pctx.beginPath(); pctx.arc(mx, my + 4, 2.4, 0.2, 2.6); pctx.arc(mx + 1, my + 8, 2, 0.2, 2.6); pctx.stroke();
-    }
     drawAccessoryFront(pctx, C, hip, sho, dyn);      // purse / backpack strap (in front)
 
     // head, aligned to the torso lean
@@ -2191,6 +2230,39 @@
       pctx.fillStyle = "#1c1f24";                                                       // eye patches
       pctx.beginPath(); pctx.ellipse(-1.2, 0, 2.1, 2.9, 0.35, 0, Math.PI * 2); pctx.fill();
       pctx.beginPath(); pctx.ellipse(4.4, 0, 2.1, 2.9, -0.35, 0, Math.PI * 2); pctx.fill();
+    } else if (type === "dog") {
+      // a PERSON in a dog costume: tan hood, floppy ears, snout
+      pctx.fillStyle = "#b98a52";
+      pctx.beginPath(); pctx.arc(0, -1.5, 10.5, 0, Math.PI * 2); pctx.fill();            // hood
+      pctx.fillStyle = "#8a5c30";
+      pctx.beginPath(); pctx.ellipse(-9, 1, 3, 6.4, 0.35, 0, Math.PI * 2); pctx.fill(); // floppy ears
+      pctx.beginPath(); pctx.ellipse(9, 1, 3, 6.4, -0.35, 0, Math.PI * 2); pctx.fill();
+      pctx.fillStyle = C.skin;
+      pctx.beginPath(); pctx.arc(1, 1.5, 6, 0, Math.PI * 2); pctx.fill();                // face
+      pctx.fillStyle = "#e6d3b8";                                                        // snout
+      pctx.beginPath(); pctx.ellipse(8.5, 3.4, 3.4, 2.4, 0, 0, Math.PI * 2); pctx.fill();
+      pctx.fillStyle = "#1a1a1a"; pctx.beginPath(); pctx.arc(10.4, 3, 1.1, 0, Math.PI * 2); pctx.fill();  // nose
+      pctx.beginPath(); pctx.arc(2.5, -4.5, 1.2, 0, Math.PI * 2); pctx.fill();
+    } else if (type === "elephant") {
+      // a PERSON in an elephant costume: grey hood, big ears, a trunk
+      pctx.fillStyle = "#9aa3ad";
+      pctx.beginPath(); pctx.ellipse(-9.5, -1, 5.4, 7.2, 0, 0, Math.PI * 2); pctx.fill();  // ears
+      pctx.beginPath(); pctx.ellipse(9.5, -1, 5.4, 7.2, 0, 0, Math.PI * 2); pctx.fill();
+      pctx.beginPath(); pctx.arc(0, -1.5, 10.5, 0, Math.PI * 2); pctx.fill();               // hood
+      pctx.strokeStyle = "#8a939d"; pctx.lineWidth = 4; pctx.lineCap = "round";             // trunk (points +x)
+      pctx.beginPath(); pctx.moveTo(4, 1.5); pctx.quadraticCurveTo(12.5, 3.5, 11.5, 11.5); pctx.stroke();
+      pctx.fillStyle = "#1a1a1a";
+      pctx.beginPath(); pctx.arc(1.5, -1, 1.1, 0, Math.PI * 2); pctx.arc(6, -1, 1.1, 0, Math.PI * 2); pctx.fill();  // eyes
+    } else if (type === "astronaut") {
+      // a space helmet: a clear bubble with a rim + visor glint, face inside
+      pctx.fillStyle = C.skin;
+      pctx.beginPath(); pctx.arc(1, 0.5, 6.4, 0, Math.PI * 2); pctx.fill();                 // face inside
+      pctx.fillStyle = "rgba(150,200,235,0.28)";                                            // glass bubble
+      pctx.beginPath(); pctx.arc(0, -0.5, 11, 0, Math.PI * 2); pctx.fill();
+      pctx.strokeStyle = "#e7edf3"; pctx.lineWidth = 2.6;                                   // rim
+      pctx.beginPath(); pctx.arc(0, -0.5, 11, 0, Math.PI * 2); pctx.stroke();
+      pctx.strokeStyle = "rgba(255,255,255,0.75)"; pctx.lineWidth = 1.7;                    // visor glint
+      pctx.beginPath(); pctx.arc(0, -0.5, 8.4, Math.PI * 1.12, Math.PI * 1.5); pctx.stroke();
     }
     if (C.tattoos) {   // teardrop + cheek line
       pctx.fillStyle = "rgba(35,45,70,0.7)";
@@ -2516,13 +2588,15 @@
     }
 
     // ---- custom creator ----
+    // Extra pops added to every clothing palette, then hue-sorted (rainbow order).
+    const NEON = ["#ff8a1e", "#39ff88", "#00fff0", "#12e6ff", "#7b2ff7", "#b026ff", "#ff1cd0", "#8a94a0", "#ffffff"];
     const PAL = {
-      skin:  ["#f2c9a0","#e8b58c","#d69b6e","#c98a5e","#a06a43","#7a4a2e","#5a3b28","#3e2a1c","#ffffff"],
-      hair:  ["#141414","#3a2a1c","#5a3a26","#8a4b2a","#b0682e","#c9a24a","#e6e6e6","#7a1f1f","#1f3a6b","#15171b","#ffffff"],
-      top:   ["#e8442c","#ffffff","#1c1f24","#2b5fa8","#2e8b57","#f2c033","#8e44ad","#c9ccc9","#1a1a1a","#ff2d78"],
-      bottom:["#2b3a67","#6d7b8c","#1c1f24","#9a8f80","#d8d4c8","#3a4a3a","#5a3a26","#111318","#444a52","#7a1f1f","#ffffff"],
-      boots: ["#2a2f38","#111318","#c0392b","#3a2a1c","#e6e6e6","#1f3a6b","#2e8b57","#f2c033","#ffffff"],
-      skis:  ["#ffcf33","#ff5a3c","#3ca0ff","#2ecc71","#e6e6e6","#8e44ad","#ff2d78","#111318","#ffffff"],
+      skin:  byHue(["#f7d9bd","#f2c9a0","#e8b58c","#d69b6e","#c98a5e","#a06a43","#7a4a2e","#5a3b28","#3e2a1c","#9ad06b","#6bc6e0","#c88ce0","#e88ca8","#ffffff"]),
+      hair:  byHue(["#141414","#3a2a1c","#5a3a26","#8a4b2a","#b0682e","#c9a24a","#e6e6e6","#7a1f1f","#1f3a6b","#15171b","#ffffff","#ff2d78","#b026ff","#2ecc71","#12e6ff"]),
+      top:   byHue(["#e8442c","#ffffff","#1c1f24","#2b5fa8","#2e8b57","#f2c033","#8e44ad","#c9ccc9","#1a1a1a","#ff2d78","#ff5a3c","#ffcf33"].concat(NEON)),
+      bottom:byHue(["#2b3a67","#6d7b8c","#1c1f24","#9a8f80","#d8d4c8","#3a4a3a","#5a3a26","#111318","#444a52","#7a1f1f","#ffffff"].concat(NEON)),
+      boots: byHue(["#2a2f38","#111318","#c0392b","#3a2a1c","#e6e6e6","#1f3a6b","#2e8b57","#f2c033","#ffffff"].concat(NEON)),
+      skis:  byHue(["#ffcf33","#ff5a3c","#3ca0ff","#2ecc71","#e6e6e6","#8e44ad","#ff2d78","#111318","#ffffff"].concat(NEON)),
       acc:   ["#6b4a2e","#151515","#3a2a1c","#8a5a2b","#c0392b","#2b5fa8","#2e8b57","#f2c033","#e6e6e6","#8e44ad"],
     };
     const rows = [];
@@ -2554,7 +2628,7 @@
       row.append(l, opts); return row;
     }
 
-    const headLabels = { hair: "Hair", long: "Long", cap: "Cap", beanie: "Beanie", beret: "Beret", helmet: "Helmet", duck: "🦆 Duck", panda: "🐼 Panda" };
+    const headLabels = { hair: "Hair", long: "Long", cap: "Cap", beanie: "Beanie", beret: "Beret", helmet: "Helmet", duck: "🦆 Duck", panda: "🐼 Panda", dog: "🐶 Dog", elephant: "🐘 Elephant", astronaut: "🧑‍🚀 Astronaut" };
     rows.push(chipRow("Head", Object.keys(headLabels).map((tp) => ({
       text: headLabels[tp], active: () => customChar.head.type === tp, onClick: () => { customChar.head.type = tp; },
     }))));
@@ -2579,6 +2653,11 @@
       { text: "None", active: () => !customChar.finish, onClick: () => (customChar.finish = null) },
       { text: "✨ Glitter", active: () => customChar.finish === "glitter", onClick: () => (customChar.finish = "glitter") },
       { text: "🪞 Chrome", active: () => customChar.finish === "chrome", onClick: () => (customChar.finish = "chrome") },
+      { text: "🦓 Zebra", active: () => customChar.finish === "zebra", onClick: () => (customChar.finish = "zebra") },
+    ]));
+    rows.push(chipRow("Sleeves", [
+      { text: "Long", active: () => (customChar.sleeves || "long") === "long", onClick: () => (customChar.sleeves = "long") },
+      { text: "Short", active: () => customChar.sleeves === "short", onClick: () => (customChar.sleeves = "short") },
     ]));
     const accLabels = { none: "None", purse: "Purse", backpack: "Backpack", jetpack: "Jetpack", cape: "Cape", flag: "Flag" };
     rows.push(chipRow("Accessory", Object.keys(accLabels).map((tp) => ({
