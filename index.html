@@ -424,7 +424,7 @@
     hermiteRamp(pts, 820, 830, lipX, lipY, 0.0, -0.78, 22);
     // the GAP you clear, with your chosen obstacle sitting in it
     const ob = OBSTACLES[obstacleId] || OBSTACLES.wall;
-    const gap = Math.max(340, ob.halfW * 2 + 70), pitY = lipY + 780;
+    const gap = Math.max(390, ob.halfW * 2 + 70), pitY = lipY + 780;
     pts.push({ x: lipX + 12, y: pitY });
     const landX = lipX + gap;
     pts.push({ x: landX - 12, y: pitY });
@@ -675,11 +675,11 @@
   // The thing you jump over on the gap courses (The Wall + The Mega Jump). `rise`
   // is how far its top pokes above the takeoff lip; `halfW` its half-width.
   const OBSTACLES = {
-    wall:     { label: "Wall",     halfW: 18,  rise: 26 },
+    wall:     { label: "Wall",     halfW: 30,  rise: 26 },
     temple:   { label: "Temple",   halfW: 46,  rise: 40 },
     mountain: { label: "Mountain", halfW: 128, rise: 74 },
-    fire:     { label: "Fire",     halfW: 40,  rise: 30 },
-    truck:    { label: "Truck",    halfW: 60,  rise: 14 },
+    fire:     { label: "Fire",     halfW: 54,  rise: 30 },
+    truck:    { label: "Truck",    halfW: 85,  rise: 14 },
   };
   let obstacleId = localStorage.getItem("skistunt_obstacle") || "wall";
   if (!OBSTACLES[obstacleId]) obstacleId = "wall";
