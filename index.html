@@ -2505,7 +2505,7 @@
       row.append(l, opts); return row;
     }
 
-    const headLabels = { hair: "Hair", long: "Long", cap: "Cap", beanie: "Beanie", beret: "Beret", helmet: "Helmet" };
+    const headLabels = { hair: "Hair", long: "Long", cap: "Cap", beanie: "Beanie", beret: "Beret", helmet: "Helmet", duck: "🦆 Duck", panda: "🐼 Panda" };
     rows.push(chipRow("Head", Object.keys(headLabels).map((tp) => ({
       text: headLabels[tp], active: () => customChar.head.type === tp, onClick: () => { customChar.head.type = tp; },
     }))));
@@ -2523,6 +2523,13 @@
       { text: "Beard", active: () => !!customChar.beard, onClick: () => (customChar.beard = !customChar.beard) },
       { text: "Glasses", active: () => !!customChar.glasses, onClick: () => (customChar.glasses = !customChar.glasses) },
       { text: "Fluff", active: () => !!customChar.fluff, onClick: () => (customChar.fluff = !customChar.fluff) },
+      { text: "🖊 Tattoos", active: () => !!customChar.tattoos, onClick: () => (customChar.tattoos = !customChar.tattoos) },
+      { text: "🚬 Joint", active: () => !!customChar.joint, onClick: () => (customChar.joint = !customChar.joint) },
+    ]));
+    rows.push(chipRow("Finish", [
+      { text: "None", active: () => !customChar.finish, onClick: () => (customChar.finish = null) },
+      { text: "✨ Glitter", active: () => customChar.finish === "glitter", onClick: () => (customChar.finish = "glitter") },
+      { text: "🪞 Chrome", active: () => customChar.finish === "chrome", onClick: () => (customChar.finish = "chrome") },
     ]));
     const accLabels = { none: "None", purse: "Purse", backpack: "Backpack", jetpack: "Jetpack", cape: "Cape", flag: "Flag" };
     rows.push(chipRow("Accessory", Object.keys(accLabels).map((tp) => ({
