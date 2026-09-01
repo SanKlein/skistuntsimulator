@@ -2667,11 +2667,15 @@
 
   // ------------------------------------------------------------------ loop
   let last = 0;
+  // Global time scale (<1 = slower). Slows the whole sim uniformly so the skier moves more
+  // deliberately (more real-time to react = finer control) — like the original. Because it only
+  // scales TIME, every trajectory / jump height / clearance stays identical.
+  const SIM_SPEED = 0.82;
   function frame(t) {
     const now = t / 1000;
     let dt = last ? now - last : 1 / 60;
     last = now;
-    dt = Math.min(dt, 1 / 30);   // clamp big pauses
+    dt = Math.min(dt, 1 / 30) * SIM_SPEED;   // clamp big pauses, then slow the sim
     if (state === "play" || state === "replay") update(dt);
     else if (state === "wipeout") stepWipeout(dt);
     render();
