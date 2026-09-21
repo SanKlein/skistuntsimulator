@@ -380,26 +380,25 @@
     // slope (m0 = 0.10) so there's no kink at the top — the whole start reads as one curve.
     pts.push({ x: 0, y: startY - 13 });
     pts.push({ x: startX, y: startY });
-    // GRADUAL roll-in: gentle and smooth at the top, steepening into a clean descent (same
-    // slope angles as before, just a bigger stage), then easing into the run-up to the lip.
-    const baseX = 1120, baseY = 720;
-    hermiteRamp(pts, startX, startY, baseX, baseY, 0.10, 0.5, 54);
-    const lipX = 1420, lipY = 600;                 // rounded kicker lip
-    hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.5, -0.5, 34);
+    // Roll-in: gentle at the top, then a SHORT, STEEP descent (up to ~39 deg) straight into the
+    // kicker. Smooth throughout (one curve, tangents matched into the up-ramp), no bump.
+    const baseX = 940, baseY = 720;
+    hermiteRamp(pts, startX, startY, baseX, baseY, 0.12, 0.62, 46);
+    const lipX = 1240, lipY = 600;                 // rounded kicker lip
+    hermiteRamp(pts, baseX, baseY, lipX, lipY, 0.62, -0.5, 30);
     const gap = 420, pitY = lipY + 900;
     pts.push({ x: lipX + 14, y: pitY });
     const landX = lipX + gap;
     pts.push({ x: landX - 14, y: pitY });
     const landY = lipY + 80;                        // landing hump, just below the lip
     pts.push({ x: landX, y: landY });
-    // gentle rounded landing that bottoms out (flag sits here), then a quarter-pipe-style finish:
-    // a CURVED transition eases into a dead-STRAIGHT ~49° ramp. Pure gravity slides you up it,
-    // stops you, and slides you back down — no artificial braking.
-    hermiteRamp(pts, landX, landY, landX + 420, landY + 250, 0.0, 0.55, 32);
-    hermiteRamp(pts, landX + 420, landY + 250, landX + 980, landY + 275, 0.55, -0.05, 28);   // bottom out
-    hermiteRamp(pts, landX + 980, landY + 275, landX + 1320, landY + 210, -0.05, -0.73, 24); // curved transition
-    straightRamp(pts, landX + 1320, landY + 210, -0.73, 130, 9);                             // straight ~36° ramp
-    const endX = landX + 2350, finishFlagX = landX + 1060, windStart = null, finishLine = null;
+    // Land on the hump, one smooth SCOOP down to a rounded bottom, then ONE continuous ramp up
+    // into a dead-straight ~36 deg ramp. Pure gravity slides you up it, stops you, slides you
+    // back down. No overshoot bump, no flat plateau, no double-rise before the ramp.
+    hermiteRamp(pts, landX, landY, landX + 560, landY + 300, 0.0, 0.0, 36);                   // scoop down (single valley)
+    hermiteRamp(pts, landX + 560, landY + 300, landX + 960, landY + 150, 0.0, -0.73, 32);     // rounded bottom straight into the ramp
+    straightRamp(pts, landX + 960, landY + 150, -0.73, 130, 9);                               // straight ~36 deg ramp
+    const endX = landX + 2130, finishFlagX = landX + 900, windStart = null, finishLine = null;
     // tall SNOW SPIKE — a thin needle towering ~130px (≈1.9 rider-heights) above the lip,
     // rising out of the deep gap. A good pump just clears it (~55px margin, ~190px jump apex);
     // ride off without pumping and you clip it (arc-sim verified — not a floaty moon-jump).
@@ -410,7 +409,7 @@
       markers: [
         { x: lipX, y: lipY, color: "#ff5a3c" },
         { x: landX + 8, y: landY, color: "#3ca0ff" },
-        { x: landX + 1060, y: landY + 273, color: "#2ecc71" },   // FINISH flag at the foot of the ramp
+        { x: landX + 900, y: landY + 192, color: "#2ecc71" },   // FINISH flag at the foot of the ramp
       ],
     };
   }
