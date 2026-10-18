@@ -2,7 +2,7 @@
   <style>@import url("https://fonts.googleapis.com/css2?family=Russo+One&amp;display=block");</style>
   <defs>
     <linearGradient id="arcBtn" x1="0" y1="512" x2="0" y2="576" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#fff27a"/><stop offset=".45" stop-color="#ffd400"/><stop offset="1" stop-color="#ff9d00"/>
+      <stop offset="0" stop-color="#2a2466"/><stop offset="1" stop-color="#0d0b1e"/>
     </linearGradient>
     <linearGradient id="chrome" x1="0" y1="22" x2="0" y2="72" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#ffffff"/><stop offset=".48" stop-color="#9fd6ff"/>
@@ -68,12 +68,12 @@
     <text x="92" y="318" fill="#0d0b1e">FLIP OVER THE WALL.</text>
     <text x="92" y="362" fill="#0d0b1e">FREE IN YOUR BROWSER.</text>
   </g>
-  <!-- URL as an arcade button: slanted, yellow-to-orange, hard 3D bottom edge, pink ".COM" -->
+  <!-- URL as an arcade button: slanted navy panel, cyan rim, hard pink 3D edge, cyan ".COM" -->
   <g transform="translate(78 0) skewX(-12) translate(110 0)">
-    <rect x="0" y="512" width="496" height="64" rx="6" fill="#b33a00" stroke="#0d0b1e" stroke-width="4" transform="translate(0 8)"/>
-    <rect x="0" y="512" width="496" height="64" rx="6" fill="url(#arcBtn)" stroke="#0d0b1e" stroke-width="4"/>
-    <rect x="10" y="518" width="476" height="7" rx="3" fill="#fff" opacity=".45"/>
-    <text x="248" y="556" text-anchor="middle" font-size="30" letter-spacing="1" fill="#0d0b1e">SKISTUNTSIMULATOR<tspan fill="#ff2d95" stroke="#0d0b1e" stroke-width="1.5" paint-order="stroke">.COM</tspan></text>
+    <rect x="0" y="512" width="496" height="64" rx="6" fill="#ff2d95" stroke="#0d0b1e" stroke-width="4" transform="translate(0 8)"/>
+    <rect x="0" y="512" width="496" height="64" rx="6" fill="url(#arcBtn)" stroke="#33e1ff" stroke-width="4"/>
+    <rect x="10" y="518" width="476" height="6" rx="3" fill="#fff" opacity=".12"/>
+    <text x="248" y="556" text-anchor="middle" font-size="30" letter-spacing="1" fill="#ffffff">SKISTUNTSIMULATOR<tspan fill="#33e1ff">.COM</tspan></text>
   </g>
 
   <!-- arcade cabinet frame -->
