@@ -12,6 +12,9 @@
 <meta name="robots" content="index, follow" />
 <meta name="theme-color" content="#a9dcff" />
 <link rel="canonical" href="https://skistuntsimulator.com/" />
+<!-- Russo One, subset to the letters of the GIF watermark logo -->
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&text=SKITUNMLAOR&display=swap" />
 
 <!-- Icons — PNGs at Google's recommended 48px multiples come first so Search picks a spec-compliant one -->
 <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png" />
@@ -1447,6 +1450,40 @@
 
   // ---- animated-GIF replay: capture frames then encode (shares everywhere) ----
   let gifCanvas = null, gifCtx = null, capW = 0, capH = 0;
+  // "Chrome thunder" arcade logo stamped in the bottom-right corner of shared GIFs.
+  // Drawn once at 2x into an offscreen canvas (400x140 design units), then scaled down per frame.
+  let gifLogo = null, gifLogoRect = null;
+  function buildGifLogo() {
+    const c = document.createElement("canvas");
+    c.width = 800; c.height = 280;
+    const x = c.getContext("2d");
+    const FONT = '"Russo One", "Arial Black", Impact, sans-serif';
+    const PINK = "#ff2d95";
+    x.scale(2, 2);
+    x.transform(1, 0, Math.tan(-12 * Math.PI / 180), 1, 0, 0);   // italic lean
+    x.translate(22, 0);
+    x.textAlign = "center"; x.textBaseline = "alphabetic"; x.lineJoin = "round";
+    x.font = "62px " + FONT;
+    if ("letterSpacing" in x) x.letterSpacing = "2px";
+    const chrome = x.createLinearGradient(0, 22, 0, 72);
+    chrome.addColorStop(0, "#ffffff"); chrome.addColorStop(0.48, "#9fd6ff");
+    chrome.addColorStop(0.52, "#2b4fa8"); chrome.addColorStop(1, "#cfe9ff");
+    x.lineWidth = 7; x.strokeStyle = PINK; x.strokeText("SKI STUNT", 200, 70);
+    x.fillStyle = chrome; x.fillText("SKI STUNT", 200, 70);
+    x.fillStyle = PINK; x.fillRect(60, 86, 280, 30);
+    x.font = "24px " + FONT;
+    if ("letterSpacing" in x) x.letterSpacing = "9px";
+    x.fillStyle = "#fff"; x.fillText("SIMULATOR", 200, 110);
+    gifLogo = c;
+  }
+  if (document.fonts && document.fonts.load) document.fonts.load('62px "Russo One"').then(buildGifLogo, buildGifLogo);
+  else buildGifLogo();
+  function stampGifLogo() {
+    if (!gifLogo) buildGifLogo();
+    const w = Math.round(capW * 0.34), h = Math.round(w * 140 / 400);
+    gifLogoRect = { x: capW - w - 4, y: capH - h - 2, w, h };
+    gifCtx.drawImage(gifLogo, gifLogoRect.x, gifLogoRect.y, w, h);
+  }
   function saveReplayGIF() {
     if ((state !== "result" && state !== "replay") || !trail.length || mediaRec) return;
     capW = 440; capH = Math.max(1, Math.round(capW * H / W));
@@ -1466,6 +1503,7 @@
     if (!r || !r.gifCapture) return;
     if (r.capN++ % 3 !== 0 || r.caps.length >= 80) return;   // ~20fps, cap length
     gifCtx.drawImage(canvas, 0, 0, capW, capH);
+    stampGifLogo();
     r.caps.push(gifCtx.getImageData(0, 0, capW, capH).data);
   }
   function finalizeGIF() {
@@ -1558,6 +1596,9 @@
     const step = Math.max(1, Math.floor((frames.length * width * height) / 14000));
     let sc = 0;
     for (const f of frames) for (let p = 0; p < width * height; p++) { if (sc++ % step === 0) { const o = p * 4; sample.push(f[o], f[o + 1], f[o + 2]); } }
+    // the logo is tiny, so feed its pixels to the palette directly or its pink/chrome get crushed
+    const lr = gifLogoRect;
+    if (lr && frames.length) for (let y = lr.y; y < lr.y + lr.h; y++) for (let xx = lr.x; xx < lr.x + lr.w; xx += 2) { const o = (y * width + xx) * 4, f = frames[0]; sample.push(f[o], f[o + 1], f[o + 2]); }
     const palette = gifMedianCut(new Uint8Array(sample), 256);
     while (palette.length < 256) palette.push([0, 0, 0]);
     const cache = new Int16Array(32768).fill(-1);
