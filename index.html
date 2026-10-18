@@ -1450,8 +1450,8 @@
 
   // ---- animated-GIF replay: capture frames then encode (shares everywhere) ----
   let gifCanvas = null, gifCtx = null, capW = 0, capH = 0;
-  // "Chrome thunder" arcade logo stamped in the bottom-right corner of shared GIFs.
-  // Drawn once at 2x into an offscreen canvas (400x140 design units), then scaled down per frame.
+  // "Chrome thunder" arcade logo shown in the bottom-right corner of replays and shared clips.
+  // Drawn once at 2x (400x140 design units), cropped to its pixels, then scaled down per frame.
   let gifLogo = null, gifLogoRect = null;
   function buildGifLogo() {
     const c = document.createElement("canvas");
@@ -1474,15 +1474,30 @@
     x.font = "24px " + FONT;
     if ("letterSpacing" in x) x.letterSpacing = "9px";
     x.fillStyle = "#fff"; x.fillText("SIMULATOR", 200, 110);
-    gifLogo = c;
+    // crop to the painted pixels so padding in the GIF is exact (glyphs can overhang their metrics)
+    const d = x.getImageData(0, 0, c.width, c.height).data;
+    let x0 = c.width, y0 = c.height, x1 = -1, y1 = -1;
+    for (let yy = 0; yy < c.height; yy++) for (let xx = 0; xx < c.width; xx++) {
+      if (d[(yy * c.width + xx) * 4 + 3] > 8) { if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (yy < y0) y0 = yy; if (yy > y1) y1 = yy; }
+    }
+    if (x1 < 0) { gifLogo = c; return; }
+    const out = document.createElement("canvas");
+    out.width = x1 - x0 + 1; out.height = y1 - y0 + 1;
+    out.getContext("2d").drawImage(c, -x0, -y0);
+    gifLogo = out;
   }
   if (document.fonts && document.fonts.load) document.fonts.load('62px "Russo One"').then(buildGifLogo, buildGifLogo);
   else buildGifLogo();
-  function stampGifLogo() {
+  // Drawn onto the main canvas whenever a replay plays, so the on-screen replay, the recorded
+  // video and the GIF (a scaled copy of the canvas) all carry it. While capturing a GIF it is
+  // sized as a fraction of the frame so it reads at 440px; otherwise it is capped for big screens.
+  function drawReplayLogo() {
     if (!gifLogo) buildGifLogo();
-    const w = Math.round(capW * 0.34), h = Math.round(w * 140 / 400);
-    gifLogoRect = { x: capW - w - 4, y: capH - h - 2, w, h };
-    gifCtx.drawImage(gifLogo, gifLogoRect.x, gifLogoRect.y, w, h);
+    const gif = !!(replay && replay.gifCapture);
+    const w = gif ? W * 0.32 : Math.min(W * 0.32, 260), h = w * gifLogo.height / gifLogo.width;
+    const pad = w * 0.072;                                    // same gap on the right and bottom
+    ctx.drawImage(gifLogo, W - w - pad, H - h - pad, w, h);
+    if (gif) { const k = capW / W; gifLogoRect = { x: Math.floor((W - w - pad) * k), y: Math.floor((H - h - pad) * k), w: Math.ceil(w * k), h: Math.ceil(h * k) }; }
   }
   function saveReplayGIF() {
     if ((state !== "result" && state !== "replay") || !trail.length || mediaRec) return;
@@ -1503,7 +1518,6 @@
     if (!r || !r.gifCapture) return;
     if (r.capN++ % 3 !== 0 || r.caps.length >= 80) return;   // ~20fps, cap length
     gifCtx.drawImage(canvas, 0, 0, capW, capH);
-    stampGifLogo();
     r.caps.push(gifCtx.getImageData(0, 0, capW, capH).data);
   }
   function finalizeGIF() {
@@ -1598,7 +1612,7 @@
     for (const f of frames) for (let p = 0; p < width * height; p++) { if (sc++ % step === 0) { const o = p * 4; sample.push(f[o], f[o + 1], f[o + 2]); } }
     // the logo is tiny, so feed its pixels to the palette directly or its pink/chrome get crushed
     const lr = gifLogoRect;
-    if (lr && frames.length) for (let y = lr.y; y < lr.y + lr.h; y++) for (let xx = lr.x; xx < lr.x + lr.w; xx += 2) { const o = (y * width + xx) * 4, f = frames[0]; sample.push(f[o], f[o + 1], f[o + 2]); }
+    if (lr && frames.length) for (let y = Math.max(0, lr.y); y < Math.min(height, lr.y + lr.h); y++) for (let xx = Math.max(0, lr.x); xx < Math.min(width, lr.x + lr.w); xx += 2) { const o = (y * width + xx) * 4, f = frames[0]; sample.push(f[o], f[o + 1], f[o + 2]); }
     const palette = gifMedianCut(new Uint8Array(sample), 256);
     while (palette.length < 256) palette.push([0, 0, 0]);
     const cache = new Int16Array(32768).fill(-1);
@@ -1813,6 +1827,7 @@
     ctx.restore();
 
     if (state === "play") { if (joy.enabled) drawJoystick(); else drawControlPad(); }
+    if (state === "replay") drawReplayLogo();
   }
 
   // Control gauge drawn right at the cursor: a labelled crosshair pinned to your
