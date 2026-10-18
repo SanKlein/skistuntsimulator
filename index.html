@@ -12,9 +12,9 @@
 <meta name="robots" content="index, follow" />
 <meta name="theme-color" content="#a9dcff" />
 <link rel="canonical" href="https://skistuntsimulator.com/" />
-<!-- Russo One, subset to the letters of the GIF watermark logo -->
+<!-- Russo One: the arcade display face used by the logo and the UI chrome -->
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&text=SKITUNMLAOR&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" />
 
 <!-- Icons — PNGs at Google's recommended 48px multiples come first so Search picks a spec-compliant one -->
 <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png" />
@@ -137,19 +137,28 @@
   /* ---- character select ---- */
   .card { max-height: 90vh; overflow-y: auto; }
   .lead { margin-top: 10px; font-weight: 700; opacity: .9; }
-  .courseTabs { display:flex; gap:8px; justify-content:center; flex-wrap:nowrap; margin-top:12px; }
+  .logoh1 { line-height:0; }
+  .logoh1 .sub { line-height:1.2; }
+  #menuLogo { display:block; width:min(330px, 88%); aspect-ratio:3.6; margin:4px auto 0; object-fit:contain; }
+  .pickLbl { display:block; margin-top:18px; font-size:11px; font-weight:800; letter-spacing:.2em; text-transform:uppercase; opacity:.55; }
+  .courseTabs { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px; }
   #obstacleRow { margin-top:10px; }
   .obstacleLbl { display:block; font-size:11px; letter-spacing:.1em; text-transform:uppercase; opacity:.55; margin-bottom:6px; }
   #obstacleTabs { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
   .ochip { font-size:12px; font-weight:800; padding:6px 12px; border-radius:9px; cursor:pointer;
     background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); color:#fff; }
   .ochip.sel { background:#8fd3ff; color:#062033; border-color:#8fd3ff; }
-  .ctab { cursor:pointer; flex:1 1 0; min-width:0; padding:8px 10px; border-radius:10px; text-align:center;
-    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); color:#fff; }
-  .ctab b { display:block; font-size:13px; font-weight:800; }
-  .ctab span { display:block; font-size:10px; opacity:.7; margin-top:2px; }
-  .ctab.sel { background:#8fd3ff; color:#062033; border-color:#8fd3ff; }
-  .ctab.sel span { opacity:.85; }
+  .ctab { cursor:pointer; display:flex; flex-direction:column; padding:0; border-radius:12px; overflow:hidden; text-align:left;
+    background:rgba(255,255,255,.05); border:2px solid rgba(255,255,255,.14); color:#fff; font:inherit;
+    transition:border-color .12s, background .12s, transform .12s; }
+  .ctab:hover { border-color:rgba(255,255,255,.32); }
+  .ctab:active { transform:translateY(1px); }
+  .ctab svg { display:block; width:100%; height:44px; }
+  .ctab .ctxt { padding:7px 10px 8px; }
+  .ctab b { display:block; font-size:14px; font-weight:800; }
+  .ctab span { display:block; font-size:11px; opacity:.65; margin-top:1px; }
+  .ctab.sel { border-color:#8fd3ff; background:rgba(143,211,255,.16); box-shadow:0 0 0 3px rgba(143,211,255,.18); }
+  .ctab.sel b { color:#8fd3ff; }
   .ctiles { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:14px; }
   .ctile {
     cursor:pointer; width:88px; padding:6px 4px 5px; border-radius:12px;
@@ -206,6 +215,62 @@
     font-size:13px; font-weight:700; opacity:.75; pointer-events:none;
     text-shadow:0 1px 3px rgba(0,0,0,.5); text-align:center; white-space:nowrap;
   }
+
+  /* ---- arcade skin: chunky display type, hard offset shadows, neon pink / cyan / yellow ---- */
+  :root { --arc-font:"Russo One","Arial Black",Impact,sans-serif; --arc-pink:#ff2d95; --arc-cyan:#33e1ff;
+    --arc-yellow:#ffd400; --arc-navy:#0d0b1e; }
+  .card {
+    background-color:rgba(13,11,30,.92);
+    background-image:repeating-linear-gradient(0deg, rgba(255,255,255,.028) 0 1px, transparent 1px 3px);
+    border:3px solid var(--arc-cyan); border-radius:8px;
+    box-shadow:0 0 0 3px var(--arc-navy), 0 0 0 6px var(--arc-pink), 0 24px 60px rgba(0,0,0,.55);
+  }
+  .card h1, .result-tag, .result-flips, .pickLbl, .obstacleLbl, .stat, #liveflip, #replaybadge, #hint,
+  .btn, .minibtn, .linkbtn, .ctab b, .ctile span, .ochip, .chip, .keycap, .howto summary, .crow .lbl {
+    font-family:var(--arc-font); font-weight:400;
+  }
+  .card h1 { letter-spacing:.01em; text-shadow:3px 3px 0 var(--arc-pink); }
+  .card h1 .sub, .pickLbl, .obstacleLbl { color:var(--arc-cyan); opacity:.85; text-shadow:none; }
+  .result-tag { font-size:15px; letter-spacing:.2em; color:var(--arc-yellow); }
+  .result-flips { font-size:58px; color:#fff; text-shadow:4px 4px 0 var(--arc-pink), -2px -2px 0 var(--arc-navy); }
+  .btn, .minibtn {
+    text-transform:uppercase; letter-spacing:.06em; color:var(--arc-navy);
+    background:linear-gradient(180deg,#fff27a 0%,var(--arc-yellow) 45%,#ff9d00 100%);
+    border:3px solid var(--arc-navy); border-radius:6px; box-shadow:0 5px 0 #b33a00, 0 0 0 2px var(--arc-yellow);
+    transition:transform .06s, box-shadow .06s;
+  }
+  .btn { font-size:18px; padding:12px 30px; }
+  .btn:hover, .minibtn:hover { filter:brightness(1.06); }
+  .btn:active, .minibtn:active { transform:translateY(4px); box-shadow:0 1px 0 #b33a00, 0 0 0 2px var(--arc-yellow); }
+  .btn.sticky-cta { box-shadow:0 5px 0 #b33a00, 0 0 0 2px var(--arc-yellow), 0 0 0 14px rgba(13,11,30,.92); }
+  .btn.sticky-cta:active { box-shadow:0 1px 0 #b33a00, 0 0 0 2px var(--arc-yellow), 0 0 0 14px rgba(13,11,30,.92); }
+  .minibtn { font-size:13px; padding:10px 16px;
+    background:linear-gradient(180deg,#b8f4ff 0%,var(--arc-cyan) 50%,#1a8fd6 100%); box-shadow:0 4px 0 #0b4f8a, 0 0 0 2px var(--arc-cyan); }
+  .minibtn:active { box-shadow:0 1px 0 #0b4f8a, 0 0 0 2px var(--arc-cyan); }
+  .linkbtn { color:var(--arc-cyan); text-transform:uppercase; letter-spacing:.06em; font-size:12px; opacity:1; }
+  .linkbtn:hover { color:#fff; text-decoration:none; text-shadow:2px 2px 0 var(--arc-pink); }
+  .ctab, .ctile { border-radius:6px; border:2px solid rgba(255,255,255,.2); box-shadow:4px 4px 0 rgba(0,0,0,.45); }
+  .ctab:hover, .ctile:hover { border-color:var(--arc-cyan); }
+  .ctab.sel, .ctile.sel { border-color:var(--arc-pink); background:rgba(255,45,149,.14); box-shadow:4px 4px 0 var(--arc-pink); }
+  .ctab b { font-size:14px; letter-spacing:.02em; }
+  .ctab.sel b { color:#fff; text-shadow:2px 2px 0 var(--arc-pink); }
+  .ctile span { font-size:11px; letter-spacing:.02em; }
+  .ochip, .chip { border-radius:4px; border:2px solid rgba(255,255,255,.22); text-transform:uppercase; letter-spacing:.04em; box-shadow:2px 2px 0 rgba(0,0,0,.45); }
+  .ochip.sel, .chip.sel { background:var(--arc-yellow); color:var(--arc-navy); border-color:var(--arc-navy); box-shadow:2px 2px 0 var(--arc-pink); }
+  .sw, .flagchip { border-radius:4px; }
+  .sw.sel { box-shadow:0 0 0 2px var(--arc-pink); }
+  .flagchip.sel { border-color:var(--arc-pink); background:rgba(255,45,149,.16); }
+  .keycap { border-radius:4px; border:2px solid rgba(255,255,255,.2); background:rgba(255,255,255,.05); box-shadow:2px 2px 0 rgba(0,0,0,.45); }
+  .keycap b { color:var(--arc-yellow); }
+  .ceditor { border-radius:6px; border:2px solid rgba(255,255,255,.12); }
+  .howto summary { color:var(--arc-cyan); text-transform:uppercase; letter-spacing:.06em; font-size:12px; opacity:1; }
+  .stat .k { color:var(--arc-navy); opacity:.75; letter-spacing:.16em; }
+  .stat .v { font-size:30px; color:#fff; text-shadow:3px 3px 0 var(--arc-pink), -1px -1px 0 var(--arc-navy), 1px -1px 0 var(--arc-navy), -1px 1px 0 var(--arc-navy); }
+  #hud { text-shadow:none; }
+  #liveflip { color:var(--arc-yellow); text-shadow:2px 2px 0 var(--arc-navy); }
+  .soundbtn { border-radius:6px; border:2px solid var(--arc-navy); background:rgba(13,11,30,.75); box-shadow:3px 3px 0 var(--arc-pink); }
+  #replaybadge { font-weight:400; color:var(--arc-yellow); opacity:1; text-shadow:4px 4px 0 var(--arc-pink), -2px -2px 0 var(--arc-navy), 2px -2px 0 var(--arc-navy), -2px 2px 0 var(--arc-navy); }
+  #hint { font-weight:400; letter-spacing:.04em; opacity:.9; text-shadow:2px 2px 0 var(--arc-navy); }
 </style>
 </head>
 <body>
@@ -234,10 +299,11 @@
   <div id="overlay">
     <!-- Start card -->
     <div class="card" id="startCard">
-      <h1><span class="sub">DDsim tribute</span>Ski Stunt Simulator</h1>
-      <p class="lead">Pick your course &amp; rider — then drop in.</p>
+      <h1 class="logoh1"><span class="sub">DDsim tribute</span><img id="menuLogo" alt="Ski Stunt Simulator" /></h1>
+      <span class="pickLbl">Course</span>
       <div id="courseTabs" class="courseTabs"></div>
       <div id="obstacleRow"><span class="obstacleLbl">Jump over</span><div id="obstacleTabs"></div></div>
+      <span class="pickLbl">Rider</span>
       <div id="charTiles" class="ctiles"></div>
       <div id="charEditor" class="ceditor hidden"></div>
       <details class="howto">
@@ -1455,13 +1521,13 @@
   let gifLogo = null, gifLogoRect = null;
   function buildGifLogo() {
     const c = document.createElement("canvas");
-    c.width = 800; c.height = 280;
+    c.width = 960; c.height = 320;                             // roomy: the crop below trims it
     const x = c.getContext("2d");
     const FONT = '"Russo One", "Arial Black", Impact, sans-serif';
     const PINK = "#ff2d95";
     x.scale(2, 2);
     x.transform(1, 0, Math.tan(-12 * Math.PI / 180), 1, 0, 0);   // italic lean
-    x.translate(22, 0);
+    x.translate(62, 10);
     x.textAlign = "center"; x.textBaseline = "alphabetic"; x.lineJoin = "round";
     x.font = "62px " + FONT;
     if ("letterSpacing" in x) x.letterSpacing = "2px";
@@ -1485,6 +1551,8 @@
     out.width = x1 - x0 + 1; out.height = y1 - y0 + 1;
     out.getContext("2d").drawImage(c, -x0, -y0);
     gifLogo = out;
+    const ml = document.getElementById("menuLogo");
+    if (ml) { ml.style.aspectRatio = out.width + " / " + out.height; ml.src = out.toDataURL(); }
   }
   if (document.fonts && document.fonts.load) document.fonts.load('62px "Russo One"').then(buildGifLogo, buildGifLogo);
   else buildGifLogo();
@@ -2739,6 +2807,34 @@
   }
 
   // ------------------------------------------------------------------ course select UI
+  // Side-on thumbnail of a course, traced from its real terrain (squashed to fit 120x40).
+  function courseThumb(id) {
+    const savedId = courseId, savedCourse = course;
+    courseId = id; buildCourse();
+    const c = course;
+    courseId = savedId; course = savedCourse;
+    const x0 = c.startX - 30, x1 = c.qp ? c.qp.topX : (c.finishFlagX || c.endX);
+    const pts = c.pts.filter((p) => p.x >= x0 && p.x <= x1);
+    let yMin = Infinity, yMax = -Infinity;
+    pts.forEach((p) => { yMin = Math.min(yMin, p.y); yMax = Math.max(yMax, p.y); });
+    if (c.wall) yMin = Math.min(yMin, c.wall.topY);
+    const sx = (x) => ((x - x0) / (x1 - x0) * 120).toFixed(1);
+    const sy = (y) => (6 + (y - yMin) / (yMax - yMin || 1) * 30).toFixed(1);
+    let d = "M0 40 L" + sx(pts[0].x) + " " + sy(pts[0].y);
+    pts.forEach((p) => { d += " L" + sx(p.x) + " " + sy(p.y); });
+    d += " L120 " + sy(pts[pts.length - 1].y) + " L120 40Z";
+    let wall = "";
+    if (c.wall) {
+      const wx = +sx(c.wall.x), hw = Math.max(1.6, c.wall.halfW / (x1 - x0) * 120);
+      wall = c.wall.type === "spike"
+        ? '<path d="M' + (wx - hw) + " 40 L" + wx + " " + sy(c.wall.topY) + " L" + (wx + hw) + ' 40Z" fill="#fff" stroke="#9fb6cc" stroke-width=".6"/>'
+        : '<rect x="' + (wx - hw) + '" y="' + sy(c.wall.topY) + '" width="' + 2 * hw + '" height="40" fill="#b0573f"/>';
+    }
+    return '<svg viewBox="0 0 120 40" preserveAspectRatio="none" aria-hidden="true"><rect width="120" height="40" fill="#a9dcff"/>' +
+      '<path d="M0 26 L18 15 L32 22 L52 9 L74 22 L94 13 L120 20 V40 H0Z" fill="#c4d8ec"/>' + wall +
+      '<path d="' + d + '" fill="#fff" stroke="#9fb6cc" stroke-width=".6" vector-effect="non-scaling-stroke"/></svg>';
+  }
+
   function buildCourseTabs() {
     const el = document.getElementById("courseTabs");
     const courses = [
@@ -2751,7 +2847,8 @@
     courses.forEach((c) => {
       const b = document.createElement("button");
       b.className = "ctab" + (c.id === courseId ? " sel" : "");
-      b.innerHTML = "<b>" + c.label + "</b><span>" + c.desc + "</span>";
+      b.innerHTML = courseThumb(c.id) +
+        '<div class="ctxt"><b>' + c.label + "</b><span>" + c.desc + "</span></div>";
       b.addEventListener("click", () => {
         selectCourse(c.id);
         [...el.children].forEach((x) => x.classList.remove("sel"));
@@ -2781,6 +2878,7 @@
         [...el.children].forEach((x) => x.classList.remove("sel"));
         b.classList.add("sel");
         resetSkier();                              // rebuild so the preview shows the new obstacle
+        buildCourseTabs();                         // and the Big Jump thumbnail
         cam.x = skier.x - W * 0.34; cam.y = skier.y - H * 0.56;
       });
       el.appendChild(b);
