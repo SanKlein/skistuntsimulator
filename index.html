@@ -1106,17 +1106,44 @@
       flipClip.load();
     } catch (e) { flipClip = null; }
   })();
+  // Speech can lag badly: Chrome's default "Google" voices are fetched over the network, and
+  // iOS holds speech that wasn't first started from a tap, then blurts it out much later.
+  // So: prefer an on-device voice, prime the engine with a silent line on the first tap/click,
+  // and drop any callout that didn't start promptly instead of letting it play late.
+  let ttsVoice = null, ttsPrimed = false;
+  function pickVoice() {
+    if (!window.speechSynthesis) return;
+    const vs = window.speechSynthesis.getVoices().filter((v) => /^en(-|_|$)/i.test(v.lang));
+    ttsVoice = vs.find((v) => v.localService && v.default) || vs.find((v) => v.localService && /en-US/i.test(v.lang)) ||
+      vs.find((v) => v.localService) || null;
+  }
+  if (window.speechSynthesis) { pickVoice(); window.speechSynthesis.addEventListener?.("voiceschanged", pickVoice); }
   function unlockAudio() {
     if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { audioCtx = null; } }
     if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+    if (!ttsPrimed && window.speechSynthesis) {
+      ttsPrimed = true;
+      try { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; if (ttsVoice) u.voice = ttsVoice; window.speechSynthesis.speak(u); } catch (e) {}
+    }
   }
+  document.addEventListener("pointerdown", unlockAudio, { capture: true, passive: true });   // menu buttons count too
+  const TTS_LATE_MS = 700;                                    // a callout that can't start by now is stale
+  let lastUtter = null;
   function speak(text, pitch, rate) {                        // browser TTS callout
     if (!soundOn || !window.speechSynthesis) return false;
     try {
+      const synth = window.speechSynthesis;
       const u = new SpeechSynthesisUtterance(text);
       u.pitch = pitch; u.rate = rate; u.volume = 1;
-      window.speechSynthesis.cancel();                       // don't queue up
-      window.speechSynthesis.speak(u); return true;
+      if (ttsVoice) u.voice = ttsVoice;
+      let started = false;
+      u.onstart = () => { started = true; };
+      if (synth.speaking || synth.pending) synth.cancel();   // don't queue up
+      if (synth.paused) synth.resume();                      // Chrome can leave the engine paused
+      synth.speak(u);
+      lastUtter = u;
+      setTimeout(() => { if (!started && lastUtter === u) synth.cancel(); }, TTS_LATE_MS);   // never play late
+      return true;
     } catch (e) { return false; }
   }
   function playHorn() {                                       // fallback if no speech synthesis
@@ -1161,9 +1188,14 @@
   const SHOOT_DUR = 1.6;   // seconds the shooting-motion + follow-through holds
   function shootBasketball(s) {
     s.shootT = SHOOT_DUR;                                          // arms do the shot + follow-through
-    props.push({ x: s.x + 8, y: s.y - 40, vx: 150 + Math.random() * 70, vy: -430, ang: 0, spin: 9, r: 8, life: 2.4, delay: 0.14 });
+    const vx = 150 + Math.random() * 70;
+    launchBall(s, vx);
+    if (trail.length) trail[trail.length - 1].ball = vx;          // so the replay throws the same shot
     showHint("🏀 SWISH! " + run.flips + " flips — nothin' but net");
     speak("Kobe!", 1.3, 1.0);                                      // the shot callout
+  }
+  function launchBall(s, vx) {
+    props.push({ x: s.x + 8, y: s.y - 40, vx, vy: -430, ang: 0, spin: 9, r: 8, life: 2.4, delay: 0.14 });
   }
   function stepProps(dt) {
     for (let i = props.length - 1; i >= 0; i--) {
@@ -1479,7 +1511,7 @@
     return file;
   }
   function showClipCard(file, gif) {
-    replay = null;
+    replay = null; props = [];
     document.getElementById("replaybadge").classList.add("hidden");
     state = "result";
     const canShare = !!(navigator.canShare && navigator.canShare({ files: [file] }));
@@ -1592,7 +1624,7 @@
     const caps = replay.caps;
     const badge = document.getElementById("replaybadge");
     badge.innerHTML = '⏳<div style="font-size:14px;font-weight:700;opacity:.9;margin-top:8px;">rendering GIF…</div>';
-    replay = null; state = "result";
+    replay = null; state = "result"; props = [];
     setTimeout(() => {                                        // let the message paint before the heavy encode
       const gif = encodeGIF(caps, capW, capH, 5);
       const file = setClip(new Blob([gif], { type: "image/gif" }), "gif", "image/gif");
@@ -1815,7 +1847,9 @@
       trailT += dt;
       if (trailT >= TRAIL_DT) {
         trailT = 0;
-        trail.push({ x: skier.x, y: skier.y, angle: skier.angle, tuck: skier.tuck, lean: skier.lean });
+        // sh / fire let the replay re-stage the basketball shot pose and the on-fire streak
+        trail.push({ x: skier.x, y: skier.y, angle: skier.angle, tuck: skier.tuck, lean: skier.lean,
+          sh: skier.shootT, fire: run.onFire ? 1 : 0 });
         if (trail.length > 1200) trail.shift();
       }
       if (!skier.dead) {
@@ -1856,6 +1890,15 @@
       skier.lean = (f0.lean || 0) + ((f1.lean || 0) - (f0.lean || 0)) * a;
       skier.vx = (f1.x - f0.x) / TRAIL_DT;
       skier.vy = (f1.y - f0.y) / TRAIL_DT;
+      // re-stage the run's effects: shot pose, the ball leaving the hand, and the on-fire streak
+      if (r.prevIdx == null || idx < r.prevIdx) { props = []; particles = []; r.prevIdx = idx - 1; }   // (re)start
+      for (let k = r.prevIdx + 1; k <= idx; k++) if (r.frames[k].ball != null) launchBall(skier, r.frames[k].ball);
+      r.prevIdx = idx;
+      skier.shootT = f0.sh || 0;
+      run.onFire = !!f0.fire;
+      spawnFlair(skier);
+      stepParticles(dt);
+      stepProps(dt);
       updateSway(dt);
       updateCamera(dt);
     }

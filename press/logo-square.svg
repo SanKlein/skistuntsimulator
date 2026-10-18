@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" font-family="Russo One, Arial Black, sans-serif">
+  <style>@import url("https://fonts.googleapis.com/css2?family=Russo+One&amp;display=block");</style>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a9dcff"/>
+      <stop offset="0.55" stop-color="#d7efff"/>
+      <stop offset="1" stop-color="#f3fbff"/>
+    </linearGradient>
+    <linearGradient id="snow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dbe8f4"/>
+    </linearGradient>
+    <linearGradient id="chrome" x1="0" y1="22" x2="0" y2="72" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".48" stop-color="#9fd6ff"/>
+      <stop offset=".52" stop-color="#2b4fa8"/><stop offset="1" stop-color="#cfe9ff"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#sky)"/>
+  <circle cx="840" cy="478" r="56" fill="#fff7d6"/>
+
+  <!-- mountains -->
+  <path d="M0 640 L180 520 L320 610 L470 500 L640 630 L820 530 L1024 640 Z" fill="#c4d8ec"/>
+  <path d="M0 700 L220 580 L410 680 L640 570 L860 680 L1024 600 L1024 700 Z" fill="#aec7e2"/>
+
+  <!-- snow slope -->
+  <path d="M0 810 L1024 700 L1024 1024 L0 1024 Z" fill="url(#snow)"/>
+  <path d="M0 810 L1024 700" stroke="#eaf4fd" stroke-width="6" fill="none"/>
+
+  <!-- brick wall -->
+  <g>
+    <rect x="700" y="700" width="46" height="150" fill="#b0573f"/>
+    <g stroke="rgba(255,255,255,.25)" stroke-width="2">
+      <line x1="700" y1="724" x2="746" y2="724"/><line x1="700" y1="748" x2="746" y2="748"/>
+      <line x1="700" y1="772" x2="746" y2="772"/><line x1="700" y1="796" x2="746" y2="796"/>
+      <line x1="723" y1="700" x2="723" y2="724"/><line x1="700" y1="724" x2="700" y2="748"/>
+    </g>
+    <ellipse cx="723" cy="700" rx="26" ry="7" fill="#fff"/>
+  </g>
+
+  <!-- skier mid-backflip over the wall -->
+  <g transform="translate(560 600) rotate(150) scale(1.25)" stroke-linecap="round" fill="none">
+    <path d="M-46 34 H50" stroke="#ffcf33" stroke-width="9"/>
+    <path d="M-8 34 L0 8 M10 34 L2 8" stroke="#2b3a67" stroke-width="9"/>
+    <path d="M0 8 L4 -20" stroke="#e8442c" stroke-width="12"/>
+    <path d="M2 -6 L24 2" stroke="#e8442c" stroke-width="7"/>
+    <circle cx="6" cy="-28" r="9" fill="#ffd9b0" stroke="none"/>
+    <path d="M-4 -29 a9 9 0 0 1 18 0 Z" fill="#1f2c47" stroke="none"/>
+  </g>
+
+  <!-- arcade logo (same art as the in-game logo, 400x140 design units) -->
+  <g transform="translate(30 120) scale(2.3)">
+    <g transform="skewX(-12) translate(22 0)">
+      <text x="200" y="70" text-anchor="middle" font-size="62" letter-spacing="2" fill="url(#chrome)"
+        stroke="#ff2d95" stroke-width="7" stroke-linejoin="round" paint-order="stroke">SKI STUNT</text>
+      <rect x="60" y="86" width="280" height="30" fill="#ff2d95"/>
+      <text x="200" y="110" text-anchor="middle" font-size="24" letter-spacing="9" fill="#fff">SIMULATOR</text>
+    </g>
+  </g>
+
+  <!-- arcade cabinet frame -->
+  <rect x="8" y="8" width="1008" height="1008" rx="22" fill="none" stroke="#ff2d95" stroke-width="16"/>
+  <rect x="22" y="22" width="980" height="980" rx="12" fill="none" stroke="#33e1ff" stroke-width="8"/>
+</svg>
